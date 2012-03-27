@@ -1,0 +1,110 @@
+if RUBY_PLATFORM =~ /win32/
+
+else
+
+end
+
+set_global_attribute :c_warning_level, 2
+
+class ClangCppCompiler < SingleFileCompiler
+
+	def compile( infile, outfile )
+		dfilename = outfile.to_s.sub(/\.obj/, '.d')
+
+		check_optimized_dependencies(infile.path, dfilename) do
+			system_include_dir_options = infile.context.get_attribute_set(:c_system_include_dir).map {|d|['-I', d]}
+			include_dir_options = infile.context.get_attribute_set(:c_include_dir).map {|d| ['-I', d] }
+			define_options = infile.context.get_attribute_set(:c_define).map {|d| ['-D', d] }
+			warning_options = infile.context.get_attribute_set(:c_warning).map {|w| ['-W' + w]}
+
+			case infile.context.get_attribute_value(:c_warning_level)
+			when 2
+				warning_options << '-Wall' << '-Wextra' << '-Werror'
+			when 1
+				warning_options << '-Wall' << '-Werror'
+			when 0
+				warning_options << '-Werror'
+			end
+
+			optimization = infile.context.get_attribute_value(:c_optimization)
+			optimization_options = case optimization
+			when :none, nil
+				['-O0']
+			when :full
+				['-O2']
+            when :size
+                ['-Os']
+			else
+				optimization.split()
+			end
+
+			trace "Compiling (C) %s", infile.path
+			default_options = [
+				'-fsigned-char',
+				'-fsigned-bitfields',
+				'-fno-builtin',
+				'-ffast-math'
+			]
+
+			sh 'clang',
+				'-MD', '-g',
+				warning_options,
+				optimization_options,
+				default_options,
+				define_options,
+				include_dir_options,
+				system_include_dir_options,
+				'-c', infile.path, '-o', make_relative(outfile) do |lines|
+					for line in lines
+						trace "%s", line
+					end
+				end
+
+			dependencies = Dependencies.load_make_dependencies(dfilename)
+			dependencies.write_lace_dependencies(dfilename)
+		end
+	end
+end
+
+
+class GccLinker < MultiFileCompiler
+	def output_name
+		@output_path + ( @project.globals.target_name || @project.name )
+	end
+
+	def compile( infiles )
+		trace 'Linking...'
+
+		lib_dirs = @project.global_context.get_attribute_set( :c_lib_dir )
+		libs = @project.global_context.get_attribute_list( :c_lib )
+
+		bin_name = output_name
+		mapfile_name = @output_path + 'mapfile.map'
+
+		lib_options = libs.map do |lib|
+			if lib =~ /^lib(.+)\.a$/
+				['-l', $1]
+			elsif lib =~ /^lib(.+)\.so$/
+				['-l', $1]
+			else
+				['-l', lib]
+			end
+		end
+
+		response_sh 'gcc',
+			lib_dirs,
+			'-Wl,-dc',
+			"-Wl,-Map,#{mapfile_name}",
+			infiles.map { |f| f.path },
+			lib_options,
+			'-o', bin_name
+	end
+end
+
+define_compiler(ClangCppCompiler, :input_pattern => tag('.c'), :dependency_pattern => tag('.h'), :output_name => 'c_compiler/%.obj') do
+end
+
+define_compiler(GccLinker, :input_pattern => tag('.obj'), :output_tag => 'self') do
+end
+
+

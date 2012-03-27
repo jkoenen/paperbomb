@@ -1,0 +1,292 @@
+vc_dir = to_path('.')
+@project.globals.vc_dir = vc_dir
+
+if @project.build_tags.include?('win64')
+	@project.globals.vc_bin_dir = vc_dir + 'bin/amd64/'
+else
+	@project.globals.vc_bin_dir = vc_dir + 'bin/'
+end
+
+ruby_dir = to_path( '../../../../../tools/host-windows/ruby/bin/ruby.exe' )
+@ruby_path = ruby_dir 
+
+@project.globals.set_vc_env = proc do |env|
+	if @project.build_tags.include?('win64')
+		bin_dir = (vc_dir + 'bin/amd64').to_s.gsub(/\//, '\\')
+		ide_dir = (vc_dir + 'ide').to_s.gsub(/\//, '\\')
+		
+		env['Path'] = ide_dir + ';' + bin_dir	
+		env['LIB'] = '"' + (vc_dir + 'lib/amd64').to_s.gsub(/\//, '\\') + '"'	
+	else
+		bin_dir = (vc_dir + 'bin').to_s.gsub(/\//, '\\')
+		ide_dir = (vc_dir + 'ide').to_s.gsub(/\//, '\\')
+		
+		env['Path'] = ide_dir + ';' + bin_dir	
+		env['LIB'] = '"' + (vc_dir + 'lib').to_s.gsub(/\//, '\\') + '"'
+	end	
+end
+
+
+module MSVCCompilerMixin
+    def getExceptionParameter()
+        exception_attributes = @project.global_context.get_attribute_value(:c_exceptions)
+        if exception_attributes and exception_attributes == true
+            return '/EHsc'
+        else
+            return ''
+        end
+    end
+end
+
+class MSVCCompiler < SingleFileCompiler
+    include MSVCCompilerMixin
+
+	def process_files(files, num_jobs)
+		@build_type_switch = get_build_type_switch
+		
+		Helpers::temp_env do |env|
+			@project.globals.set_vc_env.call(env)
+			system_include_dirs = @project.global_context.get_attribute_set(:c_system_include_dir)
+			env['INCLUDE'] = (system_include_dirs.map {|i| i.to_s}.join(';')).gsub(/\//, '\\')
+			
+			@pch_file = files.select {|f| f.tags.include? '.pch' }.first
+			
+			super(files.select {|f| !f.tags.include?('.pch') }, num_jobs)
+		end
+	end
+
+	def compile(infile, outfile)
+		check_optimized_dependencies(infile.path, outfile.to_s.sub(/\.obj/, '.d')) do
+		
+			target_platform = @project.build_tags.include?( 'win64' ) ? 'win64' : 'win32'
+			trace "Compiling(%s) %s", target_platform, infile.path
+			include_dirs = infile.context.get_attribute_set(:c_include_dir).map {|d| ['/I', d] }
+			defines = infile.context.get_attribute_set(:c_define).map {|d| ['/D', d] }
+			warn_level = '/W' + (infile.context.get_attribute_value(:c_warning_level) || 'all').to_s
+			disabled_warnings = get_disabled_warnings(infile)
+
+			optimization = infile.context.get_attribute_value(:c_optimization)
+			optimization_options = case optimization
+			when :none, nil
+				[]
+			when :full
+				[ '/O2' ]
+			when :size
+				['/Os']
+			else
+				optimization.split()
+			end
+			
+			if @project.build_tags.include?('win64')
+				architecture_options = ''					# x64 automatically uses SSE2 instructions..
+			else
+				architecture_options = '/arch:SSE2'			# create SSE2 instructions
+			end
+			
+			pdbFileName = ( ( @project.build_path + (@project.globals.target_name || @project.name) ).to_s + '.pdb' ).gsub(/\//, '\\')
+			
+			sh Helpers.ruby_exe, @project.globals.vc_dir + 'clwrapper.rb',
+				outfile, @project.globals.vc_bin_dir + 'cl.exe', '/nologo',
+				@build_type_switch,
+				warn_level, 
+                disabled_warnings,
+				include_dirs, 
+                defines,
+				'/D_BIND_TO_CURRENT_CRT_VERSION=1',
+				'/Fd' + pdbFileName,
+				architecture_options,
+				'/GS-', 																	# disable buffer security checks
+                '/TC',                                                                      # assume C code input
+				'/Gm',																		# minimal rebuilds
+				optimization_options,
+				'/showIncludes', '/WX', '/Zi', '/c', '/Fo' + make_relative(outfile), infile.path.to_s
+		end
+	end
+	
+	def get_build_type_switch
+
+		link_type = @project.globals.msvc_link_type || :dynamic
+		threading_type = @project.globals.msvc_threading_type || :multi
+		
+		if threading_type != :multi and threading_type != :single
+			abort_build "You have to specify a threading type. Use set_build_options()!"
+		end
+		
+		if  link_type == :dynamic
+			build_type = '/MD' if threading_type == :multi
+		elsif link_type == :static
+			build_type = '/ML' if threading_type == :single
+			build_type = '/MT' if threading_type == :multi
+		else
+			abort_build "You have to specify a link type. Use set_build_options()!"
+		end
+
+		if build_type
+			if @project.build_tags.include?('debug')
+				build_type = build_type + 'd'
+			end
+		else
+			raise "Invalid combination of link type and threading type. (#{link_type}, #{threading_type})"
+		end
+
+		return build_type
+	end
+	
+	def get_disabled_warnings(infile)
+		disabled_warnings = infile.context.get_attribute_set(:msvc_disabled_warnings)
+		
+		disabled_warnings << 4625	# copy constructor could not be generated because base class copy constructor is inaccessible.
+		disabled_warnings << 4626	# assignment operator could not be generated because base class assignment operator is inaccessible.
+		
+		disabled_warnings << 4324	# 
+		
+		disabled_warnings << 4290	# C++ exception specification ignored except to indicate a function is not __declspec(nothrow)
+		
+		disabled_warnings << 4985	# attributes not present on previous declaration.
+
+		disabled_warnings << 4820	# padding added to struct members
+		disabled_warnings << 4514	# unreferenced inline function has been removed
+		disabled_warnings << 4711	# 'selected for automatic inline expansion'
+
+		disabled_warnings << 4061	# enumerator X in switch is not explicitly handled
+		
+		disabled_warnings << 4511	# copy constructor could not be generated (probably base class copy constructor is inaccessible)
+		disabled_warnings << 4512	# assignment operator could not be generated (probably base class assignment operator is inaccessible)
+
+		disabled_warnings << 4548	# 'expression before comma has no effect; expected expression with side-effect' -> unfortunately, the stl brings up this warning.
+
+		disabled_warnings << 4710	# function not inlined
+		disabled_warnings << 4255 	#  no function prototype given: converting '()' to '(void)'
+	
+		disabled_warnings << 4738
+
+		disabled_warnings << 4571	# 'Informational: catch(...) semantics changed since Visual C++ 7.1; structured exceptions (SEH) are no longer caught'
+
+		#disabled_warnings << 4355	# 'this': used in base member initializer list -> this is ok, ex. with EventSignal
+
+		# these warnings are over the top, we don't want to use them because it gets tedious / ridiculous
+		#disabled_warnings << 4206	# the file was empty after preprocessing
+
+		# these are informational about optimizing and performance, would be nice to have as an info / diagnostics level, but not for the day-to-day work.
+		#disabled_warnings << 4505	# unreferenced local function has been removed
+
+		#disabled_warnings << 4738	# 'storing 32-bit float result in memory, possible loss of performance'
+
+		#disabled_warnings << 4619	# 'there is no warning number xxx'
+
+		# we would probably want to have the following alive, but we can't due to crt / c++ lib bugs from M$.
+		#disabled_warnings << 4702	# 'unreachable code' -> because of the sucking msvc stl implementation!
+		#disabled_warnings << 4555   # 'expression has no side effect; expected expression with side-effect' - thrown by msvc/include/list
+
+		# these should not be in the default disabled set. Check if they can be removed.
+		#disabled_warnings << 4217# 'member template functions cannot be used for copy-assignment or copy-construction'
+		#disabled_warnings << 4996# 'xxxx : this function or variable may be unsafe, consider using different function'
+		#disabled_warnings << 4127# conditional expression is constant
+		#disabled_warnings << 4815# zero sized array in stack object will have no elements
+		#disabled_warnings << 4189# local variable is initialized but not referenced
+		#disabled_warnings << 4668# symbol is not defined as a preprocessor macro
+		#disabled_warnings << 4640	# construction of local static object is not thread safe
+		#disabled_warnings << 4245	# conversion from const value to value signed / unsigned mismatch.			
+
+		return disabled_warnings.uniq.map {|w| '/wd' + w.to_s}
+	end
+	
+	def output_files(files)
+		super(files.select {|f| !f.tags.include?('.pch') })
+	end
+end
+
+class MSVCLinker < MultiFileCompiler
+	
+	def output_name
+		dll = @project.globals.windows_target == :dll
+
+		@output_path + ((@project.globals.target_name || @project.name) + (dll ? '.dll' : '.exe'))
+	end
+
+	def run_mt
+		sh @project.globals.vc_dir + 'bin/mt.exe', '-manifest', output_name.to_s + '.manifest',
+			'-outputresource:' + output_name.to_s + ';1'
+	end
+
+	def compile(infiles)
+		Helpers.temp_env do |env|
+			@project.globals.set_vc_env.call(env)
+			lib_dirs = @project.global_context.get_attribute_set(:lib_dir)
+			libs = @project.global_context.get_attribute_set(:libs)
+			dlls = @project.global_context.get_attribute_set(:dlls)
+			subsystem = @project.globals.windows_subsystem
+
+			linktarget = @project.globals.windows_target || :exe
+
+			def_files = infiles.select {|i| i.tags.include? '.def'}
+			abort_build 'Only 1 .def might be added to the source tree' if def_files.size > 1
+			infiles.delete(*def_files) if def_files.size == 1
+			if linktarget == :dll
+				abort_build 'A def file is required for dll builds.' if def_files.size < 1
+				def_file = def_files[0]
+			end
+			
+			if @project.build_tags.include?('win64')
+				targetmachine = '/MACHINE:x64'
+			else
+				targetmachine = '/MACHINE:x86'
+			end
+
+			trace 'linking'
+			response_sh @project.globals.vc_dir + 'bin/cl.exe', '/nologo',
+				infiles.map {|f| f.path }, '/Fe' + output_name.to_s,
+				'/link',
+				targetmachine,
+				linktarget == :dll ? ['/DLL', '/DEF:' + def_file.path.to_s] : [],
+				'/debug', '/debugtype:cv',
+				lib_dirs.map {|d| '/libpath:' + d.to_s },
+				libs,
+				subsystem ? '/SUBSYSTEM:' + subsystem : []
+
+			if @project.globals.msvc_link_type == :dynamic
+				run_mt
+			end
+			
+			dlls = @project.global_context.get_attribute_set(:dlls)
+			unless dlls.empty?
+				trace "Copying %d dlls", dlls.size
+				dlls.each do |dll|
+					FileUtils.cp(dll.to_s, (@output_path + dll.basename).to_s)
+				end
+			end
+		end
+	end
+end
+
+class MSVCResourceCompiler < SingleFileCompiler
+	def compile(infile, outfile)
+		if Helpers.newer? infile.path, outfile
+			include_dirs = @project.global_context.get_attribute_set(:resource_include_dirs)
+			Helpers.temp_env do |env|
+				@project.globals.set_vc_env.call(env)
+				sh 'rc', '/x', include_dirs.map {|id| ['/i', id.to_s.gsub('/','\\')]}, '-fo', outfile, infile.path
+			end
+		end
+	end
+
+end
+
+add_global_path :resource_include_dirs, 'include'
+add_global_path :c_system_include_dir, 'include'
+
+define_compiler(MSVCCompiler, :input_pattern => tag('.c'), :dependency_pattern => tag('.h'), :output_name => 'c_compiler/%.obj') do
+end
+
+define_compiler(MSVCLinker, :input_pattern => tag('.obj')|tag('.res'), :output_tag => 'exe') do
+end
+
+define_compiler(MSVCResourceCompiler, :input_pattern => tag('.rc'), :output_name => 'resource_compiler/%.res') do
+end
+
+# copy the debug runtime dlls over to be able to run the debug build
+if @build_tags.include? ('debug')
+	#add_dll 'redist/Debug_NonRedist/x86/Microsoft.VC90.DebugCRT/Microsoft.VC90.DebugCRT.manifest'
+	#add_dll 'redist/Debug_NonRedist/x86/Microsoft.VC90.DebugCRT/msvcr90d.dll'
+end
+

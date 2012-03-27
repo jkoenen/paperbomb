@@ -1,0 +1,37 @@
+
+define_compiler(CompilerBase, :input_pattern => tag('.c') & tag('UNITY'), :output_dir => 'c_unity', :output_tag => '.c') do
+	def process_files(files, num_jobs)
+		sets(files).each do |output_name, files|
+			content = files.map {|file| "#include \"#{file.path}\"\n" }.join
+			unless File.exist?(output_name) && File.read(output_name) == content
+				trace 'Creating unity build source %s', output_name
+				FileUtils.mkpath Pathname.new( output_name ).dirname
+				File.open(output_name, 'w') {|f| f.write content }
+			end
+		end
+	end
+
+	def output_files(files)
+		sets(files).map {|output_name, files| InputFile.new(output_name, ['.c'], files.first.context) }
+	end
+
+	def sets(files)
+		sort_sets = Hash.new {|k, v| k[v] = [] }
+		files.each do |file|
+			sort_sets[file.context.get_attribute_value(:unity_set) || 'default'] << file
+		end
+		sets = {}
+		sort_sets.each do |name, files|
+			sets[@output_path + (name + '_unity.c')] = files
+			context = files.first.context
+			files.each do |file|
+				if file.context != context
+					trace "Error: Files from different contexts in the same unity set:\n#{files.first.path}\nvs.\n#{file.path}"
+					raise AbortBuild
+				end
+			end
+		end
+		return sets
+	end
+end
+

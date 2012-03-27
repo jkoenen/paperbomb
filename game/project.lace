@@ -1,0 +1,12 @@
+# linux{debug,release,master},win32{debug,release,master}
+
+inject '../config/game_config.rb'
+
+set_project_name 'paperbomb'
+
+import 'compiler/c'
+
+! project.lace
+! source/**/*.c
+! source/**/*.h
+
