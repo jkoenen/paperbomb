@@ -1,0 +1,201 @@
+= Lace
+
+Lace is a cross-platform build system supporting modular multi-platform cross-compiling projects. (It was created with compiling video games in mind.)
+It was developed at keengames (http://keengames.com) to be used in all of our video game projects.
+
+Please note that the following documentation is still incomplete. You will have to also take a look at the Lace sources (most important parts are documented) and you should also download and look at the Spidr example project from the Lace project page on sourceforge.
+
+== Installation
+
+To install Lace you first have to have Ruby (http://ruby-lang.org) installed. Any Ruby version >= 1.8 should work, although a version >= 1.9.1 is strongly recommended.
+With Ruby installed, simply unpack the Lace archive and run the setup.rb script. This will install Lace at the same place of your Ruby installation.
+
+One note on how we setup Ruby and Lace in our projects at keengames: We don't actually use an installed Ruby, but rather have versions of Ruby and Lace in our subversion repository and fetch them into our projects using svn:externals. We then simply reference them from .cmd files with the appropriate relative paths.
+
+You'll have to decide for yourself what's most appropriate for you.
+
+== Usage
+
+Lace currently comes with four executable scripts:
+
+lace:: The main executable for doing a build
+lace-vcproj:: A script for creating Visual Studio project files
+lace-eclipse:: A script for creating eclipse project files
+lace-doxyfile:: A script for creating doxygen project files
+
+For details on this commands, please see the files itself.
+
+=== Basic operation
+
+A Lace project defines three types of information:
+
+* A set of tagged files belonging to exactly one context each
+* A hierarchy of contexts holding attributes
+* A set of compilers that process files
+
+The build process as follows:
+
+* The compilers are sorted by their inputs and outputs, so that if compiler A producess files that compiler B takes as input, compiler B is run after compiler A.
+* For each of the tagged input files the best matching compiler is found.
+* Each compiler is run on its matching files, the compiler may use the attributes of the files' context for compile options like include paths. The outputs of each compiler is matched to the remaining compilers as potential inputs.
+
+=== .lace files
+
+A Lace project is defined by a project.lace file. This file can specify everything needed to build the project, although in practice it will import modules for shared libraries and compiler definitions.
+
+Lace modules simply are directories containing a module.lace file.
+
+All .lace files are simply ruby scripts that are run in the context of an instance of Lace::LaceModule, so it can access all of its functions.
+
+There is a simple preprocess used for the .lace files that adds the simple syntactic sugar:
+
+  ! myfile.ext TAG1 TAG2
+
+which gets replaced by:
+
+  add_file('myfile.ext', 'TAG1 TAG2')
+
+=== Build tags
+
+You can specify build targets using the -b/--build option of th +lace+ commnd. This build target is a path (ex. win32/debug) which is used as the output directory and which will be split at the slashes and put into the @build_path variable. You can then test the @build_path variable in your .lace files to adapt them to the current build target.
+
+It is also possible to modify the @build_path array in your project.lace file, for example to define new build targets:
+
+Say your c/c++ compiler definition nows about a 'release' and a 'debug' build and you now want to add a 'test' target that uses the debug build flags, then you might write something like this in your project.lace:
+
+  case @build_targets
+  when tag('test')
+    @build_tags << 'debug'
+  end
+
+=== Defining compilers
+
+You define compilers using the +define_copmiler+ function. One very simple definition would be this:
+
+  define_compiler(MultiFileCompiler, :input_pattern => tag('.c'), :output_name => 'helloworld') do
+    def compile(files)
+      if Helpers.newer?(files, output_name)
+        sh 'gcc', '-o', output_name, files
+      end
+    end
+  end
+
+The define_compiler function takes a base class for your compiler as a first parameter. It will create a subclass of this and an instance of this subclass. Currently there are two baseclasses defined: Lace::SingleFileCompiler and Lace::MultiFileCompiler.
+
+The SingleFileCompiler baseclass is meant for compilers that compile each of their input files seperately, like a c compiler compiling each source file to one object file.
+
+The MultiFileCompiler baseclass should be used for compilers that take all of their inputs in one compile step, like for example a linker.
+
+You can also subclass Lace::CompilerBase if you need more control. In that case you should consult the source at lib/lace/compilerbase.rb.
+
+The second parameter of the define_compiler function is a hash of named parameters. The two most important parameters are:
+
+input_pattern:: A pattern of tags to match against input files. (See Lace::Tag)
+output_name:: The name of your output, or a template for your output names for SingleFileCompiler derived compilers. In the latter case, a % character will be replaced by the input file name without extension.
+
+For MultiFileCompiler classes the following two parameters can be used to automtically check the dependencies before the compile method is called.
+
+make_dependencies:: A template (see output_name) that tells Lace where a dependency file in makefile format can be found. If any of the inputs is newer than the outputs the compile method is called
+lace_dependencies:: A template pointing to a dependency file optimized for Lace, see Lace::CompilerBase # check_optimized_dependencies
+
+For more parameters consult the documentation for Lace::LaceModule # define_compiler.
+
+The block given to the define_compiler function is run in the context of the newly created class and should define the member functions of this class. The one function you need to define is the compile function. Its parameters differ between SingleFileCompiler and MultiFileCompiler.
+
+SingleFileCompiler:: The first parameter is the input file as a Lace::InputFile, the second the output file as a Pathname.
+MultiFileCompiler:: The only parameter is an Array of all input files as Lace::InputFile instances.
+
+The compile function can use the +sh+ function to execute external programs.
+
+You can look up the input files context through inputfile.context and access the attributes there. For a MultiFileCompiler it might make more sense to use the project global context, which you can access through @project.global_context. (See Lace::Context)
+
+=== Adding files to your project
+
+You can add files with the simple syntactic sugar:
+
+  ! sourcefile.ext TAG1 TAG2
+
+The filename can contain wildcards, so you can do
+
+  ! **/*.cpp
+
+to add all .cpp files below the current directory.
+
+The file is automatically tagged with its extension, so in many cases you don't have to add any tags of your own.
+
+=== Attributes
+
+Attributes in Lace are a way to transport information about the build context, like include paths, defines, warning level, etc. By convention, attributes are specified using Ruby symbols, which are simply identifier prefixed by a colon.
+
+Attributes that contain strings or numbers can be added to the current context using the add_attribute function, for example:
+
+  add_attribute :cpp_define, 'DEBUG', 'ENABLE_TRACES'
+
+(You can add multiple attribute values with a single call to add_attribute.)
+
+Attributes that take paths should be added using the add_path function, this ensures that relative paths are handled correcty. For example:
+
+  add_path :cpp_include_dir, 'include'
+
+The names of attributes are not defined by Lace but rather by what your compiler definitions expect.
+
+You can add attributes to the project global context (for example for libs and library paths) using the add_global_attribute and add_global_path functions.
+
+=== Modules and contexts
+
+Modules in Lace are simply directories containing a module.lace file. They are found through a module search path, which per default only contains the project directory. The module search path can be extended through the module_search_path function, like this:
+
+  module_search_path 'modules'
+
+Modules can be imported using the import function, by giving a path relative to one of the search path entries.
+
+Each module defines its own seperate context with its own attributes, however, parts of this context can be exported and are then also available by the importing module.
+
+Say, a module called foo needs users of this module to access its include files, then you might write something like this in the project.lace file:
+
+  export do
+    add_path :cpp_include_dir, 'include'
+  end
+
+Each module that does a <tt>import 'foo'</tt> now gets the include path attribute in its own context. If now a module named bar includes file from the foo module in one of its header files, it needs to re-export these attributes for its users in turn, like this:
+
+  export do
+    import 'foo'
+  end
+
+This makes it very easy to distribute things like include paths or defines as far as needed but at the same time lets you compile the modules as seperated as possible, which in our eyes is a good thing.
+
+==== Module options
+
+You can associate a hash of options with a module, which that module can then access through the @options variable. Options hashes can be given either as an optional second parameter to the import method, or using the module_options method.
+
+You can associate multiple option hashes with the same module in which case lace will try to merge the hashes. In case of conflicts (different values for the same keys), an error is thrown.
+
+==== Module aliases
+
+You can define module aliases using
+
+  module_alias 'new/module/path', 'original/module/path'
+
+== License
+
+Copyright (c) 2009 keen games
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in
+all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+THE SOFTWARE.
+

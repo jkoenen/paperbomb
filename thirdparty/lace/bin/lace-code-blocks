@@ -1,0 +1,109 @@
+#!/usr/bin/env ruby
+
+lib_dir = File.dirname(__FILE__) + '/../lib'
+$: << lib_dir if File.directory?(lib_dir + '/lace')
+
+require 'lace/projectwriterbase'
+require 'optparse'
+
+module Lace
+	class CodeBlocksProjectFileWriter < ProjectFileWriterBase
+
+		def make_local(path)
+			Helpers.make_relative(path).gsub(/\//, '\\')
+		end
+
+		def write(filename, version_major, version_minor, jobs)
+			open_file(filename) do |file|
+				project_name = @project.name
+
+				file.puts "<?xml version=\"1.0\" encoding=\"UTF-8\" standalone=\"yes\" ?>"
+				
+				file.puts "<CodeBlocks_project_file>"
+				file.puts "<FileVersion major=\"#{version_major}\" minor=\"#{version_minor}\" />"
+				file.puts "<Project>"
+				file.puts "\t<Option title=\"#{project_name}\" />"
+				file.puts "\t<Option makefile_is_custom=\"1\" />"
+
+				# add builds
+				file.puts "\t<Build>"
+				@builds.each do |build|
+					project = find_project(build)
+					target_dir = project.build_path
+					executable_base_filename = (@project.globals.target_name || @project.name)
+					build_cmd = build_command(build, jobs)
+					
+					file.puts "\t\t<Target title=\"#{build}\">"
+					
+					file.puts "\t\t\t<Option output=\"#{build}/#{executable_base_filename}\" prefix_auto=\"1\" extension_auto=\"1\" />"
+					file.puts "\t\t\t<Option working_dir=\"#{target_dir}\" />"
+					file.puts "\t\t\t<Option type=\"1\" />"
+					file.puts "\t\t\t<MakeCommands>"
+						file.puts "\t\t\t\t<Build command=\"#{build_cmd} build\" />"
+						file.puts "\t\t\t\t<CompileFile command=\"\" />"
+						file.puts "\t\t\t\t<Clean command=\"#{build_cmd}  -c\" />"
+						file.puts "\t\t\t\t<AskRebuildNeeded command=\"\" />"					
+						file.puts "\t\t\t\t<SilentBuild command=\"\" />"
+						#file.puts "\t\t\t\t<DistClean command="$make -f $makefile distclean$target" />"
+					file.puts "\t\t\t</MakeCommands>"
+					
+					file.puts "\t\t</Target>"
+				end
+				
+				file.puts "\t</Build>"
+				
+				filenames = get_files
+	
+				# now put all the files...
+
+				# now make relativ paths from the filenames
+				filenames = filenames.map {|filename| make_local(filename) }
+				
+				filenames.each do |filename| 
+					file.puts "\t<Unit filename=\"#{filename}\" />"
+				end
+
+				# now recurse through the hashes that each represent a folder
+#				write_folders(file, folders, 2)
+				
+				file.puts "</Project>"
+				file.puts "</CodeBlocks_project_file>"
+			end
+		end
+		
+	end
+end
+
+project_file = 'project.lace'
+proj_file = nil
+proj_version_major = '1'
+proj_version_minor = '6'
+proj_jobs = ENV['NUMBER_OF_PROCESSORS'] || '1'
+build_path = nil
+
+OptionParser.new do |opts|
+	opts.banner = "Usage: lace-code-blocks.rb [OPTIONS] [BUILDS]"
+	opts.on("-p", "--project PROJECT_FILE", "The project file to read (default: project.lace)") do |fname|
+		project_file = fname
+	end
+	opts.on("-o", "--output PROJ_FILENAME", "The filename of the resulting .proj file (default: build/<project_name>.cbp)") do |fname|
+		proj_file = fname
+	end
+	opts.on("-j", "--jobs NUM_JOBS", Integer, "Number of compile jobs to execute in parallel") do |jobs|
+		proj_jobs = jobs
+	end
+	opts.on("-b", "--build-path PATH", "Base build dir") do |path|
+		build_path = path
+	end
+end.parse!
+
+if ARGV.empty?
+	puts 'Error: no build targets given.'
+	exit 1
+end
+
+writer = Lace::CodeBlocksProjectFileWriter.new(project_file, ARGV)
+target_name = proj_file ? proj_file : writer.project.path + "build/#{writer.project.name}.cbp"
+writer.build_path = build_path if build_path
+writer.write(target_name, proj_version_major, proj_version_minor, proj_jobs)
+

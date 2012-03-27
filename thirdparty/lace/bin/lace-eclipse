@@ -1,0 +1,205 @@
+#!/usr/bin/env ruby
+
+# Creates an Eclipse project that is set up to build using the +lace+ command.
+#
+# Usage:
+#
+#   lace-eclipse [OPTIONS] BUILD_TARGET1 [BUILD_TARGET2 [...]]
+#
+# Options:
+#
+#   -p, --project PROJECT_FILE     The project file to read (default: project.lace)
+#
+#   -j, --jobs NUM_JOBS            Number of compile jobs to execute in parallel
+#                                  (Defaults to the NUMBER_OF_PROCESSORS environment var.)
+# Copyright (c) 2009 keen games
+#
+# Permission is hereby granted, free of charge, to any person obtaining a copy
+# of this software and associated documentation files (the "Software"), to deal
+# in the Software without restriction, including without limitation the rights
+# to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+# copies of the Software, and to permit persons to whom the Software is
+# furnished to do so, subject to the following conditions:
+#
+# The above copyright notice and this permission notice shall be included in
+# all copies or substantial portions of the Software.
+#
+# THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+# IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+# FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+# AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+# LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+# OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+# THE SOFTWARE.
+
+
+lib_dir = File.dirname(__FILE__) + '/../lib'
+$: << lib_dir if File.directory?(lib_dir + '/lace')
+
+require 'lace/projectwriterbase'
+require 'optparse'
+
+module Lace
+	class EclipseProjectWriter < ProjectFileWriterBase
+		def write(num_jobs)
+			external_project_paths = []
+			@projects.each do |project|
+				project.modules.each do |mod|
+					external_paths = []
+					if Helpers::make_relative2(mod.path, @project.path) =~ /^\.\./
+						external_paths << mod.path
+					end
+					external_project_paths.concat(external_paths.uniq.select do |path|
+						project.files.any? {|f| Helpers::make_relative2(f.path, path) !~ /^\.\./ }
+					end)
+				end
+			end
+			external_project_paths = external_project_paths.uniq
+					
+			open_file(@project.path + '.project') do |file|
+				file.puts '<?xml version="1.0" encoding="UTF-8"?>'
+				file.puts '<projectDescription>'
+				file.printf "\t<name>%s</name>\n", @project.name
+				file.puts "\t<buildSpec>"
+				file.puts "\t\t<buildCommand>"
+				file.puts "\t\t\t<name>org.eclipse.cdt.managedbuilder.core.genmakebuilder</name>"
+				file.puts "\t\t\t<triggers>clean,full,incremental,</triggers>"
+				file.puts "\t\t</buildCommand>"
+				file.puts "\t\</buildSpec>"
+				file.puts "\t<natures>"
+				file.puts "\t\t<nature>org.eclipse.cdt.core.ccnature</nature>"
+				file.puts "\t\t<nature>org.eclipse.cdt.managedbuilder.core.managedBuildNature</nature>"
+				file.puts "\t\t<nature>org.eclipse.cdt.core.cnature</nature>"
+				file.puts "\t</natures>"
+        
+				file.puts "\t<linkedResources>"
+
+				external_project_paths.each do |path|
+					file.puts "\t\t<link>"
+					file.printf "\t\t\t<name>%s</name>\n", path.basename
+					file.puts "\t\t\t<type>2</type>"
+					file.printf "\t\t\t<location>%s</location>\n", path
+					file.puts "\t\t</link>"
+				end
+				
+				file.puts "\t</linkedResources>"
+
+				file.puts "</projectDescription>"
+			end
+			
+			open_file(@project.path + '.cproject') do |file|
+				file.puts '<?xml version="1.0" encoding="UTF-8" standalone="no"?>'
+				file.puts '<?fileVersion 4.0.0?>'
+				file.puts '<cproject>'
+				file.puts "\t<storageModule moduleId=\"org.eclipse.cdt.core.settings\">"
+				@builds.each do |build|
+					cleaned_build = build.gsub(/\//, '_')
+					id = '0.' + rand(9999999).to_s
+
+					lace_exe, lace_params = build_command(build, num_jobs).split(' ', 2)
+
+					file.printf "\t\t<cconfiguration id=\"%s\">\n", id
+					file.printf "\t\t\t<storageModule buildSystemId=\"org.eclipse.cdt.managedbuilder.core.configurationDataProvider\" id=\"%s\" moduleId=\"org.eclipse.cdt.core.settings\" name=\"%s\">\n", id, cleaned_build
+					file.printf "\t\t\t\t<extension>\n"
+					%w(VCErrorParser MakeErrorParser GCCErrorParser GASErrorParser GLDErrorParser).each do |parser|
+						file.printf "\t\t\t\t\t<extension id=\"id.eclipse.cdt.core.%s\" point=\"org.eclipse.cdt.core.ErrorParser\"/>\n", parser
+					end
+					file.printf "\t\t\t\t</extension>\n"
+					file.printf "\t\t\t</storageModule>\n"
+					file.printf "\t\t\t<storageModule moduleId=\"cdtBuildSystem\" version=\"4.0.0\">\n"
+					file.printf "\t\t\t\t<configuration artifactName=\"%s\" buildProperties=\"\" description=\"\" id=\"%s\" name=\"%s\" parent=\"org.eclipse.cdt.build.core.prefbase.cfg\">\n",
+						@project.name, id, cleaned_build
+					file.printf "\t\t\t\t\t<folderInfo id=\"%s.\" name=\"/\" resourcePath=\"\">\n", id
+					file.printf "\t\t\t\t\t\t<toolChain id=\"org.eclipse.cdt.build.core.prefbase.toolchain.1515086713\" name=\"No ToolChain\" resourceTypeBasedDiscovery=\"false\" superClass=\"org.eclipse.cdt.build.core.prefbase.toolchain\">\n"
+					file.printf "\t\t\t\t\t\t\t<targetPlatform id=\"org.eclipse.cdt.build.core.prefbase.toolchain.1515086713.747793681\" name=\"\"/>\n"
+					file.printf "\t\t\t\t\t\t\t<builder arguments=\"%s\" ", lace_params
+					file.printf "autoBuildTarget=\"\" buildPath=\"${ProjDirPath}\" "
+					file.printf "cleanBuildTarget=\"--clean\" command=\"%s\" ", lace_exe
+					file.printf "enableAutoBuild=\"false\" enableCleanBuild=\"true\" enableIncrementalBuild=\"true\" "
+					file.printf "id=\"org.eclipse.cdt.build.core.settings.default.builder.1820907424\" "
+					file.printf "incrementalBuildTarget=\"\" keepEnvironmentInBuildFile=\"false\" managedBuildOn=\"false\" name=\"Gnu Make Builder\" "
+					file.printf "parallelizationNumber=\"1\" superClass=\"org.eclipse.cdt.build.core.settings.default.builder\"/>\n"
+
+					# languages
+					[['GNU C++', 'g++', ['cxxSource', 'cxxHeader']]].each do |lang_name, lang_id, cont_types|
+						# include paths
+						file.printf "\t\t\t\t\t\t\t<tool id=\"org.eclipse.cdt.build.core.settings.holder.695930416\" name=\"%s\" superClass=\"org.eclipse.cdt.build.core.settings.holder\">\n", lang_name
+						file.printf "\t\t\t\t\t\t\t\t<option id=\"org.eclipse.cdt.build.core.settings.holder.incpaths.2120298510\" name=\"Include Paths\" superClass=\"org.eclipse.cdt.build.core.settings.holder.incpaths\" valueType=\"includePath\">\n"
+						get_attribute(:cpp_include_dir, build).each do |include_dir|
+							file.printf "\t\t\t\t\t\t\t\t\t<listOptionValue builtIn=\"false\" value=\"%s\"/>\n", include_dir
+						end
+						get_attribute(:cpp_system_include_dir, build).each do |include_dir|
+							file.printf "\t\t\t\t\t\t\t\t\t<listOptionValue builtIn=\"false\" value=\"%s\"/>\n", include_dir
+						end
+						get_attribute(:cpp_ide_include_dir, build).each do |include_dir|
+							file.printf "\t\t\t\t\t\t\t\t\t<listOptionValue builtIn=\"false\" value=\"%s\"/>\n", include_dir
+						end
+						file.printf "\t\t\t\t\t\t\t\t</option>\n"
+
+						# symbols
+						file.printf "\t\t\t\t\t\t\t\t<option id=\"org.eclipse.cdt.build.core.settings.holder.symbols.1109628522\" superClass=\"org.eclipse.cdt.build.core.settings.holder.symbols\" valueType=\"definedSymbols\">\n"
+						get_attribute(:cpp_define, build).each do |symbol|
+							file.printf "\t\t\t\t\t\t\t\t\t<listOptionValue builtIn=\"false\" value=\"%s\"/>\n", symbol
+						end
+						file.printf "\t\t\t\t\t\t\t\t</option>\n"
+
+						# language settings
+						file.printf "\t\t\t\t\t\t\t\t<inputType id=\"org.eclipse.cdt.build.core.settings.holder.inType.1009607540\" "
+						file.printf "languageId=\"org.eclipse.cdt.core.%s\" languageName=\"%s\" ", lang_id, lang_name
+						file.printf "sourceContentType=\"%s\" superClass=\"org.eclipse.cdt.build.core.settings.holder.inType\"/>\n", cont_types.map {|t| 'org.eclipse.cdt.code.' + t}.join(',')
+						file.printf "\t\t\t\t\t\t\t</tool>\n"
+					end
+					file.printf "\t\t\t\t\t\t</toolChain>\n"
+					file.printf "\t\t\t\t\t</folderInfo>\n"
+					file.printf "\t\t\t\t</configuration>\n"
+					file.printf "\t\t\t</storageModule>\n"
+
+					# build targets
+					file.printf "\t\t\t<storageModule moduleId=\"org.eclipse.cdt.make.core.buildtargets\">\n"
+					file.printf "\t\t\t\t<buildTargets>\n"
+					@builds.each do |target|
+						lace_exe, lace_params = build_command(target, num_jobs).split(' ', 2)
+						{'make all' => '', 'make clean' => '--clean'}.each do |targetName, targetParams|
+							file.printf "\t\t\t\t\t<target name=\"#{target} #{targetName}\" path=\"\" targetID=\"org.eclipse.cdt.build.MakeTargetBuilder\">\n"
+							file.printf "\t\t\t\t\t\t<buildCommand>%s</buildCommand>\n", lace_exe
+							file.printf "\t\t\t\t\t\t<buildArguments/>\n", lace_params
+							file.printf "\t\t\t\t\t\t<buildTarget>#{lace_params} #{targetParams}</buildTarget>\n"
+							file.printf "\t\t\t\t\t\t<useDefaultCommand>false</useDefaultCommand>\n"
+							file.printf "\t\t\t\t\t\t<runAllBuilders>true</runAllBuilders>\n"
+							file.printf "\t\t\t\t\t\t<stopOnError>true</stopOnError>\n"
+							file.printf "\t\t\t\t\t</target>\n"
+						end
+					end
+					file.printf "\t\t\t\t</buildTargets>\n"
+					file.printf "\t\t\t</storageModule>\n"
+
+					file.printf "\t\t</cconfiguration>\n"
+				end
+				file.printf "\t</storageModule>\n"
+				file.puts '</cproject>'
+			end
+		end
+	end
+end
+
+
+project_file = 'project.lace'
+num_jobs = Lace::Helpers.numCPUs
+
+OptionParser.new do |opts|
+	opts.banner = "Usage: lace-eclipse [OPTIONS] [BUILDS]"
+	opts.on("-p", "--project PROJECT_FILE", "The project file to read (default: project.lace)") do |fname|
+		project_file = fname
+	end
+	opts.on("-j", "--jobs NUM_JOBS", Integer, "Number of compile jobs to execute in parallel") do |jobs|
+		num_jobs = jobs
+	end
+end.parse!
+
+if ARGV.empty?
+	puts 'Error: no build targets given.'
+	exit 1
+end
+
+writer = Lace::EclipseProjectWriter.new(project_file, ARGV)
+writer.write(num_jobs)

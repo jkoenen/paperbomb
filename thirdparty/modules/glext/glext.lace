@@ -1,0 +1,14 @@
+
+section 'interface' do
+    export do
+        add_c_include_dir '.'
+    end
+end
+
+section 'main' do
+	export { import '#interface' }
+
+    ! glext.lace
+    ! glext.h
+end
+
