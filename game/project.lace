@@ -4,9 +4,36 @@ inject '../config/game_config.rb'
 
 set_project_name 'paperbomb'
 
+if tag( 'master' ).matches?( @build_tags )
+    set_global_attribute :c_optimization, :size
+    #set_global_attribute :no_std_lib, true
+    set_global_attribute :strip_executable, true
+    set_global_attribute :compress_executable, true
+end
+
+add_c_define 'GL_GLEXT_PROTOTYPES'
+
+add_c_include_dir 'include'
+
 import 'compiler/c'
 
 ! project.lace
-! source/**/*.c
-! source/**/*.h
+! source/shared/*.c
+! include/*.h
+
+case get_target_platform()
+when :win32
+    ! source/win32/**/*.c
+
+when :linux
+    ! source/linux/**/*.c
+#    ! source/linux/**/*.S
+
+    add_lib 'SDL'
+    add_lib 'GL'
+    add_lib 'pthread'
+    add_lib 'm'
+    add_lib 'c'
+end
+
 

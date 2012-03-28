@@ -10,6 +10,7 @@ class ClangCppCompiler < SingleFileCompiler
 
 	def compile( infile, outfile )
 		dfilename = outfile.to_s.sub(/\.obj/, '.d')
+        #@verbose = true
 
 		check_optimized_dependencies(infile.path, dfilename) do
 			system_include_dir_options = infile.context.get_attribute_set(:c_system_include_dir).map {|d|['-I', d]}
@@ -33,7 +34,7 @@ class ClangCppCompiler < SingleFileCompiler
 			when :full
 				['-O2']
             when :size
-                ['-Os']
+                ['-Os', '-fomit-frame-pointer']
 			else
 				optimization.split()
 			end
@@ -41,8 +42,6 @@ class ClangCppCompiler < SingleFileCompiler
 			trace "Compiling (C) %s", infile.path
 			default_options = [
 				'-fsigned-char',
-				'-fsigned-bitfields',
-				'-fno-builtin',
 				'-ffast-math'
 			]
 
@@ -52,6 +51,7 @@ class ClangCppCompiler < SingleFileCompiler
 				optimization_options,
 				default_options,
 				define_options,
+                '--static',
 				include_dir_options,
 				system_include_dir_options,
 				'-c', infile.path, '-o', make_relative(outfile) do |lines|
@@ -74,6 +74,7 @@ class GccLinker < MultiFileCompiler
 
 	def compile( infiles )
 		trace 'Linking...'
+        #@verbose = true
 
 		lib_dirs = @project.global_context.get_attribute_set( :c_lib_dir )
 		libs = @project.global_context.get_attribute_list( :c_lib )
@@ -91,13 +92,37 @@ class GccLinker < MultiFileCompiler
 			end
 		end
 
+        if @project.global_context.get_attribute_value( :no_std_lib )
+            lib_options << "-nostdlib" << "-nodefaultlibs"
+        end
+
 		response_sh 'gcc',
 			lib_dirs,
-			'-Wl,-dc',
-			"-Wl,-Map,#{mapfile_name}",
 			infiles.map { |f| f.path },
 			lib_options,
 			'-o', bin_name
+        
+        if @project.global_context.get_attribute_value( :strip_executable )
+            sh 'strip',
+                '-s',
+                '-R .comment',
+                '-R .gnu.version ', 
+                bin_name
+            sh 'sstrip',
+                bin_name
+        end
+        if @project.global_context.get_attribute_value( :compress_executable )
+            unpack_header = "dd bs=1 skip=61<$0|gunzip>/tmp/C;chmod +x /tmp/C;/tmp/C;exit"
+            compressed_bin_name = bin_name.to_s + '_c'
+            File.open( compressed_bin_name, "w" ) { |f| f.write( unpack_header ) }
+
+            system "gzip -cn9 #{bin_name} >> #{compressed_bin_name}"
+
+            bin_size = File.size( bin_name )
+            compressed_bin_size = File.size( compressed_bin_name )
+
+            puts "Compressed binary from #{bin_size} Bytes to #{compressed_bin_size} Bytes (Saving #{100*(bin_size-compressed_bin_size)/(bin_size)}%)!"
+        end
 	end
 end
 

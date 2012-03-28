@@ -6,29 +6,29 @@ ifeq ($(UNAME), CYGWIN_NT-6.1-WOW64)
 	TARGET_PLATFORM=win32
 	TARGET_BINARY_SUFFIX=.exe
 else
-	UPX=../thirdparty/upx/linux/amd64/upx-3.08-amd64_linux/upx -q
 	TARGET_PLATFORM=linux
 	TARGET_BINARY_SUFFIX=
 endif
 
 debug:
-	$(RUBY) $(LACE) -b $(TARGET_PLATFORM)/debug
+	@$(RUBY) $(LACE) -b $(TARGET_PLATFORM)/debug
 
 release:
-	$(RUBY) $(LACE) -b $(TARGET_PLATFORM)/release
+	@$(RUBY) $(LACE) -b $(TARGET_PLATFORM)/release
 
 master:
-	$(RUBY) $(LACE) -b $(TARGET_PLATFORM)/master
-	$(UPX) ./build/$(TARGET_PLATFORM)/master/paperbomb$(TARGET_BINARY_SUFFIX)
+	@$(RUBY) $(LACE) -b $(TARGET_PLATFORM)/master
 
 clean:
-	$(RUBY) $(LACE) -c -b $(TARGET_PLATFORM)/debug
-	$(RUBY) $(LACE) -c -b $(TARGET_PLATFORM)/release
-	$(RUBY) $(LACE) -c -b $(TARGET_PLATFORM)/master
+	@$(RUBY) $(LACE) -c -b $(TARGET_PLATFORM)/debug
+	@$(RUBY) $(LACE) -c -b $(TARGET_PLATFORM)/release
+	@$(RUBY) $(LACE) -c -b $(TARGET_PLATFORM)/master
 
 test:
-	$(RUBY) $(LACE) -ba
+	@$(RUBY) $(LACE) -ba
+
+all: debug release master
 
 run: debug
-	./build/$(TARGET_PLATFORM)/debug/paperbomb$(TARGET_BINARY_SUFFIX)
+	@./build/$(TARGET_PLATFORM)/debug/paperbomb$(TARGET_BINARY_SUFFIX)
 

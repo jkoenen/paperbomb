@@ -98,16 +98,13 @@ end
 case @project.build_tags
 when tag( 'debug' )
 	add_global_attribute :c_define, 'MOTOR3D_DEBUG', 'MOTOR3D_BUILD_DEBUG'
-	set_global_attribute :c_optimization, :none
 	set_global_attribute :shader_debug_info, :enable
 
 when tag( 'release' )
 	add_global_attribute :c_define, 'MOTOR3D_RELEASE', 'MOTOR3D_BUILD_RELEASE'
-	set_global_attribute :c_optimization, :full
 
 when tag( 'master' )
 	add_global_attribute :c_define, 'MOTOR3D_MASTER', 'MOTOR3D_BUILD_MASTER'
-	set_global_attribute :c_optimization, :full
 end
 
 case get_target_platform()
