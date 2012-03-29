@@ -1,6 +1,5 @@
 require 'rbconfig'
 
-module_search_path '../modules'
 module_search_path '../thirdparty/modules'
 
 # extend lace with some project specific functions:
@@ -97,22 +96,21 @@ end
 # add some defines 
 case @project.build_tags
 when tag( 'debug' )
-	add_global_attribute :c_define, 'MOTOR3D_DEBUG', 'MOTOR3D_BUILD_DEBUG'
-	set_global_attribute :shader_debug_info, :enable
+	add_global_attribute :c_define, 'SYS_BUILD_DEBUG'
 
 when tag( 'release' )
-	add_global_attribute :c_define, 'MOTOR3D_RELEASE', 'MOTOR3D_BUILD_RELEASE'
+	add_global_attribute :c_define, 'SYS_BUILD_RELEASE'
 
 when tag( 'master' )
-	add_global_attribute :c_define, 'MOTOR3D_MASTER', 'MOTOR3D_BUILD_MASTER'
+	add_global_attribute :c_define, 'SYS_BUILD_MASTER'
 end
 
 case get_target_platform()
 when :win32
-    add_global_attribute :c_define, "MOTOR3D_BUILD_WIN32"
+    add_global_attribute :c_define, "SYS_PLATFORM_WIN32"
 
 when :linux
-    add_global_attribute :c_define, "MOTOR3D_BUILD_LINUX"
+    add_global_attribute :c_define, "SYS_PLATFORM_LINUX"
 end
 
 

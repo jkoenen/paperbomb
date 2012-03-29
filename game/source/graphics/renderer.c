@@ -1,28 +1,18 @@
+#include "graphics/renderer.h"
+#include "sys/types.h"
+#include "sys/sys.h"
+#include "sys/debug.h"
+
+#include <math.h>
 #include <GL/gl.h>
 #include <GL/glext.h>
-#include <SDL/SDL.h>
-#include <sys/soundcard.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <unistd.h>
-#include <inttypes.h>
-#include <math.h>
 
-#include "sys_types.h"
-#include "sys_math.h"
-#include "sys_debug.h"
-#include "game_main.h"
-
-static void die( int exitcode )
+typedef struct 
 {
-    // syscall to exit the process:
-    asm (   
-        "movl %0, %%eax\n"
-        "xor %%ebx, %%ebx\n"
-        "int $128\n"
-        : /* no output */
-        : "r"( exitcode ));
-}
+    int         shaderId;
+} renderer_t;
+
+static renderer_t s_renderer;
 
 /*
 typedef struct
@@ -52,7 +42,7 @@ static int rendertarget_create( rendertarget_t* pTarget, int width, int height, 
                                                         
     if( glCheckFramebufferStatus( GL_FRAMEBUFFER ) != GL_FRAMEBUFFER_COMPLETE )
     {
-        PB_TRACE_ERROR( "Could not create framebuffer!\n" );
+        SYS_TRACE_ERROR( "Could not create framebuffer!\n" );
         return 0;
     }
                                                                                                 
@@ -76,32 +66,31 @@ static int shader_create( const char* pVertexShaderCode, const char* pFragmentSh
     glAttachShader( shaderId, vsId );
     glLinkProgram( shaderId );
 
-#ifdef MOTOR3D_DEBUG
+#ifdef SYS_BUILD_DEBUG
     int result;
     char info[1536];
     glGetObjectParameterivARB( vsId,   GL_OBJECT_COMPILE_STATUS_ARB, &result ); 
     if( !result ) 
     {
         glGetInfoLogARB( vsId, 1024, NULL, (char *)info ); 
-        PB_TRACE_ERROR( "Could not build vertex shader! info:\n%s\n", info );
+        SYS_TRACE_ERROR( "Could not build vertex shader! info:\n%s\n", info );
         return 0;
     }
     glGetObjectParameterivARB( fsId, GL_OBJECT_COMPILE_STATUS_ARB, &result ); 
     if( !result ) 
     {
         glGetInfoLogARB( fsId, 1024, NULL, (char *)info ); 
-        PB_TRACE_ERROR( "Could not build fragment shader! info:\n%s\n", info );
+        SYS_TRACE_ERROR( "Could not build fragment shader! info:\n%s\n", info );
         return 0;
     }
     glGetObjectParameterivARB( shaderId, GL_OBJECT_LINK_STATUS_ARB, &result ); 
     if( !result ) 
     {
         glGetInfoLogARB( shaderId, 1024, NULL, (char *)info ); 
-        PB_TRACE_ERROR( "Could not link shader! info:\n%s\n", info );
+        SYS_TRACE_ERROR( "Could not link shader! info:\n%s\n", info );
         return 0;
     }
 #endif
-    PB_TRACE_DEBUG( "blub=%i\n", shaderId );
     return shaderId;
 }
 
@@ -110,12 +99,12 @@ static const char* s_pVertexShaderCode =
     "void main()"
     "{"
         "gl_Position=gl_Vertex;"
-        "vec3 d=normalize(p0[1].xyz-p0[0].xyz);"
-        "vec3 r=normalize(cross(d,vec3(0.0,1.0,0.0)));"
-        "vec3 u=cross(r,d);"
-        "vec3 e=vec3(gl_Vertex.x*1.333,gl_Vertex.y,0.75);"
-        "gl_TexCoord[0].xyz=mat3(r,u,d)*e;"
-        "gl_TexCoord[1]=vec4(0.5)+gl_Vertex*0.5;"
+//        "vec3 d=normalize(p0[1].xyz-p0[0].xyz);"
+//        "vec3 r=normalize(cross(d,vec3(0.0,1.0,0.0)));"
+//        "vec3 u=cross(r,d);"
+//        "vec3 e=vec3(gl_Vertex.x*1.333,gl_Vertex.y,0.75);"
+//        "gl_TexCoord[0].xyz=mat3(r,u,d)*e;"
+//        "gl_TexCoord[1]=vec4(0.5)+gl_Vertex*0.5;"
     "}";
 
 static const char* s_pFragmentShaderCode = 
@@ -126,81 +115,38 @@ static const char* s_pFragmentShaderCode =
     "}";
 
 
-//#ifdef MOTOR3D_BUILD_MASTER
-//void _start()
-//#else
-int main()
-//#endif
+void renderer_init()
 {
-    // init a lot of stuff.. sound+graphics+threads
-    if( SDL_Init( SDL_INIT_VIDEO ) < 0 )
-    {
-        die( 1 );
-    }
+    s_renderer.shaderId = shader_create( s_pVertexShaderCode, s_pFragmentShaderCode );
+}
 
-    SDL_SetVideoMode( 640, 480, 0, SDL_OPENGL /*| SDL_FULLSCREEN */ );
-    SDL_ShowCursor( SDL_DISABLE );
-    SDL_GL_SetAttribute( SDL_GL_SWAP_CONTROL, 1 );
+void renderer_done()
+{
+}
 
-    int audio_fd,i;
-    audio_fd = open( "/dev/dsp", O_WRONLY, 0 );
-    i = AFMT_S16_LE;
-    ioctl( audio_fd, SNDCTL_DSP_SETFMT, &i );
-    i = 1;
-    ioctl( audio_fd, SNDCTL_DSP_CHANNELS, &i );
-    i = 11024;
-    ioctl( audio_fd, SNDCTL_DSP_SPEED, &i );
+void renderer_drawFrame( const framedata_t* pFrame )
+{
+    float4_t params;
+    float4_set( &params, 1.0f, 1.0f, 1.0f, 1.0f );
 
-    uint16_t audio_buffer[ 4096u ];
-    for( size_t i = 0u; i < 4096u; ++i )
-    {
-        audio_buffer[ i ] = i << 2u;
-    }
+    glClearColor( 1.0f, 0.0f, 1.0f, 1.0f );
+    glClear( GL_COLOR_BUFFER_BIT );
+    glDisable( GL_DEPTH_TEST );
 
-    int shaderId = shader_create( s_pVertexShaderCode, s_pFragmentShaderCode );
-   
-    pb_game_t* pGame = pb_game_init();
-    
-    float time = 0.0f;
+    glUseProgram( s_renderer.shaderId );
+    glUniform4fv( glGetUniformLocationARB( s_renderer.shaderId, "c0" ), 1u, &params.x );
+    glRectf( -1.0f, -1.0f, 1.0f, 1.0f );
 
-    SDL_Event event;
-    
-    uint32_t lastTime = SDL_GetTicks();
+    float4_set( &params, 1.0f, 0.2f, 0.2f, 1.0f );
+    glUniform4fv( glGetUniformLocationARB( s_renderer.shaderId, "c0" ), 1u, &params.x );
 
-    do
-    {
-        uint32_t currentTime = SDL_GetTicks();
+    const float playerWidth = 0.075f;
+    const float playerHeight = 0.1f;
 
-        const float timeStep = ( float )( currentTime - lastTime ) / 1000.0f;
-        lastTime = currentTime;
-
-        ioctl( audio_fd, SNDCTL_DSP_SYNC );
-        write( audio_fd, audio_buffer, 8192 );
-    
-        pb_game_update( pGame, timeStep );
-        pb_game_render( pGame );
-
-        time += timeStep;
-
-        float4_t params;
-        params = float4_create( 1.0f, 0.0f, cosf( time ), 1.0f );
-
-        glClearColor( 0.0f, 1.0f, 0.0f, 1.0f );
-        glClear( GL_COLOR_BUFFER_BIT );
-
-        glUseProgram( shaderId );
-        glUniform4fv( glGetUniformLocationARB( shaderId, "c0" ), 1u, &params.x );
-        glRects( -1.0f, -1.0f, 1.0f, 1.0f );
-
-        SDL_GL_SwapBuffers();
-
-        SDL_PollEvent( &event );
-        SDL_Delay( 10 );
-    }
-    while( event.type != SDL_KEYDOWN );
-    pb_game_done( pGame );
-
-    // syscall to exit the process:
-    die( 0 );
+    glRectf( 
+        pFrame->playerPos.x - playerWidth * 0.5f, 
+        pFrame->playerPos.y - playerHeight * 0.5f,
+        pFrame->playerPos.x + playerWidth * 0.5f,
+        pFrame->playerPos.y + playerHeight * 0.5f );
 }
 

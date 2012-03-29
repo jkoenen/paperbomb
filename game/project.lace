@@ -9,6 +9,9 @@ if tag( 'master' ).matches?( @build_tags )
     #set_global_attribute :no_std_lib, true
     set_global_attribute :strip_executable, true
     set_global_attribute :compress_executable, true
+else
+    add_c_define 'SYS_TRACE_ENABLED'
+    add_c_define 'SYS_ASSERT_ENABLED'
 end
 
 add_c_define 'GL_GLEXT_PROTOTYPES'
@@ -18,16 +21,21 @@ add_c_include_dir 'include'
 import 'compiler/c'
 
 ! project.lace
-! source/shared/*.c
-! include/*.h
+
+! source/graphics/**/*.c
+! source/graphics/**/*.h
+! source/sound/**/*.c
+! source/network/**/*.c
+! source/game/**/*.c
+
+! include/**/*.h
 
 case get_target_platform()
 when :win32
-    ! source/win32/**/*.c
+    ! source/sys/win32/**/*.c
 
 when :linux
-    ! source/linux/**/*.c
-#    ! source/linux/**/*.S
+    ! source/sys/linux/**/*.c
 
     add_lib 'SDL'
     add_lib 'GL'
