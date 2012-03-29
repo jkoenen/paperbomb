@@ -39,7 +39,7 @@ int rendertarget_create( RenderTarget* pTarget, int width, int height, int forma
     return 1;
 }
 
-void rendertarget_set( const RenderTarget* pTarget )
+void rendertarget_activate( const RenderTarget* pTarget )
 {
     if( pTarget )
     {

@@ -19,6 +19,7 @@ add_c_define 'GL_GLEXT_PROTOTYPES'
 add_c_include_dir 'include'
 
 import 'compiler/c'
+import 'shadercompiler.lace'
 
 ! project.lace
 
@@ -27,6 +28,7 @@ import 'compiler/c'
 ! source/sound/**/*.c
 ! source/network/**/*.c
 ! source/game/**/*.c
+! source/graphics/**/*.glsl
 
 ! include/**/*.h
 

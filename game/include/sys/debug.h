@@ -13,6 +13,7 @@ enum
 };
 
 void sys_trace( int level, const char* pFormat, ... );
+void sys_exit( int exitcode );
 
 #   define SYS_TRACE_EMERGENCY(format,args...)  sys_trace( TraceLevel_Emergency, format, ## args)
 #   define SYS_TRACE_ERROR(format,args...)      sys_trace( TraceLevel_Error, format, ## args)
@@ -28,9 +29,9 @@ void sys_trace( int level, const char* pFormat, ... );
 #endif
 
 #ifdef SYS_ASSERT_ENABLED
-#   define SYS_ASSERT(Expression)
+#   define SYS_ASSERT(Expression)   if(!(Expression)){SYS_TRACE_ERROR("Assertion failed! - %s\n", #Expression);sys_exit(1);}
 #   define SYS_BREAK(...)
-#   define SYS_VERIFY(Expression)   (void)(Expression)
+#   define SYS_VERIFY(Expression)   SYS_ASSERT(Expression)
 #else
 #   define SYS_ASSERT(Expression)
 #   define SYS_BREAK(...)

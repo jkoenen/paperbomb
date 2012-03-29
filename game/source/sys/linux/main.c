@@ -22,6 +22,11 @@ void sys_trace( int level, const char* pFormat, ... )
     va_end( arg_list );
 }
 
+void sys_exit( int exitcode )
+{
+    exit( exitcode );
+}
+
 int sys_getScreenWidth()
 {
     return 1280;

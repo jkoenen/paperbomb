@@ -1,0 +1,50 @@
+build_dir = @project.build_path.to_s + '/glsl_shader'
+p build_dir
+@project.global_context.add_attribute(:c_include_dir, build_dir)
+
+define_compiler( SingleFileCompiler, :input_pattern => tag( '.glsl' ), :output_name => 'glsl_shader/%_glsl.h') do
+    def compile( infile, outfile )
+        if( Helpers.newer?( infile, outfile ) )
+            trace "Building GLSL source %s", infile.path
+
+            shader_name = File.basename(infile.path,'.glsl')
+           
+            file_def = 'SHADER_' + File.basename(outfile).upcase.gsub(/\.| /, '_') + '_INCLUDED'
+            
+            FileUtils.mkpath(File.dirname(outfile))
+            File.open(outfile, 'w') do |file|
+                file.printf "#ifndef %s\n#define %s\n\n", file_def, file_def
+
+                file.printf "\n#include \"graphics/glslshader.h\"\n"
+
+                vs_code = ""
+                fs_code = ""
+
+                state = :none
+
+                File.readlines(infile.path).each do |line|
+                    if /^<VS>$/.match( line.strip.upcase )
+                        state = :vs
+                    elsif /^<FS>$/.match( line.strip.upcase )
+                        state = :fs
+                    elsif not line.strip.empty?
+                        case state
+                        when :vs
+                            vs_code += "\t\"#{line.strip}\\n\"\n";
+                        when :fs
+                            fs_code += "\t\"#{line.strip}\\n\"\n";
+                        else
+                        end
+                    end
+                end
+
+                file.printf "\nstatic const char s_vertexShaderCode_%s[] = \n%s;\n\n", shader_name, vs_code
+                file.printf "\nstatic const char s_fragmentShaderCode_%s[] = \n%s;\n\n", shader_name, fs_code
+
+                file.printf "\nstatic const GlslShaderDefinition s_shader_%s = {s_vertexShaderCode_%s,s_fragmentShaderCode_%s,0,0,0,0};\n", shader_name, shader_name, shader_name
+
+                file.printf "\n#endif // %s\n", file_def
+            end
+        end
+    end
+end

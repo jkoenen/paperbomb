@@ -14,7 +14,7 @@ typedef struct
 } RenderTarget;
 
 int rendertarget_create( RenderTarget* pTarget, int width, int height, int format );
-void rendertarget_set( const RenderTarget* pTarget );
+void rendertarget_activate( const RenderTarget* pTarget );
 
 #endif
 
