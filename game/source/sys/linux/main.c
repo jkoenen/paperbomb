@@ -22,6 +22,16 @@ void sys_trace( int level, const char* pFormat, ... )
     va_end( arg_list );
 }
 
+int sys_getScreenWidth()
+{
+    return 1280;
+}
+
+int sys_getScreenHeight()
+{
+    return 720;
+}
+
 static void updateButtonMask( uint32* pButtonMask, uint32 button, int isDown )
 {
     uint32 buttonMask = *pButtonMask;

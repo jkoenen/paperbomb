@@ -30,9 +30,11 @@ void sys_trace( int level, const char* pFormat, ... );
 #ifdef SYS_ASSERT_ENABLED
 #   define SYS_ASSERT(Expression)
 #   define SYS_BREAK(...)
+#   define SYS_VERIFY(Expression)   (void)(Expression)
 #else
 #   define SYS_ASSERT(Expression)
 #   define SYS_BREAK(...)
+#   define SYS_VERIFY(Expression)   (void)(Expression)
 #endif
 
 #endif
