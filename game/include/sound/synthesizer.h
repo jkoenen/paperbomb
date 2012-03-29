@@ -1,0 +1,7 @@
+#ifndef SOUND_SYNTHESIZER_H_INCLUDED
+#define SOUND_SYNTHESIZER_H_INCLUDED
+
+
+
+#endif
+

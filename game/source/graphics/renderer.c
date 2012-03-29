@@ -124,9 +124,9 @@ void renderer_done()
 {
 }
 
-void renderer_drawFrame( const framedata_t* pFrame )
+void renderer_drawFrame( const FrameData* pFrame )
 {
-    float4_t params;
+    float4 params;
     float4_set( &params, 1.0f, 1.0f, 1.0f, 1.0f );
 
     glClearColor( 1.0f, 0.0f, 1.0f, 1.0f );

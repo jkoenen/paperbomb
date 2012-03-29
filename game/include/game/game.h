@@ -14,14 +14,14 @@ enum
 
 typedef struct
 {
-    uint32_t    buttonMask;
+    uint32      buttonMask;
     float       timeStep;
-} gameinput_t;
+} GameInput;
 
 void game_init();
 void game_done();
 
-void game_update( const gameinput_t* pInput );
+void game_update( const GameInput* pInput );
 void game_render();
 
 #endif 

@@ -8,8 +8,8 @@ typedef struct
 {
     float       gameTime;
 
-    float2_t    playerPos;
-    uint32_t     lastButtonMask;
+    float2    playerPos;
+    uint32     lastButtonMask;
 } game_t;
 
 static game_t s_game;
@@ -29,16 +29,18 @@ void game_done()
     renderer_done();
 }
 
-void game_update( const gameinput_t* pGameInput )
+void game_update( const GameInput* pInput )
 {
-    s_game.gameTime += pGameInput->timeStep;
+    const float timeStep = pInput->timeStep;
 
-    float2_t velocity;
+    s_game.gameTime += timeStep;
+
+    float2 velocity;
     float2_set( &velocity, 0.0f, 0.0f );
 
-    const uint32_t buttonMask = pGameInput->buttonMask;
-    const uint32_t buttonDownMask = buttonMask & ~s_game.lastButtonMask;
-    //const uint32_t buttonUpMask = ~buttonMask & s_game.lastButtonMask;
+    const uint32 buttonMask = pInput->buttonMask;
+    const uint32 buttonDownMask = buttonMask & ~s_game.lastButtonMask;
+    //const uint32 buttonUpMask = ~buttonMask & s_game.lastButtonMask;
 
     if( buttonMask & ButtonMask_Left )
     {
@@ -61,7 +63,7 @@ void game_update( const gameinput_t* pGameInput )
         SYS_TRACE_DEBUG( "place bomb!\n" );
     }
 
-    const float speed = pGameInput->timeStep * 1.0f;
+    const float speed = timeStep * 1.0f;
     float2_scale( &velocity, speed );
     float2_add( &s_game.playerPos, &s_game.playerPos, &velocity );
 
@@ -72,7 +74,7 @@ void game_update( const gameinput_t* pGameInput )
 
 void game_render()
 {
-    framedata_t frame;
+    FrameData frame;
     memset( &frame, 0u, sizeof( frame ) );
     frame.time = s_game.gameTime;
     frame.playerPos = s_game.playerPos;

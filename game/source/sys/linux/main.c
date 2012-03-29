@@ -22,9 +22,9 @@ void sys_trace( int level, const char* pFormat, ... )
     va_end( arg_list );
 }
 
-static void updateButtonMask( uint32_t* pButtonMask, uint32_t button, int isDown )
+static void updateButtonMask( uint32* pButtonMask, uint32 button, int isDown )
 {
-    uint32_t buttonMask = *pButtonMask;
+    uint32 buttonMask = *pButtonMask;
     if( isDown )
     {
         buttonMask |= button;
@@ -64,18 +64,18 @@ int main()
 
     game_init();
    
-    uint32_t lastTime = SDL_GetTicks();
-    uint32_t buttonMask = 0u;
+    uint32 lastTime = SDL_GetTicks();
+    uint32 buttonMask = 0u;
 
 #ifndef SYS_BUILD_MASTER
-    uint32_t lastTimingTime = lastTime;
-    uint32_t timingFrameCount = 0u;
+    uint32 lastTimingTime = lastTime;
+    uint32 timingFrameCount = 0u;
 #endif
 
     int quit = 0;
     do
     {
-        uint32_t currentTime = SDL_GetTicks();
+        uint32 currentTime = SDL_GetTicks();
 
         const float timeStep = ( float )( currentTime - lastTime ) / 1000.0f;
         lastTime = currentTime;
@@ -145,7 +145,7 @@ int main()
             }
         }
         
-        gameinput_t gameInput;
+        GameInput gameInput;
         memset( &gameInput, 0u, sizeof( gameInput ) );
         gameInput.timeStep = timeStep;
         gameInput.buttonMask = buttonMask;

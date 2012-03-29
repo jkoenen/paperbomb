@@ -6,13 +6,13 @@
 typedef struct
 {
     float       time;
-    float2_t    playerPos;
-} framedata_t;
+    float2      playerPos;
+} FrameData;
 
 void renderer_init();
 void renderer_done();
 
-void renderer_drawFrame( const framedata_t* pFrame );
+void renderer_drawFrame( const FrameData* pFrame );
 
 #endif
 
