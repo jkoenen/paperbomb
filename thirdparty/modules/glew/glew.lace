@@ -1,0 +1,22 @@
+# todo: add platform / compiler selection here..
+
+module_search_path '.'
+
+export do
+	add_c_include_dir 'include'
+	
+	add_c_define 'GLEW_NO_GLU'
+	add_c_define 'GLEW_STATIC'
+end 
+
+case get_target_platform()
+when :win32
+	import 'mssdk'
+	
+	add_attribute :msvc_disabled_warnings, 4365
+	add_attribute :msvc_disabled_warnings, 4191
+	add_attribute :msvc_disabled_warnings, 4706
+	
+end
+
+! src/glew.c

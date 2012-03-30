@@ -1,3 +1,7 @@
+#include "sys/types.h"
+#include "sys/debug.h"
+#include "game/game.h"
+
 #include <GL/gl.h>
 #include <GL/glext.h>
 #include <SDL/SDL.h>
@@ -8,10 +12,6 @@
 #include <inttypes.h>
 #include <math.h>
 #include <stdarg.h>
-
-#include "sys/types.h"
-#include "sys/debug.h"
-#include "game/game.h"
 
 void sys_trace( int level, const char* pFormat, ... )
 {

@@ -1,0 +1,16 @@
+export do
+	add_attribute :msvc_disabled_warnings, 4668 # 'symbol' is not defined as a preprocessor macro, replacing with '0' for 'directives'
+	add_attribute :msvc_disabled_warnings, 4917 # '' : a GUID can only be associated with a class, interface or namespace
+	#enable_msvc_cpp_extensions
+	add_path :cpp_include_dir, 'Include'	
+	add_path :c_include_dir, 'Include'	
+	add_global_path :resource_include_dirs, 'Include'	
+end
+
+if @project.build_tags.include?('x64')
+	add_lib_dir 'Lib/x64'
+else
+	add_lib_dir 'Lib'
+end
+
+! Include/**/*.h

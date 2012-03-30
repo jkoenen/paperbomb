@@ -13,12 +13,21 @@ enum
 };
 
 void sys_trace( int level, const char* pFormat, ... );
+void sys_exit( int extCode );
 
+#ifdef _MSC_VER
+#   define SYS_TRACE_EMERGENCY	__noop
+#   define SYS_TRACE_ERROR		__noop
+#   define SYS_TRACE_WARNING	__noop
+#   define SYS_TRACE_INFO		__noop
+#   define SYS_TRACE_DEBUG		__noop
+#else
 #   define SYS_TRACE_EMERGENCY(format,args...)  sys_trace( TraceLevel_Emergency, format, ## args)
 #   define SYS_TRACE_ERROR(format,args...)      sys_trace( TraceLevel_Error, format, ## args)
 #   define SYS_TRACE_WARNING(format,args...)    sys_trace( TraceLevel_Warning, format, ## args)
 #   define SYS_TRACE_INFO(format,args...)       sys_trace( TraceLevel_Infro, format, ## args)
 #   define SYS_TRACE_DEBUG(format,args...)      sys_trace( TraceLevel_Debug, format, ## args)
+#endif
 #else
 #   define SYS_TRACE_EMERGENCY(format,...)
 #   define SYS_TRACE_ERROR(format,...)
@@ -28,12 +37,15 @@ void sys_trace( int level, const char* pFormat, ... );
 #endif
 
 #ifdef SYS_ASSERT_ENABLED
-#   define SYS_ASSERT(Expression)
-#   define SYS_BREAK(...)
+#   define SYS_ASSERT(Expression)	if( !( Expression ) ) { SYS_TRACE_ERROR( "Exception failed: %s!\n", # Expression ); sys_exit( 1 ); };
+#   define SYS_BREAK(...)			sys_exit( 1 );
+#	define SYS_VERIFY(Expression)	SYS_ASSERT(Expression)
 #else
-#   define SYS_ASSERT(Expression)
-#   define SYS_BREAK(...)
+#   define SYS_ASSERT(Expression)	(void)(Expression)
+#   define SYS_BREAK(...)			sys_exit( 1 );
+#	define SYS_VERIFY(Expression)	(Expression)
 #endif
+
 
 #endif
 

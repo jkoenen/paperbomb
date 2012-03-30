@@ -2,14 +2,13 @@
 #include "sys/types.h"
 #include "sys/sys.h"
 #include "sys/debug.h"
+#include "graphics/opengl.h"
 
 #include <math.h>
-#include <GL/gl.h>
-#include <GL/glext.h>
 
 typedef struct 
 {
-    int         shaderId;
+    uint         shaderId;
 } renderer_t;
 
 static renderer_t s_renderer;
@@ -53,11 +52,11 @@ static int rendertarget_create( rendertarget_t* pTarget, int width, int height, 
 }
 */
 
-static int shader_create( const char* pVertexShaderCode, const char* pFragmentShaderCode )
+static uint shader_create( const char* pVertexShaderCode, const char* pFragmentShaderCode )
 {
-    int shaderId = glCreateProgram();                           
-    const int vsId = glCreateShader( GL_VERTEX_SHADER );
-    const int fsId = glCreateShader( GL_FRAGMENT_SHADER );
+    uint shaderId = glCreateProgram();                           
+    const uint vsId = glCreateShader( GL_VERTEX_SHADER );
+    const uint fsId = glCreateShader( GL_FRAGMENT_SHADER );
     glShaderSource( vsId, 1, &pVertexShaderCode, 0 );
     glShaderSource( fsId, 1, &pFragmentShaderCode, 0 );
     glCompileShader( vsId );
@@ -91,7 +90,7 @@ static int shader_create( const char* pVertexShaderCode, const char* pFragmentSh
         return 0;
     }
 #endif
-    return shaderId;
+    return 1;
 }
 
 static const char* s_pVertexShaderCode = 

@@ -57,7 +57,6 @@ class MSVCCompiler < SingleFileCompiler
 
 	def compile(infile, outfile)
 		check_optimized_dependencies(infile.path, outfile.to_s.sub(/\.obj/, '.d')) do
-		
 			target_platform = @project.build_tags.include?( 'win64' ) ? 'win64' : 'win32'
 			trace "Compiling(%s) %s", target_platform, infile.path
 			include_dirs = infile.context.get_attribute_set(:c_include_dir).map {|d| ['/I', d] }
@@ -90,13 +89,13 @@ class MSVCCompiler < SingleFileCompiler
 				@build_type_switch,
 				warn_level, 
                 disabled_warnings,
-				include_dirs, 
+				include_dirs, 				
                 defines,
 				'/D_BIND_TO_CURRENT_CRT_VERSION=1',
 				'/Fd' + pdbFileName,
 				architecture_options,
 				'/GS-', 																	# disable buffer security checks
-                '/TC',                                                                      # assume C code input
+                '/TP',							# C++ for now... lame msvc compiler '/TC',                                                                      # assume C code input
 				'/Gm',																		# minimal rebuilds
 				optimization_options,
 				'/showIncludes', '/WX', '/Zi', '/c', '/Fo' + make_relative(outfile), infile.path.to_s
@@ -212,8 +211,8 @@ class MSVCLinker < MultiFileCompiler
 	def compile(infiles)
 		Helpers.temp_env do |env|
 			@project.globals.set_vc_env.call(env)
-			lib_dirs = @project.global_context.get_attribute_set(:lib_dir)
-			libs = @project.global_context.get_attribute_set(:libs)
+			lib_dirs = @project.global_context.get_attribute_set(:c_lib_dir)
+			libs = @project.global_context.get_attribute_set(:c_lib)
 			dlls = @project.global_context.get_attribute_set(:dlls)
 			subsystem = @project.globals.windows_subsystem
 

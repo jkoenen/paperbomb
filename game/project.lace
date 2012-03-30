@@ -14,11 +14,7 @@ else
     add_c_define 'SYS_ASSERT_ENABLED'
 end
 
-add_c_define 'GL_GLEXT_PROTOTYPES'
-
 add_c_include_dir 'include'
-
-import 'compiler/c'
 
 ! project.lace
 
@@ -32,9 +28,22 @@ import 'compiler/c'
 
 case get_target_platform()
 when :win32
+    import 'platform/win32'
+    import 'glew'
+    
+    add_attribute :msvc_disabled_warnings, 4206
     ! source/sys/win32/**/*.c
+    
+    add_lib 'opengl32.lib'
+    add_lib 'Gdi32.lib'
+    add_lib 'User32.lib'
+    add_lib 'winmm.lib'
 
 when :linux
+    import 'platform/linux'
+    
+    add_c_define 'GL_GLEXT_PROTOTYPES'
+    
     ! source/sys/linux/**/*.c
 
     add_lib 'SDL'

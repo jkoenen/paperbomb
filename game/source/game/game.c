@@ -1,15 +1,16 @@
 #include "game/game.h"
 #include "graphics/renderer.h"
 #include "sys/debug.h"
+#include "sys/types.h"
 
 #include <string.h>
 
 typedef struct
 {
-    float       gameTime;
+    float		gameTime;
 
-    float2    playerPos;
-    uint32     lastButtonMask;
+    float2		playerPos;
+    uint32		lastButtonMask;
 } game_t;
 
 static game_t s_game;
