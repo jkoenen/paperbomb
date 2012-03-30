@@ -1,5 +1,5 @@
 #include "shader.h"
-#include "sys/debug.h"
+#include "debug.h"
 #include <GL/gl.h>
 #include <GL/glext.h>
 

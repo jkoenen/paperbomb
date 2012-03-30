@@ -1,7 +1,7 @@
 #ifndef GAME_MAIN_H_INCLUDED
 #define GAME_MAIN_H_INCLUDED
 
-#include "sys/types.h"
+#include "types.h"
 
 enum
 {

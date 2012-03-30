@@ -1,6 +1,6 @@
 #include "sys/types.h"
-#include "sys/debug.h"
-#include "game/game.h"
+#include "debug.h"
+#include "game.h"
 
 #include <GL/gl.h>
 #include <GL/glext.h>

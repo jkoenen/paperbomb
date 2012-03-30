@@ -1,8 +1,8 @@
-#include "graphics/renderer.h"
-#include "sys/types.h"
-#include "sys/sys.h"
-#include "sys/debug.h"
-#include "graphics/opengl.h"
+#include "renderer.h"
+#include "types.h"
+#include "platform.h"
+#include "debug.h"
+#include "opengl.h"
 
 #include "shader.h"
 #include "rendertarget.h"

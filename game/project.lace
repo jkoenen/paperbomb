@@ -6,7 +6,6 @@ set_project_name 'paperbomb'
 
 if tag( 'master' ).matches?( @build_tags )
     set_global_attribute :c_optimization, :size
-    #set_global_attribute :no_std_lib, true
     set_global_attribute :strip_executable, true
     set_global_attribute :compress_executable, true
 else
@@ -14,20 +13,15 @@ else
     add_c_define 'SYS_ASSERT_ENABLED'
 end
 
-add_c_include_dir 'include'
-
 import 'shadercompiler.lace'
 
 ! project.lace
 
-! source/graphics/**/*.c
-! source/graphics/**/*.h
-! source/sound/**/*.c
-! source/network/**/*.c
-! source/game/**/*.c
-! source/graphics/**/*.glsl
+! source/*.c
+! source/*.h
+! source/shader/*.glsl
 
-! include/**/*.h
+add_c_include_dir 'source'
 
 case get_target_platform()
 when :win32
@@ -35,7 +29,7 @@ when :win32
     import 'glew'
     
     add_attribute :msvc_disabled_warnings, 4206
-    ! source/sys/win32/**/*.c
+    ! source/win32/*.c
     
     add_lib 'opengl32.lib'
     add_lib 'Gdi32.lib'
@@ -47,7 +41,7 @@ when :linux
     
     add_c_define 'GL_GLEXT_PROTOTYPES'
     
-    ! source/sys/linux/**/*.c
+    ! source/linux/*.c
 
     add_lib 'SDL'
     add_lib 'GL'

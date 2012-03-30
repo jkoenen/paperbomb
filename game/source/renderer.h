@@ -1,7 +1,7 @@
 #ifndef GRAPHICS_RENDERER_H_INCLUDED
 #define GRAPHICS_RENDERER_H_INCLUDED
 
-#include "sys/types.h"
+#include "types.h"
 
 typedef struct
 {

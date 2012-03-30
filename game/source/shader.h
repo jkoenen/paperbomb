@@ -1,7 +1,7 @@
 #ifndef GRAPHICS_SHADER_H_INCLUDED
 #define GRAPHICS_SHADER_H_INCLUDED
 
-#include "graphics/glslshader.h"
+#include "glslshader.h"
 
 enum
 {

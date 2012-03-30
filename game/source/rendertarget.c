@@ -1,6 +1,6 @@
 #include "rendertarget.h"
-#include "sys/debug.h"
-#include "sys/sys.h"
+#include "debug.h"
+#include "platform.h"
 
 int rendertarget_create( RenderTarget* pTarget, int width, int height, int format )
 {

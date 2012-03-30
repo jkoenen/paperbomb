@@ -1,7 +1,7 @@
-#include "game/game.h"
-#include "graphics/renderer.h"
-#include "sys/debug.h"
-#include "sys/types.h"
+#include "game.h"
+#include "renderer.h"
+#include "debug.h"
+#include "types.h"
 
 #include <string.h>
 
@@ -11,9 +11,9 @@ typedef struct
 
     float2		playerPos;
     uint32		lastButtonMask;
-} game_t;
+} Game;
 
-static game_t s_game;
+static Game s_game;
 
 void game_init()
 {
