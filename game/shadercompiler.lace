@@ -1,5 +1,4 @@
 build_dir = @project.build_path.to_s + '/glsl_shader'
-p build_dir
 @project.global_context.add_attribute(:c_include_dir, build_dir)
 
 define_compiler( SingleFileCompiler, :input_pattern => tag( '.glsl' ), :output_name => 'glsl_shader/%_glsl.h') do
@@ -17,22 +16,30 @@ define_compiler( SingleFileCompiler, :input_pattern => tag( '.glsl' ), :output_n
 
                 file.printf "\n#include \"graphics/glslshader.h\"\n"
 
+                shared_code = ""
                 vs_code = ""
                 fs_code = ""
 
                 state = :none
 
                 File.readlines(infile.path).each do |line|
-                    if /^<VS>$/.match( line.strip.upcase )
+                    
+                    if /^<SHARED>$/.match( line.strip.upcase )
+                        state = :shared  
+                    elsif /^<VS>$/.match( line.strip.upcase )
                         state = :vs
                     elsif /^<FS>$/.match( line.strip.upcase )
                         state = :fs
                     elsif not line.strip.empty?
+                        code = "\t\"#{line.strip}\\n\"\n";
                         case state
+                        when :shared
+                            vs_code += code
+                            fs_code += code
                         when :vs
-                            vs_code += "\t\"#{line.strip}\\n\"\n";
+                            vs_code += code
                         when :fs
-                            fs_code += "\t\"#{line.strip}\\n\"\n";
+                            fs_code += code
                         else
                         end
                     end
