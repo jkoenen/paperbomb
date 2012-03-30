@@ -1,0 +1,8 @@
+# todo: add platform / compiler selection here..
+
+module_search_path '.'
+
+export do
+	import 'msvc'
+	import 'mssdk'
+end

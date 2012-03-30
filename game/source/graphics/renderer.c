@@ -2,6 +2,7 @@
 #include "sys/types.h"
 #include "sys/sys.h"
 #include "sys/debug.h"
+#include "graphics/opengl.h"
 
 #include "shader.h"
 #include "rendertarget.h"
@@ -9,8 +10,6 @@
 #include "paper_glsl.h"
 
 #include <math.h>
-#include <GL/gl.h>
-#include <GL/glext.h>
 
 typedef struct 
 {

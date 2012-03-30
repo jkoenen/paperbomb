@@ -1,3 +1,7 @@
+#include "sys/types.h"
+#include "sys/debug.h"
+#include "game/game.h"
+
 #include <GL/gl.h>
 #include <GL/glext.h>
 #include <SDL/SDL.h>
@@ -8,10 +12,6 @@
 #include <inttypes.h>
 #include <math.h>
 #include <stdarg.h>
-
-#include "sys/types.h"
-#include "sys/debug.h"
-#include "game/game.h"
 
 void sys_trace( int level, const char* pFormat, ... )
 {
@@ -101,8 +101,6 @@ int main()
             const float timingTimeSpan = ( float )( currentTime - lastTimingTime ) / 1000.0f;
             const float currentFps = ( float )( timingFrameCount ) / timingTimeSpan;
 
-            SYS_TRACE_DEBUG( "fps=%f\n", currentFps );
-
             char windowTitle[ 100u ];
             sprintf( windowTitle, "fps=%f", currentFps );
             SDL_WM_SetCaption( windowTitle, 0 );
@@ -167,6 +165,7 @@ int main()
 
         game_update( &gameInput );
         game_render();
+
         SDL_GL_SwapBuffers();
 
 #ifndef SYS_BUILD_MASTER
@@ -174,6 +173,7 @@ int main()
 #endif
     }
     while( !quit );
+
     game_done();
 }
 
