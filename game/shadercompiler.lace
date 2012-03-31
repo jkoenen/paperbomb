@@ -14,7 +14,7 @@ define_compiler( SingleFileCompiler, :input_pattern => tag( '.glsl' ), :output_n
             File.open(outfile, 'w') do |file|
                 file.printf "#ifndef %s\n#define %s\n\n", file_def, file_def
 
-                file.printf "\n#include \"graphics/glslshader.h\"\n"
+                file.printf "\n#include \"glslshader.h\"\n"
 
                 shared_code = ""
                 vs_code = ""

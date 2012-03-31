@@ -26,6 +26,9 @@ typedef unsigned __int64     uint64_t;
 #endif
 
 #define SYS_USE_ARGUMENT(x)	(void)x
+#define SYS_COUNTOF(x) ((sizeof(x))/sizeof(x[0]))
+
+#define PI 3.14159265
 
 typedef uint8_t uint8;
 typedef uint16_t uint16;
@@ -54,28 +57,6 @@ typedef struct
     float   x, y, z, w;
 } float4;
 
-
-static inline void float2_set( float2* pValue, float x, float y )
-{
-    pValue->x = x;
-    pValue->y = y;
-}
-
-static inline void float3_set( float3* pValue, float x, float y, float z )
-{
-    pValue->x = x;
-    pValue->y = y;
-    pValue->z = z;
-}
-
-static inline void float4_set( float4* pValue, float x, float y, float z, float w )
-{
-    pValue->x = x;
-    pValue->y = y;
-    pValue->z = z;
-    pValue->w = w;
-}
-
 static inline float float_min( float x, float y )
 {
     return x < y ? x : y;
@@ -96,6 +77,11 @@ static inline float float_saturate( float x )
     return float_clamp( x, 0.0f, 1.0f );
 }
 
+static inline float float_lerp( float a, float b, float x )
+{
+    return a + ( b - a ) * x;
+}
+
 static inline void float2_scale( float2* pValue, float factor )
 {
     pValue->x *= factor;
@@ -106,6 +92,27 @@ static inline void float2_add( float2* pResult, const float2* pA, const float2* 
 {
     pResult->x = pA->x + pB->x;
     pResult->y = pA->y + pB->y;
+}
+
+static inline void float2_set( float2* pValue, float x, float y )
+{
+    pValue->x = x;
+    pValue->y = y;
+}
+
+static inline void float3_set( float3* pValue, float x, float y, float z )
+{
+    pValue->x = x;
+    pValue->y = y;
+    pValue->z = z;
+}
+
+static inline void float4_set( float4* pValue, float x, float y, float z, float w )
+{
+    pValue->x = x;
+    pValue->y = y;
+    pValue->z = z;
+    pValue->w = w;
 }
 
 #endif

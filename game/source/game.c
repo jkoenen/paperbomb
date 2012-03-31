@@ -2,8 +2,10 @@
 #include "renderer.h"
 #include "debug.h"
 #include "types.h"
+#include "sound.h"
 
 #include <string.h>
+#include <math.h>
 
 typedef struct
 {
@@ -67,6 +69,9 @@ void game_update( const GameInput* pInput )
     const float speed = timeStep * 1.0f;
     float2_scale( &velocity, speed );
     float2_add( &s_game.playerPos, &s_game.playerPos, &velocity );
+
+    sound_setEngineFrequency( ( buttonMask & ButtonMask_Up ) ? 1.0f : 0.0f );
+//    float_lerp( 40.0f, 200.0f, float_saturate( carSpeed ) ) );
 
     s_game.playerPos.x = float_clamp( s_game.playerPos.x, -1.0f, 1.0f );
     s_game.playerPos.y = float_clamp( s_game.playerPos.y, -1.0f, 1.0f );

@@ -1,0 +1,6 @@
+
+module_search_path '.'
+
+export do
+	import 'clang'
+end

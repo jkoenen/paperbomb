@@ -1,17 +1,41 @@
 #include "sys/types.h"
 #include "debug.h"
 #include "game.h"
+#include "sound.h"
 
 #include <GL/gl.h>
 #include <GL/glext.h>
 #include <SDL/SDL.h>
 #include <sys/soundcard.h>
-#include <fcntl.h>
-#include <sys/ioctl.h>
-#include <unistd.h>
 #include <inttypes.h>
 #include <math.h>
 #include <stdarg.h>
+
+static float s_soundBuffer[ SoundChannelCount * SoundBufferSampleCount ];
+
+static uint s_callbackCount = 0u;
+
+static void soundCallback( void* pUserData, Uint8* pStream, int size )
+{
+    SYS_USE_ARGUMENT( pUserData );
+s_callbackCount++;
+    SYS_ASSERT( size >= 0 );
+
+    const size_t sampleCount = size / ( SoundChannelCount * sizeof( int16 ) );
+    SYS_ASSERT( sampleCount * SoundChannelCount * sizeof( int16 ) == ( size_t ) size );
+
+    SYS_ASSERT( sampleCount <= SYS_COUNTOF( s_soundBuffer ) );
+    sound_fillBuffer( s_soundBuffer, ( size_t )sampleCount );
+
+    int16* pTarget = ( int16* )pStream;
+    const float* pSource = &s_soundBuffer[ 0u ];
+
+    for( size_t i = 0u; i < sampleCount; ++i )
+    {
+        *pTarget++ = ( int16 )( 32767.0f * *pSource++ );
+        *pTarget++ = ( int16 )( 32767.0f * *pSource++ );
+    }
+}
 
 void sys_trace( int level, const char* pFormat, ... )
 {
@@ -53,7 +77,7 @@ static void updateButtonMask( uint32* pButtonMask, uint32 button, int isDown )
 
 int main()
 {
-    if( SDL_Init( SDL_INIT_VIDEO ) < 0 )
+    if( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER ) < 0 )
     {
         SYS_BREAK( "SDL_Init failed!\n" );
     }
@@ -62,23 +86,25 @@ int main()
     SDL_ShowCursor( SDL_DISABLE );
     SDL_GL_SetAttribute( SDL_GL_SWAP_CONTROL, 1 );
 
-    int audio_fd,i;
-    audio_fd = open( "/dev/dsp", O_WRONLY, 0 );
-    i = AFMT_S16_LE;
-    ioctl( audio_fd, SNDCTL_DSP_SETFMT, &i );
-    i = 1;
-    ioctl( audio_fd, SNDCTL_DSP_CHANNELS, &i );
-    i = 11024;
-    ioctl( audio_fd, SNDCTL_DSP_SPEED, &i );
+    SDL_AudioSpec audioSpec;
+    audioSpec.freq      = SoundSampleRate;
+    audioSpec.format    = AUDIO_S16SYS;
+    audioSpec.channels  = SoundChannelCount;
+    audioSpec.silence   = 0;
+    audioSpec.samples   = SoundBufferSampleCount;
+    audioSpec.size      = 0;
+    audioSpec.callback  = soundCallback;
+    audioSpec.userdata  = s_soundBuffer;
 
-    uint16_t audio_buffer[ 4096u ];
-    for( size_t i = 0u; i < 4096u; ++i )
+    if( SDL_OpenAudio( &audioSpec, NULL ) < 0 )
     {
-        audio_buffer[ i ] = i << 2u;
+        SYS_BREAK( "SDL_OpenAudio failed! error=%s\n", SDL_GetError() );
     }
 
     game_init();
-   
+
+    SDL_PauseAudio( 0 );
+
     uint32 lastTime = SDL_GetTicks();
     uint32 buttonMask = 0u;
 
@@ -102,7 +128,7 @@ int main()
             const float currentFps = ( float )( timingFrameCount ) / timingTimeSpan;
 
             char windowTitle[ 100u ];
-            sprintf( windowTitle, "fps=%f", currentFps );
+            sprintf( windowTitle, "fps=%f cb=%i", currentFps, s_callbackCount );
             SDL_WM_SetCaption( windowTitle, 0 );
     
             lastTimingTime = currentTime;
@@ -110,9 +136,6 @@ int main()
         }
 #endif
 
-        ioctl( audio_fd, SNDCTL_DSP_SYNC );
-        write( audio_fd, audio_buffer, 8192 );
-    
         // get local user input:
         SDL_Event event;
         while( SDL_PollEvent( &event ) )
@@ -173,6 +196,9 @@ int main()
 #endif
     }
     while( !quit );
+
+    // :TODO: nicer fade out..
+    SDL_PauseAudio( 1 );
 
     game_done();
 }
