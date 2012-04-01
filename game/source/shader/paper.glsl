@@ -63,7 +63,7 @@ float snoise(vec2 v)
   vec3 a0 = x - ox;
 
 // Normalise gradients implicitly by scaling m
-// Approximation of: m *= inversesqrt( a0*a0 + h*h );
+// Approximation of: m *= inversesqrt( a1*a0 + h*h );
   m *= 1.79284291400159 - 0.85373472095314 * ( a0*a0 + h*h );
 
 // Compute final noise value at P
@@ -72,18 +72,19 @@ float snoise(vec2 v)
   g.yz = a0.yz * x12.xz + h.yz * x12.yw;
   return 130.0 * dot(m, g);
 }
-uniform vec4 c0;
 
+uniform vec4 params0;
 void main()
 {
+    vec2 noiseOffset=params0.xy*10.0f;
     vec3 c1=vec3(0.3,0.3,0.4);
     vec2 s=smoothstep(vec2(0.01,0.01),vec2(0.1,0.1),fract(paperPos));
-    vec3 gridColor = vec3( 138.0/255.0, 131.0/255.0, 121.0/255.0 );
-    vec3 paperColor0 = vec3( 180.0/255.0, 177.0/255.0, 158.0/255.0 );
+    vec3 gridColor = vec3( 108.0/255.0, 101.0/255.0, 91.0/255.0 );
+    vec3 paperColor0 = vec3( 190.0/255.0, 187.0/255.0, 168.0/255.0 );
     vec3 paperColor1 = vec3( 197.0/255.0, 190.0/255.0, 172.0/255.0 );
-    float pn=snoise( paperPos / 20.0 );    
+    float pn=snoise( paperPos + noiseOffset );
     vec3 paperColor = mix(paperColor0, paperColor1, pn );
     gl_FragColor = vec4( mix( gridColor, paperColor, s.x*s.y), 1.0);
-//gl_FragColor=vec4(pn,pn,pn,1);
+//gl_FragColor=vec4(params0.xy/5,pn,1);
 };
 

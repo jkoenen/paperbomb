@@ -5,12 +5,24 @@
 
 typedef struct
 {
-    float       time;
-    float2      playerPos;
 } FrameData;
+
+typedef struct
+{
+    const float2*   pPoints;
+    uint            pointCount;
+} StrokeDefinition;
 
 void renderer_init();
 void renderer_done();
+
+void renderer_startPageFlip( float duration );
+int renderer_advancePageFlip( float timeStep );
+void renderer_flipPage();
+
+void renderer_startStroke( const StrokeDefinition* pDefinition, const float2* pPositionOnPage, float speed, float width, float variance );
+int renderer_advanceStroke( float timeStep );
+void renderer_drawStroke( const StrokeDefinition* pDefinition, const float2* pPositionOnPage, float width, float variance );
 
 void renderer_drawFrame( const FrameData* pFrame );
 

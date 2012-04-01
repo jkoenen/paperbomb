@@ -82,8 +82,8 @@ void game_render()
 {
     FrameData frame;
     memset( &frame, 0u, sizeof( frame ) );
-    frame.time = s_game.gameTime;
-    frame.playerPos = s_game.playerPos;
+    //frame.time = s_game.gameTime;
+    //frame.playerPos = s_game.playerPos;
     renderer_drawFrame( &frame );
 }
 

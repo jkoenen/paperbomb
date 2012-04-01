@@ -37,13 +37,15 @@ void sys_exit( int extCode );
 #endif
 
 #ifdef SYS_ASSERT_ENABLED
-#   define SYS_ASSERT(Expression)	if( !( Expression ) ) { SYS_TRACE_ERROR( "Assertion failed: %s\n", # Expression ); sys_exit( 1 ); };
-#   define SYS_BREAK(...)			sys_exit( 1 );
-#	define SYS_VERIFY(Expression)	SYS_ASSERT(Expression)
+#   define SYS_ASSERT(Expression)	        if(!(Expression)){SYS_TRACE_ERROR("Assertion failed: %s\n", # Expression); sys_exit(1);}
+#   define SYS_BREAK(...)			        sys_exit(1);
+#	define SYS_VERIFY(Expression)	        SYS_ASSERT(Expression)
+#   define SYS_VERIFY_MSG(Expression,format,args...)   if(!(Expression)){SYS_BREAK( format ## args);}
 #else
-#   define SYS_ASSERT(Expression)	(void)(Expression)
-#   define SYS_BREAK(...)			sys_exit( 1 );
-#	define SYS_VERIFY(Expression)	(Expression)
+#   define SYS_ASSERT(Expression)
+#   define SYS_BREAK(...)			        sys_exit(1);
+#	define SYS_VERIFY(Expression)	        (void)(Expression)
+#   define SYS_VERIFY_MSG(Expression,...)   (void)(Expression)
 #endif
 
 #endif

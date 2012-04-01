@@ -1,6 +1,9 @@
 #ifndef TYPES_H_INCLUDED
 #define TYPES_H_INCLUDED
 
+#include <stdlib.h>
+#include <math.h>
+
 #ifdef _MSC_VER
 #if (_MSC_VER < 1300)
    typedef signed char       int8_t;
@@ -82,37 +85,186 @@ static inline float float_lerp( float a, float b, float x )
     return a + ( b - a ) * x;
 }
 
-static inline void float2_scale( float2* pValue, float factor )
+static inline float float_rand()
 {
-    pValue->x *= factor;
-    pValue->y *= factor;
+    return (float)rand()/(float)RAND_MAX;
 }
 
-static inline void float2_add( float2* pResult, const float2* pA, const float2* pB )
+static inline float float_rand_range( float min, float max )
 {
-    pResult->x = pA->x + pB->x;
-    pResult->y = pA->y + pB->y;
+    return float_lerp( min, max, float_rand() );
 }
 
-static inline void float2_set( float2* pValue, float x, float y )
+static inline float float_rand_normal( float mean, float sd )
+{
+    const float x0 = float_rand();
+    const float x1 = float_rand();
+    
+    const float y = sqrtf( -2.0 * logf( x0 ) ) * sinf( 2.0f * PI * x1 );
+    return mean + y * sd;
+}
+
+static inline float2* float2_rand_normal( float2* pValue, float mean, float sd )
+{
+    const float x = float_rand_normal( mean, sd );
+    const float y = float_rand_normal( mean, sd );
+
+    pValue->x = x;
+    pValue->y = y;
+    return pValue;
+}
+
+static inline float2* float2_scale( float2* pValue, float factor )
+{
+    const float x = pValue->x;
+    const float y = pValue->y;
+
+    const float rx = x * factor;
+    const float ry = y * factor;
+
+    pValue->x = rx;
+    pValue->y = ry;
+    return pValue;
+}
+
+static inline float2* float2_add( float2* pResult, const float2* pA, const float2* pB )
+{
+    const float ax = pA->x;
+    const float ay = pA->y;
+    const float bx = pB->x;
+    const float by = pB->y;
+
+    const float rx = ax + bx;
+    const float ry = ay + by;
+    
+    pResult->x = rx;
+    pResult->y = ry;
+
+    return pResult;
+}
+
+static inline float2* float2_sub( float2* pResult, const float2* pA, const float2* pB )
+{
+    const float ax = pA->x;
+    const float ay = pA->y;
+    const float bx = pB->x;
+    const float by = pB->y;
+
+    const float rx = ax - bx;
+    const float ry = ay - by;
+    
+    pResult->x = rx;
+    pResult->y = ry;
+
+    return pResult;
+}
+
+static inline float2* float2_set( float2* pValue, float x, float y )
 {
     pValue->x = x;
     pValue->y = y;
+    return pValue;
 }
 
-static inline void float3_set( float3* pValue, float x, float y, float z )
+static inline float float2_squareLength( const float2* pX )
+{
+    const float x = pX->x;
+    const float y = pX->y;
+
+    return x*x+y*y;
+}
+
+static inline float float2_length( const float2* pX )
+{
+    return sqrtf(float2_squareLength(pX));
+}
+
+static inline float float2_squareDistance( const float2* pA, const float2* pB )
+{
+    const float ax = pA->x;
+    const float ay = pA->y;
+    const float bx = pB->x;
+    const float by = pB->y;
+
+    const float dx = ax-bx;
+    const float dy = ay-by;
+
+    return dx*dx+dy*dy;
+}
+
+static inline float float2_distance( const float2* pA, const float2* pB )
+{
+    return sqrtf(float2_squareDistance(pA,pB));
+}
+
+static inline float2* float2_normalize( float2* pValue )
+{
+    const float invLength = 1.0f / float2_length(pValue);
+    float2_scale( pValue, invLength );
+    return pValue;
+}
+
+static inline float2* float2_perpendicular( float2* pResult, const float2* pA )
+{
+    const float x = pA->x;
+    const float y = pA->y;
+
+    const float rx = y;
+    const float ry = -x;
+
+    pResult->x = rx;
+    pResult->y = ry;
+    return pResult;
+}
+
+// r = a + b * c
+static inline float2* float2_addScaled2f( float2* pResult, const float2* pA, const float2* pB, const float2* pC )
+{
+    const float ax = pA->x;
+    const float ay = pA->y;
+    const float bx = pB->x;
+    const float by = pB->y;
+    const float cx = pC->x;
+    const float cy = pC->y;
+
+    const float rx = ax + bx * cx;
+    const float ry = ay + by * cy;
+
+    pResult->x = rx;
+    pResult->y = ry;
+    return pResult;
+}
+
+static inline float2* float2_addScaled1f( float2* pResult, const float2* pA, const float2* pB, float c )
+{
+    const float ax = pA->x;
+    const float ay = pA->y;
+    const float bx = pB->x;
+    const float by = pB->y;
+
+    const float rx = ax + bx * c;
+    const float ry = ay + by * c;
+
+    pResult->x = rx;
+    pResult->y = ry;
+    return pResult;
+}
+
+static inline float3* float3_set( float3* pValue, float x, float y, float z )
 {
     pValue->x = x;
     pValue->y = y;
     pValue->z = z;
+    return pValue;
 }
 
-static inline void float4_set( float4* pValue, float x, float y, float z, float w )
+static inline float4* float4_set( float4* pValue, float x, float y, float z, float w )
 {
     pValue->x = x;
     pValue->y = y;
     pValue->z = z;
     pValue->w = w;
+    return pValue;
 }
 
 #endif
