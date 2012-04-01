@@ -249,7 +249,7 @@ int renderer_advanceStroke( float timeStep )
 
     // set constant shader parameters:
     float4 params;
-    float4_set( &params, pStroke->width, pStroke->variance, 0.3f, 0.0f );
+    float4_set( &params, pStroke->width, pStroke->variance, 0.8f, 0.0f );
     int paramId = glGetUniformLocationARB( s_renderer.paperShader.id, "params0" );
     SYS_ASSERT( paramId >= 0 );
     glUniform4fv( paramId, 1u, &params.x );

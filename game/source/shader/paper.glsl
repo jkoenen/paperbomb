@@ -7,7 +7,7 @@ void main()
 {
     paperPos = gl_Vertex.xy*vec2(32,18);
     gl_Position = gl_Vertex;
-};
+}
 
 
 <FS>
@@ -85,6 +85,5 @@ void main()
     float pn=snoise( paperPos + noiseOffset );
     vec3 paperColor = mix(paperColor0, paperColor1, pn );
     gl_FragColor = vec4( mix( gridColor, paperColor, s.x*s.y), 1.0);
-//gl_FragColor=vec4(params0.xy/5,pn,1);
-};
+}
 

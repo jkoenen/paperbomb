@@ -28,7 +28,7 @@ void main()
     float distance = abs(0.5-linepos);
     float x=(distance/width);
 
-    float intensity = max(1.0-x*x,0.0);
+    float intensity = mix( 0.7f, 0.8f, cos( texCoord.x * 3.14159 )) * max(1.0-x*x,0.0);
 
     vec4 color=vec4(0.1,0.1,0.1,1.0)*intensity;
     gl_FragColor=color;
