@@ -9,6 +9,8 @@ enum
 	MaxBombs = 8u
 };
 
+static const float s_playerBulletProofAge = 1.0f;
+
 typedef struct 
 {
 	float	age;
