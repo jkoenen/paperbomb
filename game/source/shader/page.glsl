@@ -5,10 +5,9 @@ varying vec2 texCoord;
 
 void main()
 {
-    texCoord = gl_MultiTexCoord0;
+    texCoord = gl_MultiTexCoord0.xy;
     gl_Position = gl_Vertex;
-};
-
+}
 
 <FS>
 uniform sampler2D bgTexture;
@@ -19,7 +18,7 @@ void main()
     vec4 bgColor = texture2D( bgTexture, texCoord );
     vec4 fgColor = texture2D( fgTexture, texCoord );
 
-    vec4 result = bgColor * (1-fgColor.w) + fgColor;
+    vec4 result = bgColor * (1.0-fgColor.w) + fgColor;
     gl_FragColor = result;
-};
+}
 
