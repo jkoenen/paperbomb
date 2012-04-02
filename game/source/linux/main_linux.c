@@ -61,14 +61,12 @@ void sys_exit( int exitcode )
 
 int sys_getScreenWidth()
 {
-    return 1280;
-//    return 640;
+    return ScreenWidth;
 }
 
 int sys_getScreenHeight()
 {
-    return 720;
-//    return 360;
+    return ScreenHeight;
 }
 
 static void updateButtonMask( uint32* pButtonMask, uint32 button, int isDown )
@@ -92,7 +90,7 @@ int main()
         SYS_BREAK( "SDL_Init failed!\n" );
     }
 
-    SDL_SetVideoMode( 1280u, 720u, 0u, SDL_OPENGL /*| SDL_FULLSCREEN */ );
+    SDL_SetVideoMode( ScreenWidth, ScreenHeight, 0u, SDL_OPENGL /*| SDL_FULLSCREEN */ );
     SDL_ShowCursor( SDL_DISABLE );
     SDL_GL_SetAttribute( SDL_GL_SWAP_CONTROL, 1 );
 
@@ -198,6 +196,39 @@ int main()
         gameInput.buttonMask = buttonMask;
 
         game_update( &gameInput );
+
+        /*if( renderer_isPageDone() )
+        {
+            // new page:
+            renderer_flipPage();
+            
+            const float2 points[] =
+            {
+                {  0.0f, 0.0f },
+                { 10.0f, 0.0f },
+                { 20.0f, 0.0f },
+                { 20.0f, 10.0f }
+            };
+
+            float2x3 transform;
+            float2x2_identity( &transform.rot );
+            float2_set( &transform.pos, 40.0f, 10.0f );
+            renderer_setTransform( &transform );
+            renderer_setPen( Pen_Fat );
+            renderer_addStroke( points, SYS_COUNTOF( points ) );
+
+            renderer_setPen( Pen_Default );
+            float2_set( &transform.pos, 10.0f, 10.0f );
+            renderer_setTransform( &transform );
+            renderer_addStroke( points, SYS_COUNTOF( points ) );
+        }
+        renderer_updatePage( timeStep );
+
+        FrameData frame;
+        //memset( &frame, 0u, sizeof( frame ) );
+        //frame.time = s_game.gameTime;
+        //frame.playerPos = s_game.player[ 0u ].position;
+        renderer_drawFrame( &frame );*/
         game_render();
 
         if( buttonMask & ButtonMask_Down )
@@ -206,17 +237,6 @@ int main()
             {
             }
         }
-
-        FrameData frame;
-        memset( &frame, 0, sizeof( frame ) );
-        renderer_drawFrame( &frame );
-
-        // render some stuff:
-
-        // first: draw some strokes on the paper
-
-        // second: draw the current paper(s) state:
-
 
         SDL_GL_SwapBuffers();
 

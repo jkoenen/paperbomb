@@ -24,7 +24,7 @@ float rand(vec2 co){
 uniform vec4 params0;
 void main()
 {
-    float width = 0.1f; ///18.0;    // * rand( gl_FragCoord );
+    float width = 0.25f; ///18.0;    // * rand( gl_FragCoord );
     float offset = params0.y;
     float curveSize = params0.z;
 
@@ -37,6 +37,7 @@ void main()
     float intensity = mix(0.7f,0.8f,cos(texCoord.x*3.14159))*max(1.0-x*x,0.0);
 
     vec4 color=vec4(0.1,0.1,0.1,1.0)*intensity;
+//color.xw=vec2(1.0,1.0);//=vec4(1,0,1,1);
 //color=vec4(1,0,1,1);
     gl_FragColor=color;
 }

@@ -17,7 +17,6 @@ typedef struct
 	float	steer;
 	float2	velocity;
 	float	health;
-	uint32	lastButtonMask;
 	uint	maxBombs;
 	float	bombLength;
 	Bomb	bombs[ MaxBombs ];
@@ -25,6 +24,6 @@ typedef struct
 } Player;
 
 void player_init( Player* pPlayer, const float2* pPosition, float direction, int clearBombs );
-void player_update_input( Player* pPlayer, uint32 buttonMask );
+void player_update_input( Player* pPlayer, uint32 buttonMask, uint32 buttonDownMask );
 
 #endif

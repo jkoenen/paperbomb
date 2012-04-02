@@ -12,7 +12,6 @@ void player_init( Player* pPlayer, const float2* pPosition, float direction, int
 	pPlayer->velocity.x		= 0.0f;
 	pPlayer->position.y		= 0.0f;
 	pPlayer->health			= 100.0f;
-	pPlayer->lastButtonMask	= 0u;
 	pPlayer->maxBombs		= 4u;
 	pPlayer->bombLength		= 8.0f;
 
@@ -25,10 +24,8 @@ void player_init( Player* pPlayer, const float2* pPosition, float direction, int
 	}
 }
 
-void player_update_input( Player* pPlayer, uint32 buttonMask )
+void player_update_input( Player* pPlayer, uint32 buttonMask, uint32 buttonDownMask )
 {
-	const uint32 buttonDownMask = buttonMask & ~pPlayer->lastButtonMask;
-
 	const float steerSpeed = 0.05f;
 	const float steerDamping = 0.8f;
 	const float maxSpeed = 0.5f;
@@ -121,5 +118,4 @@ void player_update_input( Player* pPlayer, uint32 buttonMask )
 
 	pPlayer->position.x = float_clamp( pPlayer->position.x, -32.0f, 32.0f );
 	pPlayer->position.y = float_clamp( pPlayer->position.y, -18.0f, 18.0f );
-	pPlayer->lastButtonMask = buttonMask;
 }

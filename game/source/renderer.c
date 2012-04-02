@@ -75,6 +75,7 @@ typedef struct
 typedef struct
 {
     float2          points[ MaxPointCount ];
+    float2          pointNormals[ MaxPointCount ];
     uint            pointCount;
     StrokeCommand   commands[ MaxCommandCount ];
     uint            commandCount;
@@ -224,9 +225,9 @@ void renderer_init()
     color.x = 0.2f;
     color.y = 0.2f;
     color.z = 0.2f;
-    createPen( &s_renderer.pens[ Pen_Default ], 1.0f, 1.0f, &color );
-    createPen( &s_renderer.pens[ Pen_Font ], 1.0f, 1.0f, &color );
-    createPen( &s_renderer.pens[ Pen_Fat ], 3.0f, 1.0f, &color );
+    createPen( &s_renderer.pens[ Pen_Default ], 2.0f, 1.0f, &color );
+    createPen( &s_renderer.pens[ Pen_Font ], 2.0f, 1.0f, &color );
+    createPen( &s_renderer.pens[ Pen_Fat ], 20.0f, 1.0f, &color );
 
     // :TODO: create page flip mesh:
 
@@ -393,6 +394,7 @@ void renderer_addStroke( const float2* pStrokePoints, uint pointCount )
     pCommand->data.draw.penId = s_renderer.currentPen;
 
     float2* pPoints = &s_renderer.strokeBuffer.points[ s_renderer.strokeBuffer.pointCount ];
+    float2* pPointNormals = &s_renderer.strokeBuffer.pointNormals[ s_renderer.strokeBuffer.pointCount ];
     s_renderer.strokeBuffer.pointCount += pointCount;
 
     const float variance = s_renderer.currentVariance;
@@ -412,6 +414,38 @@ void renderer_addStroke( const float2* pStrokePoints, uint pointCount )
 
         *pPoints++ = point;
     }
+
+    // compute segment normals:
+    for( uint i = 1u; i < pointCount; ++i )
+    {
+        const float2 lastPoint = pStrokePoints[ i - 1u ];
+        const float2 currentPoint = pStrokePoints[ i ];
+
+        float2 dir;
+        float2_sub( &dir, &currentPoint, &lastPoint );
+        float2_normalize( &dir );
+        float2_perpendicular( &pPointNormals[ i ], &dir );
+    }
+    pPointNormals[ 0u ] = pPointNormals[ 1u ];
+
+    // compute averaged normals:
+    for( uint i = 1u; i < pointCount - 1u; ++i )
+    {
+        const float2 lastNormal = pPointNormals[ i ];
+        const float2 nextNormal = pPointNormals[ i + 1 ];
+
+        float2 averageNormal;
+        float2_add( &averageNormal, &lastNormal, &nextNormal );
+        float2_normalize( &averageNormal );
+
+        pPointNormals[ i ] = averageNormal;
+    }
+
+/*    for( uint i = 0u; i < pointCount; ++i )
+    {
+        const float2 normal = pPointNormals[ i ];
+        SYS_TRACE_DEBUG( "normal[%i]=(%f,%f)\n", i, normal.x, normal.y );
+    }*/
 
     //SYS_TRACE_DEBUG( "added stroke with %i points (pos=%i)\n", pointCount, s_renderer.strokeBuffer.commandCount - 1u );
 }
@@ -508,18 +542,20 @@ static int advanceStroke( float* pRemainingTime, float timeStep )
     float remainingLength = newProgress - currentProgress;
 
     const float2* pStrokePoints = &s_renderer.strokeBuffer.points[ pDrawCommand->pointIndex ];
+    const float2* pStrokeNormals = &s_renderer.strokeBuffer.pointNormals[ pDrawCommand->pointIndex ];
     
     while( pStroke->activeSegment < segmentCount && remainingLength > 0.0f )
     {
         const float2 segmentStart = pStrokePoints[ pStroke->activeSegment ];
         const float2 segmentEnd = pStrokePoints[ pStroke->activeSegment + 1u ];
+        const float2 segmentNormalStart = pStrokeNormals[ pStroke->activeSegment ];
+        const float2 segmentNormalEnd = pStrokeNormals[ pStroke->activeSegment + 1u ];
 
         // get remaining length in current segment:
         float activeSegmentLength = float2_distance( &segmentStart, &segmentEnd );
 
         if( activeSegmentLength <= 0.0f )
         {
-            SYS_TRACE_ERROR( "blub!\n" );
             break;
         }
 
@@ -531,6 +567,9 @@ static int advanceStroke( float* pRemainingTime, float timeStep )
         const float partStart = pStroke->segmentProgress;
         const float partEnd = partStart + segmentAdvance;
 
+        const float u0 = partStart / activeSegmentLength;
+        const float u1 = partEnd / activeSegmentLength;
+        
         // draw the active segment between partStart and partEnd:
         //SYS_TRACE_DEBUG( "drawing segment part from %f to %f!\n", partStart / activeSegmentLength, partEnd / activeSegmentLength );
            
@@ -541,25 +580,25 @@ static int advanceStroke( float* pRemainingTime, float timeStep )
         // compute coordinates of quad enclosing the segment part:
         float2 segmentDir;
         float2_normalize( float2_sub( &segmentDir, &segmentEnd, &segmentStart ) );
-
-        float2 segmentUp;
-        float2_perpendicular( &segmentUp, &segmentDir );
+    
+        float2 normalStart, normalEnd;
+        float2_lerp( &normalStart, &segmentNormalStart, &segmentNormalEnd, u0 );
+        float2_normalize( &normalStart );
+        float2_lerp( &normalEnd, &segmentNormalStart, &segmentNormalEnd, u1 );
+        float2_normalize( &normalEnd );
 
         float2 startPos, endPos;
         float2_addScaled1f( &startPos, &segmentStart, &segmentDir, partStart );
         float2_addScaled1f( &endPos, &segmentStart, &segmentDir, partEnd );
 
-        const float ws = 1.0f;
+        const float ws = 2.0f * ( 64.0f / sys_getScreenWidth() );
 
         float2 vertices[ 4u ];
-        float2_addScaled1f( &vertices[ 0u ], &startPos, &segmentUp,  ws * pPen->width );
-        float2_addScaled1f( &vertices[ 1u ], &startPos, &segmentUp, -ws * pPen->width );
-        float2_addScaled1f( &vertices[ 2u ], &endPos, &segmentUp, -ws * pPen->width );
-        float2_addScaled1f( &vertices[ 3u ], &endPos, &segmentUp,  ws * pPen->width );
+        float2_addScaled1f( &vertices[ 0u ], &startPos, &normalStart,  ws * pPen->width );
+        float2_addScaled1f( &vertices[ 1u ], &startPos, &normalStart, -ws * pPen->width );
+        float2_addScaled1f( &vertices[ 2u ], &endPos, &normalEnd, -ws * pPen->width );
+        float2_addScaled1f( &vertices[ 3u ], &endPos, &normalEnd,  ws * pPen->width );
 
-        const float u0 = partStart / activeSegmentLength;
-        const float u1 = partEnd / activeSegmentLength;
-        
         glBegin( GL_TRIANGLES );
             glTexCoord2f( u0, 0.0 );   glVertex2f( vertices[ 0u ].x, vertices[ 0u ].y );
             glTexCoord2f( u0, 1.0 );   glVertex2f( vertices[ 1u ].x, vertices[ 1u ].y );
