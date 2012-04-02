@@ -8,20 +8,27 @@ int isCircleCircleIntersecting( const Circle* pCircleA, const Circle* pCircleB )
 
 static float getLinePointDistance( const Line* pLine, const float2* pPoint )
 {
-	float2 line;
-	float2_sub( &line, &pLine->b, &pLine->a );
+	float2 ab;
+	float2_sub( &ab, &pLine->b, &pLine->a );
 
-	float2 point;
-	float2_sub( &point, &pLine->a, pPoint );
+	float2 ap;
+	float2_sub( &ap, pPoint, &pLine->a );
 
-	const float lineLength = float2_length( &line );
-	if( lineLength < 0.0001f )
+	const float v = ( ap.x * ab.x + ap.y * ab.y ) / ( ab.x * ab.x + ab.y * ab.y );
+
+	if( v <= 0.0f ) 
 	{
-		return float2_length( &point );
-	}
-	else
+		return float2_distance( pPoint, &pLine->a );
+	} 
+	else if( v >= 1.0f ) 
 	{
-		return float_abs( point.y * line.x - point.x * line.y ) / lineLength;
+		return float2_distance( pPoint, &pLine->b );
+	} 
+	else 
+	{
+		float2 p;
+		float2_addScaled1f( &p, &pLine->a, &ab, v );
+		return float2_distance( pPoint, &p );
 	}
 }
 
