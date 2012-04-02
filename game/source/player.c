@@ -20,13 +20,13 @@ void player_init( Player* pPlayer, const float2* pPosition, float direction )
 	}
 }
 
-void player_update( Player* pPlayer, uint32 buttonMask )
+void player_update_input( Player* pPlayer, uint32 buttonMask )
 {
 	const uint32 buttonDownMask = buttonMask & ~pPlayer->lastButtonMask;
 
-	const float steerSpeed = 0.02f;
-	const float steerDamping = 0.9f;
-	const float maxSpeed = 0.05f;
+	const float steerSpeed = 0.05f;
+	const float steerDamping = 0.8f;
+	const float maxSpeed = 0.5f;
 	const float maxSteer = (float)PI * 0.2f;
 		
 	if( buttonMask & ButtonMask_Left )
@@ -45,11 +45,11 @@ void player_update( Player* pPlayer, uint32 buttonMask )
 	float acceleration = 0.0f;
 	if( buttonMask & ButtonMask_Up )
 	{
-		acceleration = 0.005f;
+		acceleration = 0.02f;
 	}
 	else if( buttonMask & ButtonMask_Down )
-	{
-		acceleration = -0.005f;
+	{ 
+		acceleration = -0.02f;
 	}
 
 	if( buttonDownMask & ButtonMask_PlaceBomb )
@@ -114,8 +114,8 @@ void player_update( Player* pPlayer, uint32 buttonMask )
 	velocity.y = 0.0f;
 
 	float2_rotate( &velocity, pPlayer->direction );
-	float2_addScaled1f( &velocity, &velocity, &velocityForward, 0.95f );
-	float2_addScaled1f( &velocity, &velocity, &velocitySide, 0.7f );
+	float2_addScaled1f( &velocity, &velocity, &velocityForward, 0.94f );
+	float2_addScaled1f( &velocity, &velocity, &velocitySide, 0.8f );
 
 	pPlayer->velocity = velocity; 
 
@@ -124,6 +124,8 @@ void player_update( Player* pPlayer, uint32 buttonMask )
 	{
 		float2_scale1f( &pPlayer->velocity, maxSpeed / speed );
 	}
+
+	SYS_TRACE_DEBUG( "speed %.4f\n", speed );
 
 	float2_add( &pPlayer->position, &pPlayer->position, &pPlayer->velocity );
 

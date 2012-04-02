@@ -15,12 +15,15 @@ typedef struct
 
 typedef struct 
 {
+	int		active;
 	float2	positon;
 	float	direction;
 	float	length;
 	float	time;
 
 } Explosion;
+
+void	bomb_update( Bomb* pBomb, Explosion* pExplosions, uint capacity );
 
 #endif
 

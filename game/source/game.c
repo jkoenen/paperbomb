@@ -15,6 +15,7 @@
 typedef struct
 {
     float		gameTime;
+	float		updateTime;
 	uint32		lastButtonMask;
 
 	float       fps;
@@ -76,6 +77,7 @@ void game_init()
 	s_game.variance = 0.2f;
 
     s_game.gameTime = 0.0f;
+	s_game.updateTime = 0.0f;
 	s_game.lastButtonMask = 0u;
 
 	gamestate_init( &s_game.gameState, 2u );
@@ -92,20 +94,28 @@ void game_update( const GameInput* pInput )
     const float timeStep = pInput->timeStep;
 
     s_game.gameTime += timeStep;
+	s_game.updateTime += timeStep;
 
-	debug_update( pInput->buttonMask, s_game.lastButtonMask );
+	uint32 buttonMask = pInput->buttonMask;
+	while( s_game.updateTime >= GAMETIMESTEP )
+	{
+		debug_update(buttonMask, s_game.lastButtonMask );
 
-	uint32 playerInputs[ MaxPlayer ];
-	memset( playerInputs, sizeof( playerInputs ), 0u );
-	playerInputs[ 0u ] = pInput->buttonMask & Button_PlayerMask;
-	playerInputs[ 1u ] = ( pInput->buttonMask >> Button_PlayerShift ) & Button_PlayerMask;
+		uint32 playerInputs[ MaxPlayer ];
+		memset( playerInputs, sizeof( playerInputs ), 0u );
+		playerInputs[ 0u ] = buttonMask & Button_PlayerMask;
+		playerInputs[ 1u ] = ( buttonMask >> Button_PlayerShift ) & Button_PlayerMask;
 
-	World world;
+		World world;
 
-	gamestate_update( &s_game.gameState, &world, playerInputs );
+		gamestate_update( &s_game.gameState, &world, playerInputs );
+
+		s_game.updateTime -= GAMETIMESTEP;
+		s_game.lastButtonMask = buttonMask;
+		buttonMask = 0u;
+	}
 
 	s_game.remainingPageTime -= timeStep;
-	s_game.lastButtonMask = pInput->buttonMask;
 }
 
 void game_render_car( const Player* pPlayer )

@@ -23,6 +23,6 @@ typedef struct
 } Player;
 
 void player_init( Player* pPlayer, const float2* pPosition, float direction );
-void player_update( Player* pPlayer, uint32 buttonMask );
+void player_update_input( Player* pPlayer, uint32 buttonMask );
 
 #endif

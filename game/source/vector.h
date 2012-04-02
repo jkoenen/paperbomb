@@ -10,7 +10,6 @@ static inline float2* float2_set( float2* pValue, float x, float y )
 	return pValue;
 }
 
-
 static inline float3* float3_set( float3* pValue, float x, float y, float z )
 {
 	pValue->x = x;
