@@ -1,4 +1,5 @@
 #include "font.h"
+#include "vector.h"
 
 #include <string.h>
 

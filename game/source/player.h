@@ -10,11 +10,11 @@ typedef struct
 	float	steer;
 	float2	velocity;
 	uint	health;
-	uint32	lastInputMask;
+	uint32	lastButtonMask;
 
 } Player;
 
 void player_reset( Player* pPlayer );
-void player_update( Player* pPlayer, float timeStep, uint32 inputMask );
+void player_update( Player* pPlayer, float timeStep, uint32 buttonMask );
 
 #endif

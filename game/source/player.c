@@ -1,8 +1,7 @@
 #include "player.h"
 #include "debug.h"
 #include "input.h"
-
-#include <math.h>
+#include "vector.h"
 
 void player_reset( Player* pPlayer )
 {
@@ -13,21 +12,21 @@ void player_reset( Player* pPlayer )
 	pPlayer->velocity.x = 0.0f;
 	pPlayer->position.y = 0.0f;
 	pPlayer->health = 100u;
-	pPlayer->lastInputMask = 0u;
+	pPlayer->lastButtonMask = 0u;
 }
 
 #define M_PI_4F ((float)M_PI_4)
 
-void player_update( Player* pPlayer, float timeStep, uint32 inputMask )
+void player_update( Player* pPlayer, float timeStep, uint32 buttonMask )
 {
-	const uint32 buttonDownMask = inputMask & ~pPlayer->lastInputMask;
+	const uint32 buttonDownMask = buttonMask & ~pPlayer->lastButtonMask;
 
 	float accelerate = 0.0f;
-	if( inputMask & ButtonMask_Left )
+	if( buttonMask & ButtonMask_Left )
 	{
 		pPlayer->steer = float_clamp( pPlayer->steer + 0.1f * timeStep, -M_PI_4F, M_PI_4F );
 	}
-	else if( inputMask & ButtonMask_Right )
+	else if( buttonMask & ButtonMask_Right )
 	{
 		pPlayer->steer = float_clamp( pPlayer->steer - 0.1f * timeStep, -M_PI_4F, M_PI_4F );
 	}
@@ -36,11 +35,11 @@ void player_update( Player* pPlayer, float timeStep, uint32 inputMask )
 		pPlayer->steer *= 0.9f;
 	}
 
-	if( inputMask & ButtonMask_Up )
+	if( buttonMask & ButtonMask_Up )
 	{
 		accelerate = 1.0f;
 	}
-	else if( inputMask & ButtonMask_Down )
+	else if( buttonMask & ButtonMask_Down )
 	{
 		accelerate -= 1.0f;
 	}
@@ -58,8 +57,7 @@ void player_update( Player* pPlayer, float timeStep, uint32 inputMask )
 	velocity.x = speed;
 	velocity.y = 0.0f;
 
-	velocity.x = velocity.x * cosf( pPlayer->direction ) - velocity.y * sinf( pPlayer->direction );
-	velocity.y = velocity.y * cosf( pPlayer->direction ) + velocity.x * sinf( pPlayer->direction );
+	float2_rotate( &velocity, pPlayer->direction );
 
 	float2_scale( &pPlayer->velocity, 0.9f );
 	float2_add( &pPlayer->velocity, &pPlayer->velocity, &velocity );
@@ -68,6 +66,5 @@ void player_update( Player* pPlayer, float timeStep, uint32 inputMask )
 
 	pPlayer->position.x = float_clamp( pPlayer->position.x, -1.0f, 1.0f );
 	pPlayer->position.y = float_clamp( pPlayer->position.y, -1.0f, 1.0f );
-	pPlayer->lastInputMask = inputMask;
-
+	pPlayer->lastButtonMask = buttonMask;
 }

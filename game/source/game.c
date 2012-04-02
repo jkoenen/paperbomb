@@ -6,8 +6,7 @@
 #include "sound.h"
 #include "font.h"
 #include "input.h"
-
-#include <math.h>
+#include "vector.h"
 
 enum
 {
@@ -96,7 +95,7 @@ void game_update( const GameInput* pInput )
 
     s_game.gameTime += timeStep;
 
-	debug_update( pInput->buttonMask, s_game.player[ 0u ].lastInputMask );
+	debug_update( pInput->buttonMask, s_game.player[ 0u ].lastButtonMask );
 
 	player_update( &s_game.player[ 0u ], timeStep, pInput->buttonMask );
 

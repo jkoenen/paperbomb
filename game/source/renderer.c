@@ -3,6 +3,7 @@
 #include "platform.h"
 #include "debug.h"
 #include "opengl.h"
+#include "vector.h"
 
 #include "shader.h"
 #include "rendertarget.h"
