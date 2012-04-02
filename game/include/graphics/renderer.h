@@ -7,6 +7,7 @@ typedef struct
 {
     float       time;
     float2      playerPos;
+	float		playerDir;
 } FrameData;
 
 void renderer_init();

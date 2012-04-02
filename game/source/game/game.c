@@ -2,15 +2,21 @@
 #include "graphics/renderer.h"
 #include "sys/debug.h"
 #include "sys/types.h"
+#include "game/player.h"
 
 #include <string.h>
+
+enum
+{
+	MaxPlayer = 8u
+};
 
 typedef struct
 {
     float		gameTime;
 
-    float2		playerPos;
-    uint32		lastButtonMask;
+	player_t	player[ MaxPlayer ];
+	uint		playerCount;
 } game_t;
 
 static game_t s_game;
@@ -21,8 +27,11 @@ void game_init()
     renderer_init();
 
     s_game.gameTime = 0.0f;
-    float2_set( &s_game.playerPos, 0.0f, 0.0f );
-    s_game.lastButtonMask = 0u;
+	s_game.playerCount = 1u;
+	for( uint i = 0u; i < s_game.playerCount; ++i )
+	{
+		player_reset( &s_game.player[ i ] );
+	}
 }
 
 void game_done()
@@ -36,41 +45,7 @@ void game_update( const GameInput* pInput )
 
     s_game.gameTime += timeStep;
 
-    float2 velocity;
-    float2_set( &velocity, 0.0f, 0.0f );
-
-    const uint32 buttonMask = pInput->buttonMask;
-    const uint32 buttonDownMask = buttonMask & ~s_game.lastButtonMask;
-    //const uint32 buttonUpMask = ~buttonMask & s_game.lastButtonMask;
-
-    if( buttonMask & ButtonMask_Left )
-    {
-        velocity.x = -1.0f;
-    }
-    if( buttonMask & ButtonMask_Right )
-    {
-        velocity.x += 1.0f;
-    }
-    if( buttonMask & ButtonMask_Up )
-    {
-        velocity.y = 1.0f;
-    }
-    if( buttonMask & ButtonMask_Down )
-    {
-        velocity.y -= 1.0f;
-    }
-    if( buttonDownMask & ButtonMask_PlaceBomb )
-    {
-        SYS_TRACE_DEBUG( "place bomb!\n" );
-    }
-
-    const float speed = timeStep * 1.0f;
-    float2_scale( &velocity, speed );
-    float2_add( &s_game.playerPos, &s_game.playerPos, &velocity );
-
-    s_game.playerPos.x = float_clamp( s_game.playerPos.x, -1.0f, 1.0f );
-    s_game.playerPos.y = float_clamp( s_game.playerPos.y, -1.0f, 1.0f );
-    s_game.lastButtonMask = buttonMask;
+	player_update( &s_game.player[ 0u ], timeStep, pInput->buttonMask );
 }
 
 void game_render()
@@ -78,7 +53,7 @@ void game_render()
     FrameData frame;
     memset( &frame, 0u, sizeof( frame ) );
     frame.time = s_game.gameTime;
-    frame.playerPos = s_game.playerPos;
+    frame.playerPos = s_game.player[ 0u ].position;
     renderer_drawFrame( &frame );
 }
 

@@ -2,6 +2,7 @@
 #include "sys/types.h"
 #include "sys/debug.h"
 #include "game/game.h"
+#include "game/input.h"
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -137,8 +138,8 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 	SYS_USE_ARGUMENT( lpCmdLine );
 	SYS_USE_ARGUMENT( nCmdShow );
 
-	const uint width = 1280u;
-	const uint height = 720u;
+	const uint width = 800u;
+	const uint height = 600u;
 	const char* pWndClass = "paperbomb_wc";
 
     WNDCLASS wc;
@@ -167,8 +168,8 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
         devmode.dmSize       = sizeof(DEVMODE);
         devmode.dmFields     = DM_BITSPERPEL|DM_PELSWIDTH|DM_PELSHEIGHT;
         devmode.dmBitsPerPel = 32;
-        devmode.dmPelsWidth  = 1280;
-        devmode.dmPelsHeight = 720;
+        devmode.dmPelsWidth  = 800;
+        devmode.dmPelsHeight = 600;
 
         SYS_VERIFY( ChangeDisplaySettings( &devmode,CDS_FULLSCREEN ) == DISP_CHANGE_SUCCESSFUL );
 
