@@ -85,17 +85,19 @@ void font_done()
 {
 }
 
-void font_drawText( const float2* pPosition, float size, float width, float variance, const char* pText )
+void font_drawText( const float2* pPosition, float size, float variance, const char* pText )
 {
-    float2 positionOffset;
-    float2_rand_normal( &positionOffset, 0.0f, variance );
+    float2x3 transform;
 
-    float2 position;
-    float2_add( &position, pPosition, &positionOffset );
+    //float2x2_identity( &tansform.rot );
+    float2x2_rotationY( &transform.rot, float_rand_normal( 0.0f, DEG2RADF( variance * 10.0f ) ) );
+    float2x2_scale1f( &transform.rot, &transform.rot, size );
+    transform.pos = *pPosition;
 
-    //float2 dir;
-//    dir.x = float_rand_normal( 1.0f, 0.1f * variance );
-//    dir.y = sqrt(1.0f-(dir.x*dir.x));
+    //float2_add( &transform.pos, pPosition, &positionOffset );
+
+    float2 basePos;
+    float2_rand_normal( &basePos, 0.0f, variance );
 
     while( *pText )
     {
@@ -126,7 +128,10 @@ void font_drawText( const float2* pPosition, float size, float width, float vari
             {
                 if( stroke.pointCount >= 2u )
                 {
-                    renderer_drawStroke( &stroke, &position, size, width, variance );
+                    float2x3 drawTransform;
+                    drawTransform.rot = transform.rot;
+                    float2x3_transform( &drawTransform.pos, &transform, &basePos );
+                    renderer_addStroke( &stroke, Pen_Font, &drawTransform, variance );
                 }
                 stroke.pointCount = 0u;
                 stroke.pPoints = &pGlyph->pPoints[ i + 1u ];
@@ -140,11 +145,14 @@ void font_drawText( const float2* pPosition, float size, float width, float vari
 
         if( stroke.pointCount >= 2u )
         {
-            renderer_drawStroke( &stroke, &position, size, width, variance );
+            float2x3 drawTransform;
+            drawTransform.rot = transform.rot;
+            float2x3_transform( &drawTransform.pos, &transform, &basePos );
+            renderer_addStroke( &stroke, Pen_Font, &drawTransform, variance );
         }
-        const float x = ( pGlyph->advance + float_rand_normal( 0.0f, variance ) ); 
-        position.x += x * size;
-        position.y = float_rand_normal( pPosition->y, variance );
+    
+        basePos.x += pGlyph->advance + float_rand_normal( 0.0f, variance );
+        basePos.y = float_rand_normal( 0.0f, variance );
     }
 }
 

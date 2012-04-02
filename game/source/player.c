@@ -59,7 +59,7 @@ void player_update( Player* pPlayer, float timeStep, uint32 buttonMask )
 
 	float2_rotate( &velocity, pPlayer->direction );
 
-	float2_scale( &pPlayer->velocity, 0.9f );
+	float2_scale1f( &pPlayer->velocity, 0.9f );
 	float2_add( &pPlayer->velocity, &pPlayer->velocity, &velocity );
 
 	float2_add( &pPlayer->position, &pPlayer->position, &pPlayer->velocity );

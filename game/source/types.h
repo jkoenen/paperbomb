@@ -33,6 +33,8 @@ typedef unsigned __int64     uint64_t;
 
 #define PI 3.14159265
 
+#define DEG2RADF(deg)    ((deg)*(float)PI/180.0f)
+
 #ifndef _MSC_VER
 #   define SYS_NO_RETURN   __attribute__ ((__noreturn__))
 #else

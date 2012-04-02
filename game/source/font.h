@@ -3,11 +3,10 @@
 
 #include "renderer.h"
 
-
 void font_init();
 void font_done();
 
-void font_drawText( const float2* pPosition, float size, float width, float variance, const char* pText );
+void font_drawText( const float2* pPosition, float size, float variance, const char* pText );
 
 #endif
 
