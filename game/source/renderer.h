@@ -9,12 +9,6 @@ typedef struct
     uint    dummy;
 } FrameData;
 
-typedef struct
-{
-    const float2*   pPoints;
-    uint            pointCount;
-} StrokeDefinition;
-
 typedef enum
 {
     Pen_Default,
@@ -26,9 +20,12 @@ void renderer_init();
 void renderer_done();
 
 void renderer_setDrawSpeed( float speed );      // 0.0 -> slowest allowed speed (seconds for a page), 1.0f -> one full page per frame
+void renderer_setPen( Pen pen );
+void renderer_setVariance( float variance );
+void renderer_setTransform( const float2x3* pTransform );
 
 void renderer_flipPage();
-void renderer_addStroke( const StrokeDefinition* pDefinition, Pen pen, const float2x3* pTransform, float variance );
+void renderer_addStroke( const float2* pPoints, uint pointCount );
 
 void renderer_updatePage( float timeStep );
 int renderer_isPageDone();

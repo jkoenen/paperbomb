@@ -157,15 +157,10 @@ void game_render_car( const Player* pPlayer )
 		float2_add( &steerPoints[ i ], &steerPoints[ i ], &worldOffset );
 	}
 
-    float2x3 transform;
-    float2x2_identity( &transform.rot );
-    float2_set( &transform.pos, 0.0f, 0.0f );
+    renderer_setTransform( 0 );
 
-	const StrokeDefinition carStrokes = { carPoints, SYS_COUNTOF( carPoints ) };	
-	renderer_addStroke( &carStrokes, Pen_Default, &transform, 0.0f );
-
-	const StrokeDefinition steerStrokes = { steerPoints, SYS_COUNTOF( steerPoints ) };	
-	renderer_addStroke( &steerStrokes, Pen_Default, &transform, 0.0f );
+	renderer_addStroke( carPoints, SYS_COUNTOF( carPoints ) );
+    renderer_addStroke( steerPoints, SYS_COUNTOF( steerPoints ) );
 }
 
 void game_render_bomb( const Bomb* pBomb )
@@ -174,9 +169,6 @@ void game_render_bomb( const Bomb* pBomb )
 	float2_set( &worldOffset, 32.0f, 18.0f );
 	float2 worldScale;
 	float2_set( &worldScale, 1.0f, 1.0f );
-
-	float2 position;
-	float2_set( &position, 0.0f, 0.0f );
 
 	float2 bomb0Points[] =
 	{ 
@@ -198,11 +190,7 @@ void game_render_bomb( const Bomb* pBomb )
 		float2_add( &bomb0Points[ i ], &bomb0Points[ i ], &worldOffset );
 	}
 
-	const StrokeDefinition bomb0Strokes = { bomb0Points, SYS_COUNTOF( bomb0Points ) };	
-    float2x3 transform;
-    float2x2_identity( &transform.rot );
-    transform.pos = position;
-	renderer_addStroke( &bomb0Strokes, Pen_Default, &transform, 0.0f );
+	renderer_addStroke( bomb0Points, SYS_COUNTOF( bomb0Points ) );
 
 	float2 bomb1Points[] =
 	{ 
@@ -224,9 +212,7 @@ void game_render_bomb( const Bomb* pBomb )
 		float2_add( &bomb1Points[ i ], &bomb1Points[ i ], &worldOffset );
 	}
 
-	const StrokeDefinition bomb1Strokes = { bomb1Points, SYS_COUNTOF( bomb1Points ) };	
-    transform.pos = position;
-	renderer_addStroke( &bomb1Strokes, Pen_Default, &transform, 0.0f );
+	renderer_addStroke( bomb1Points, SYS_COUNTOF( bomb1Points ) );
 }
 
 void game_render_explosion( const Explosion* pExplosion )
@@ -235,9 +221,6 @@ void game_render_explosion( const Explosion* pExplosion )
 	float2_set( &worldOffset, 32.0f, 18.0f );
 	float2 worldScale;
 	float2_set( &worldScale, 1.0f, 1.0f );
-
-	float2 position;
-	float2_set( &position, 0.0f, 0.0f );
 
 	float2 explosion0Points[] =
 	{ 
@@ -259,11 +242,7 @@ void game_render_explosion( const Explosion* pExplosion )
 		float2_add( &explosion0Points[ i ], &explosion0Points[ i ], &worldOffset );
 	}
 
-	const StrokeDefinition explosion0Strokes = { explosion0Points, SYS_COUNTOF( explosion0Points ) };	
-    float2x3 transform;
-    float2x2_identity( &transform.rot );
-    transform.pos = position;
-	renderer_addStroke( &explosion0Strokes, Pen_Default, &transform, 0.0f );
+	renderer_addStroke( explosion0Points, SYS_COUNTOF( explosion0Points ) ); 
 
 	float2 explosion1Points[] =
 	{ 
@@ -285,9 +264,7 @@ void game_render_explosion( const Explosion* pExplosion )
 		float2_add( &explosion1Points[ i ], &explosion1Points[ i ], &worldOffset );
 	}
 
-	const StrokeDefinition explosion1Strokes = { explosion1Points, SYS_COUNTOF( explosion1Points ) };	
-    transform.pos = position;
-	renderer_addStroke( &explosion1Strokes, Pen_Default, &transform, 0.0f );
+	renderer_addStroke( explosion1Points, SYS_COUNTOF( explosion1Points ) );
 }
 
 void game_render()
@@ -312,16 +289,18 @@ void game_render()
 
 		const float2 points[] =
 		{
-			{ 0.0f, 0.0f },
-			{ 10.0f, 0.0f },
-//			{ 6.0f, 5.0f }
+			{ 0.0f, 2.0f },
+			{ 2.0f, 0.0f },
+			{ 6.0f, 5.0f }
 		};
 
-		const StrokeDefinition stroke = { points, SYS_COUNTOF( points ) };
         float2x3 transform;
         float2x2_identity( &transform.rot );
 		float2_set( &transform.pos, 40.0f, 10.0f );
-		renderer_addStroke( &stroke, Pen_Font, &transform, variance );
+        renderer_setTransform( &transform );
+		renderer_addStroke( points, SYS_COUNTOF( points ) );
+
+        renderer_setTransform( 0 );
 
 		for( uint i = 0u; i < s_game.gameState.playerCount; ++i )
 		{

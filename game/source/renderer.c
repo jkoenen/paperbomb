@@ -121,6 +121,10 @@ typedef struct
     float           delayAfterFlip;
     float           delayAfterDraw;
     float           flipDuration;
+
+    Pen             currentPen;
+    float           currentVariance;
+    float2x3        currentTransform;
 } Renderer;
 
 static Renderer s_renderer;
@@ -222,6 +226,9 @@ void renderer_init()
     s_renderer.flipTime = -1.0f;
 
     renderer_setDrawSpeed( 0.5f );
+    renderer_setPen( Pen_Default );
+    renderer_setVariance( 0.2f );
+    renderer_setTransform( 0 );
 }
 
 void renderer_done()
@@ -274,6 +281,30 @@ void renderer_setDrawSpeed( float speed )
         s_renderer.delayAfterFlip,
         s_renderer.delayAfterDraw,
         s_renderer.flipDuration );
+}
+
+void renderer_setPen( Pen pen )
+{
+    SYS_ASSERT( pen < Pen_Count );
+    s_renderer.currentPen = pen;
+}
+
+void renderer_setVariance( float variance )
+{
+    s_renderer.currentVariance = variance;
+}
+
+void renderer_setTransform( const float2x3* pTransform )
+{
+    if( pTransform )
+    {
+        s_renderer.currentTransform = *pTransform;
+    }
+    else
+    {
+        float2x2_identity( &s_renderer.currentTransform.rot );
+        float2_set( &s_renderer.currentTransform.pos, 0.0f, 0.0f );
+    }
 }
 
 static void renderer_updatePageFlip( float timeStep )
@@ -333,15 +364,12 @@ void renderer_flipPage()
     }
 }
 
-void renderer_addStroke( const StrokeDefinition* pDefinition, Pen pen, const float2x3* pTransform, float variance )
+void renderer_addStroke( const float2* pStrokePoints, uint pointCount )
 {
-    SYS_ASSERT( pDefinition && pDefinition->pPoints && pDefinition->pointCount >= 2 );
-    SYS_ASSERT( pen < Pen_Count );
-    SYS_ASSERT( pTransform );
+    SYS_ASSERT( pStrokePoints && pointCount >= 2 );
     SYS_ASSERT( s_renderer.pageState == PageState_BeforeDraw );
 
     // allocate space in output buffer
-    const uint pointCount = pDefinition->pointCount;
     if( ( s_renderer.strokeBuffer.pointCount + pointCount > MaxPointCount ) ||
         ( s_renderer.strokeBuffer.commandCount + 1u > MaxCommandCount ) )
     {
@@ -359,14 +387,16 @@ void renderer_addStroke( const StrokeDefinition* pDefinition, Pen pen, const flo
     float2* pPoints = &s_renderer.strokeBuffer.points[ s_renderer.strokeBuffer.pointCount ];
     s_renderer.strokeBuffer.pointCount += pointCount;
 
+    const float variance = s_renderer.currentVariance;
+    const float2x3* pTransform = &s_renderer.currentTransform;
+
     // transform, randomize and copy positions
-    const float2* pStrokePoints = &pDefinition->pPoints[ 0u ];
-    for( uint i = 0u; i < pDefinition->pointCount; ++i )
+    for( uint i = 0u; i < pointCount; ++i )
     {
         const float2 strokePoint = pStrokePoints[ i ];
 
         float2 offset;
-        float2_rand_normal( &offset, 0.0f, i == 0 ? variance / 4.0f : variance );  // reduced variance in the beginning
+        float2_rand_normal( &offset, 0.0f, i == 0 ?variance / 4.0f : variance );  // reduced variance in the beginning
 
         float2 point;
         float2x3_transform( &point, pTransform, &strokePoint );

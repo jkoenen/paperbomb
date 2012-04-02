@@ -115,40 +115,41 @@ void font_drawText( const float2* pPosition, float size, float variance, const c
         }
 
         // search for     
-        StrokeDefinition stroke;
-        stroke.pPoints = pGlyph->pPoints;
-        stroke.pointCount = 1u;
+        const float2* pPoints = pGlyph->pPoints;
+        uint pointCount = 1u;
 
-        float2 lastPoint = stroke.pPoints[ 0u ];
+        float2 lastPoint = pPoints[ 0u ];
         for( uint i = 1u; i < pGlyph->pointCount; ++i )
         {
             const float2 currentPoint = pGlyph->pPoints[ i ];
 
             if( currentPoint.x == lastPoint.x && currentPoint.y == lastPoint.y )
             {
-                if( stroke.pointCount >= 2u )
+                if( pointCount >= 2u )
                 {
                     float2x3 drawTransform;
                     drawTransform.rot = transform.rot;
                     float2x3_transform( &drawTransform.pos, &transform, &basePos );
-                    renderer_addStroke( &stroke, Pen_Font, &drawTransform, variance );
+                    renderer_setTransform( &drawTransform );
+                    renderer_addStroke( pPoints, pointCount );
                 }
-                stroke.pointCount = 0u;
-                stroke.pPoints = &pGlyph->pPoints[ i + 1u ];
+                pointCount = 0u;
+                pPoints = &pGlyph->pPoints[ i + 1u ];
             }
             else
             {
-                stroke.pointCount++;
+                pointCount++;
             }
             lastPoint = currentPoint;
         }
 
-        if( stroke.pointCount >= 2u )
+        if( pointCount >= 2u )
         {
             float2x3 drawTransform;
             drawTransform.rot = transform.rot;
             float2x3_transform( &drawTransform.pos, &transform, &basePos );
-            renderer_addStroke( &stroke, Pen_Font, &drawTransform, variance );
+            renderer_setTransform( &drawTransform );
+            renderer_addStroke( pPoints, pointCount );
         }
     
         basePos.x += pGlyph->advance + float_rand_normal( 0.0f, variance );
