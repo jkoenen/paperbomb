@@ -80,31 +80,35 @@ static LRESULT CALLBACK WndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 
 	case WM_KEYDOWN:
 	case WM_KEYUP:
-		switch( wParam )
 		{
-		case VK_ESCAPE:
-			PostQuitMessage( 0 );
-			break;
+			const short ctrlPressed = GetAsyncKeyState( VK_CONTROL );
 
-        case VK_LEFT:
-			updateButtonMask( &s_currentButtonMask, ButtonMask_Left, uMsg == WM_KEYDOWN );
-			break;
+			switch( wParam )
+			{
+			case VK_ESCAPE:
+				PostQuitMessage( 0 );
+				break;
 
-        case VK_RIGHT:
-			updateButtonMask( &s_currentButtonMask, ButtonMask_Right, uMsg == WM_KEYDOWN );
-			break;
+			case VK_LEFT:
+				updateButtonMask( &s_currentButtonMask, ctrlPressed ? ButtonMask_CtrlLeft : ButtonMask_Left, uMsg == WM_KEYDOWN );
+				break;
 
-        case VK_UP:
-			updateButtonMask( &s_currentButtonMask, ButtonMask_Up, uMsg == WM_KEYDOWN );
-			break;
+			case VK_RIGHT:
+				updateButtonMask( &s_currentButtonMask, ctrlPressed ? ButtonMask_CtrlRight : ButtonMask_Right, uMsg == WM_KEYDOWN );
+				break;
 
-        case VK_DOWN:
-			updateButtonMask( &s_currentButtonMask, ButtonMask_Down, uMsg == WM_KEYDOWN );
-			break;
+			case VK_UP:
+				updateButtonMask( &s_currentButtonMask, ctrlPressed ? ButtonMask_CtrlUp : ButtonMask_Up, uMsg == WM_KEYDOWN );
+				break;
 
-        case VK_SPACE:
-			updateButtonMask( &s_currentButtonMask, ButtonMask_PlaceBomb, uMsg == WM_KEYDOWN );
-			break;		
+			case VK_DOWN:
+				updateButtonMask( &s_currentButtonMask, ctrlPressed ? ButtonMask_CtrlDown : ButtonMask_Down, uMsg == WM_KEYDOWN );
+				break;
+
+			case VK_SPACE:
+				updateButtonMask( &s_currentButtonMask, ButtonMask_PlaceBomb, uMsg == WM_KEYDOWN );
+				break;		
+			}
 		}
 		break;
     }

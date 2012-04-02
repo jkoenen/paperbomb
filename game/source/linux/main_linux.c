@@ -143,35 +143,39 @@ int main()
             {
             case SDL_KEYDOWN:
             case SDL_KEYUP:
-                switch( event.key.keysym.sym )
-                {
-                case SDLK_ESCAPE:
-                    quit = 1;
-                    break;
+				{
+					const int crtlPressed = 0;	// fill me!
 
-                case SDLK_LEFT:
-                    updateButtonMask( &buttonMask, ButtonMask_Left, event.type == SDL_KEYDOWN );
-                    break;
+					switch( event.key.keysym.sym )
+					{
+					case SDLK_ESCAPE:
+						quit = 1;
+						break;
 
-                case SDLK_RIGHT:
-                    updateButtonMask( &buttonMask, ButtonMask_Right, event.type == SDL_KEYDOWN );
-                    break;
+					case SDLK_LEFT:
+						updateButtonMask( &buttonMask, ctrlPressed ? ButtonMask_CtrlLeft : ButtonMask_Left, event.type == SDL_KEYDOWN );
+						break;
 
-                case SDLK_UP:
-                    updateButtonMask( &buttonMask, ButtonMask_Up, event.type == SDL_KEYDOWN );
-                    break;
+					case SDLK_RIGHT:
+						updateButtonMask( &buttonMask, ctrlPressed ? ButtonMask_CtrlRight : ButtonMask_Right, event.type == SDL_KEYDOWN );
+						break;
 
-                case SDLK_DOWN:
-                    updateButtonMask( &buttonMask, ButtonMask_Down, event.type == SDL_KEYDOWN );
-                    break;
+					case SDLK_UP:
+						updateButtonMask( &buttonMask, ctrlPressed ? ButtonMask_CtrlUp : ButtonMask_Up, event.type == SDL_KEYDOWN );
+						break;
 
-                case SDLK_SPACE:
-                    updateButtonMask( &buttonMask, ButtonMask_PlaceBomb, event.type == SDL_KEYDOWN );
-                    break;
+					case SDLK_DOWN:
+						updateButtonMask( &buttonMask, ctrlPressed ? ButtonMask_CtrlDown : ButtonMask_Down, event.type == SDL_KEYDOWN );
+						break;
 
-                default:
-                    break;
-                }
+					case SDLK_SPACE:
+						updateButtonMask( &buttonMask, ButtonMask_PlaceBomb, event.type == SDL_KEYDOWN );
+						break;
+
+					default:
+						break;
+					}
+				}
                 break;
 
             case SDL_QUIT:

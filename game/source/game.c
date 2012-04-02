@@ -28,6 +28,44 @@ typedef struct
 
 static Game s_game;
 
+static void debug_update( uint buttonMask, uint lastButtonMask )
+{
+	const uint32 buttonDownMask = buttonMask & ~lastButtonMask;
+
+	float fps = s_game.fps;
+	if( buttonDownMask & ButtonMask_CtrlUp )
+	{
+		fps += 1.0f;
+	}
+	if( buttonDownMask & ButtonMask_CtrlDown )
+	{
+		fps -= 1.0f;
+	}
+	if( s_game.fps != fps )
+	{
+		s_game.fps = float_max( 1.0f, fps );
+		SYS_TRACE_DEBUG( "fps=%f\n", s_game.fps );
+	}
+
+	float variance = s_game.variance;
+	if( buttonDownMask & ButtonMask_CtrlLeft )
+	{
+		variance -= 0.02f;
+	}
+	if( buttonDownMask & ButtonMask_CtrlRight )
+	{
+		variance += 0.02f;
+	}
+	if( s_game.variance != variance )
+	{
+		s_game.variance = float_max( 0.0f, variance );
+		SYS_TRACE_DEBUG( "variance=%f\n", s_game.variance );
+	}
+
+	sound_setEngineFrequency( ( buttonMask & ButtonMask_CtrlUp ) ? 1.0f : 0.0f );
+
+}
+
 void game_init()
 {
     SYS_TRACE_DEBUG( "game_init()\n" );
@@ -58,44 +96,11 @@ void game_update( const GameInput* pInput )
 
     s_game.gameTime += timeStep;
 
+	debug_update( pInput->buttonMask, s_game.player[ 0u ].lastInputMask );
+
 	player_update( &s_game.player[ 0u ], timeStep, pInput->buttonMask );
 
-	const uint32 buttonDownMask = pInput->buttonMask & ~s_game.player[ 0u ].lastInputMask;
-
-	float fps = s_game.fps;
-	if( buttonDownMask & ButtonMask_Up )
-	{
-		fps += 1.0f;
-	}
-	if( buttonDownMask & ButtonMask_Down )
-	{
-		fps -= 1.0f;
-	}
-	if( s_game.fps != fps )
-	{
-		s_game.fps = float_max( 1.0f, fps );
-		SYS_TRACE_DEBUG( "fps=%f\n", s_game.fps );
-	}
-
-	float variance = s_game.variance;
-	if( buttonDownMask & ButtonMask_Left )
-	{
-		variance -= 0.02f;
-	}
-	if( buttonDownMask & ButtonMask_Right )
-	{
-		variance += 0.02f;
-	}
-	if( s_game.variance != variance )
-	{
-		s_game.variance = float_max( 0.0f, variance );
-		SYS_TRACE_DEBUG( "variance=%f\n", s_game.variance );
-	}
-
-	sound_setEngineFrequency( ( pInput->buttonMask & ButtonMask_Up ) ? 1.0f : 0.0f );
-
 	s_game.remainingPageTime -= timeStep;
-
 }
 
 void game_render()
