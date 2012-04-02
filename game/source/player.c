@@ -5,6 +5,7 @@
 
 void player_init( Player* pPlayer, const float2* pPosition, float direction )
 {
+	pPlayer->age			= 0.0f;
 	pPlayer->position		= *pPosition;
 	pPlayer->direction		= direction;
 	pPlayer->steer			= 0.0f;
@@ -13,7 +14,8 @@ void player_init( Player* pPlayer, const float2* pPosition, float direction )
 	pPlayer->health			= 100.0f;
 	pPlayer->lastButtonMask	= 0u;
 	pPlayer->maxBombs		= 4u;
-	for( uint i				= 0u; i < SYS_COUNTOF( pPlayer->bombs ); ++i )
+
+	for( uint i	= 0u; i < SYS_COUNTOF( pPlayer->bombs ); ++i )
 	{
 		pPlayer->bombs[ i ].active = 0;
 	}
@@ -27,6 +29,8 @@ void player_update_input( Player* pPlayer, uint32 buttonMask )
 	const float steerDamping = 0.8f;
 	const float maxSpeed = 0.5f;
 	const float maxSteer = (float)PI * 0.2f;
+
+	pPlayer->age += GAMETIMESTEP;
 		
 	if( buttonMask & ButtonMask_Left )
 	{

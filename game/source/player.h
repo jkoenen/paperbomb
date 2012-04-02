@@ -11,6 +11,7 @@ enum
 
 typedef struct 
 {
+	float	age;
 	float2	position;
 	float	direction;
 	float	steer;

@@ -43,8 +43,9 @@ void gamestate_update( GameState* pGameState, const World* pWorld, const uint32*
 		for( uint j = 0u; j < SYS_COUNTOF( pPlayer->bombs ); ++j )
 		{
 			Bomb* pBomb = &pPlayer->bombs[ j ];
+			Explosion* pExplosion = pGameState->explosionCount < SYS_COUNTOF( pGameState->explosions ) ? &pGameState->explosions[ pGameState->explosionCount ] : 0;
 
-			pGameState->explosionCount += bomb_update( pBomb, SYS_COUNTOF( pGameState->explosions ) > pGameState->explosionCount ? &pGameState->explosions[ pGameState->explosionCount ] : 0 );
+			pGameState->explosionCount += bomb_update( pBomb, pExplosion );
 		}
 	}
 
@@ -96,13 +97,15 @@ void gamestate_update( GameState* pGameState, const World* pWorld, const uint32*
 							if( pGameState->explosionCount < SYS_COUNTOF( pGameState->explosions ) )
 							{
 								bomb_explode( &pGameState->explosions[ pGameState->explosionCount++ ], pBomb );
-								pBomb->active = 0;
 							}
+							pBomb->active = 0;
 						}
 					}
 				}
 
-				if( isCircleCapsuleIntersecting( &playerCirlce, &capsule0 ) || isCircleCapsuleIntersecting( &playerCirlce, &capsule1 ) )
+				const int isPlayerOldEnough = pPlayer->age > 1.0f;
+
+				if( isPlayerOldEnough && ( isCircleCapsuleIntersecting( &playerCirlce, &capsule0 ) || isCircleCapsuleIntersecting( &playerCirlce, &capsule1 ) ) )
 				{
 					player_init( pPlayer, &s_playerStartPositions[ i ], s_playerStartDirections[ i ] );
 				}
