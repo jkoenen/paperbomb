@@ -24,6 +24,6 @@ uint bomb_update( Bomb* pBomb, Explosion* pExplosion )
 			pBomb->active = 0;
 		}
 	}
-
 	return result;
 }
+

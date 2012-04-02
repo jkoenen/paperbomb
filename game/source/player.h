@@ -6,7 +6,7 @@
 
 enum
 {
-	MaxBombs = 4u
+	MaxBombs = 8u
 };
 
 typedef struct 

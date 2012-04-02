@@ -12,7 +12,7 @@ void player_init( Player* pPlayer, const float2* pPosition, float direction )
 	pPlayer->position.y		= 0.0f;
 	pPlayer->health			= 100.0f;
 	pPlayer->lastButtonMask	= 0u;
-	pPlayer->maxBombs		= 2u;
+	pPlayer->maxBombs		= 4u;
 	for( uint i				= 0u; i < SYS_COUNTOF( pPlayer->bombs ); ++i )
 	{
 		pPlayer->bombs[ i ].active = 0;
@@ -55,7 +55,7 @@ void player_update_input( Player* pPlayer, uint32 buttonMask )
 	{
 		int freeIndex = -1;
 		uint activeBombCount = 0u;
-		for( int i = 0u; i < SYS_COUNTOF( pPlayer->bombs ); ++i )
+		for( uint i = 0u; i < SYS_COUNTOF( pPlayer->bombs ); ++i )
 		{
 			if( pPlayer->bombs[ i ].active )
 			{
@@ -63,7 +63,7 @@ void player_update_input( Player* pPlayer, uint32 buttonMask )
 			}
 			else
 			{
-				freeIndex = i;
+				freeIndex = ( int )i;
 			}
 		}
 		if( ( pPlayer->maxBombs > activeBombCount ) && ( freeIndex >= 0 ) )
@@ -124,7 +124,7 @@ void player_update_input( Player* pPlayer, uint32 buttonMask )
 		float2_scale1f( &pPlayer->velocity, maxSpeed / speed );
 	}
 
-	SYS_TRACE_DEBUG( "speed %.4f\n", speed );
+//	SYS_TRACE_DEBUG( "speed %.4f\n", speed );
 
 	float2_add( &pPlayer->position, &pPlayer->position, &pPlayer->velocity );
 

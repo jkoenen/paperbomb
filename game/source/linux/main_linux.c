@@ -55,12 +55,14 @@ void sys_exit( int exitcode )
 
 int sys_getScreenWidth()
 {
-    return 1280;
+//    return 1280;
+    return 640;
 }
 
 int sys_getScreenHeight()
 {
-    return 720;
+//    return 720;
+    return 360;
 }
 
 static void updateButtonMask( uint32* pButtonMask, uint32 button, int isDown )
@@ -84,7 +86,7 @@ int main()
         SYS_BREAK( "SDL_Init failed!\n" );
     }
 
-    SDL_SetVideoMode( 1280u, 720u, 0u, SDL_OPENGL /*| SDL_FULLSCREEN */ );
+    SDL_SetVideoMode( 640u, 360u, 0u, SDL_OPENGL /*| SDL_FULLSCREEN */ );
     SDL_ShowCursor( SDL_DISABLE );
     SDL_GL_SetAttribute( SDL_GL_SWAP_CONTROL, 1 );
 

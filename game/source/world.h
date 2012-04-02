@@ -4,7 +4,7 @@
 typedef struct 
 {
 
-	
+    uint dummy;	
 
 } World;
 

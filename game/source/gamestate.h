@@ -9,7 +9,7 @@
 enum
 {
 	MaxPlayer		= 4u,
-	MaxExplosions	= 32u
+	MaxExplosions	= 64u
 };
 
 typedef struct 

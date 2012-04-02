@@ -18,9 +18,8 @@ typedef struct
 	float		updateTime;
 	uint32		lastButtonMask;
 
-	float       fps;
+	float       drawSpeed;
 	float       variance;
-	float       remainingPageTime;
 
 	GameState	gameState;
 
@@ -32,19 +31,20 @@ static void debug_update( uint buttonMask, uint lastButtonMask )
 {
 	const uint32 buttonDownMask = buttonMask & ~lastButtonMask;
 
-	float fps = s_game.fps;
+	float drawSpeed = s_game.drawSpeed;
 	if( buttonDownMask & ButtonMask_CtrlUp )
 	{
-		fps += 1.0f;
+		drawSpeed *= 1.5f;
 	}
 	if( buttonDownMask & ButtonMask_CtrlDown )
 	{
-		fps -= 1.0f;
+		drawSpeed /= 1.5f;
 	}
-	if( s_game.fps != fps )
+	if( s_game.drawSpeed != drawSpeed )
 	{
-		s_game.fps = float_max( 1.0f, fps );
-		SYS_TRACE_DEBUG( "fps=%f\n", s_game.fps );
+		s_game.drawSpeed = float_saturate( drawSpeed );
+		SYS_TRACE_DEBUG( "drawSpeed=%f\n", s_game.drawSpeed );
+        renderer_setDrawSpeed( s_game.drawSpeed );
 	}
 
 	float variance = s_game.variance;
@@ -63,18 +63,17 @@ static void debug_update( uint buttonMask, uint lastButtonMask )
 	}
 
 	sound_setEngineFrequency( ( buttonMask & ButtonMask_CtrlUp ) ? 1.0f : 0.0f );
-
 }
 
 void game_init()
 {
-    SYS_TRACE_DEBUG( "game_init()\n" );
     renderer_init();
 	font_init();
 
-	s_game.fps = 24.0f;
-	s_game.remainingPageTime = 0.0f;
-	s_game.variance = 0.2f;
+	s_game.drawSpeed = 1.0f;
+    renderer_setDrawSpeed( s_game.drawSpeed );
+
+	s_game.variance = 0.0f;
 
     s_game.gameTime = 0.0f;
 	s_game.updateTime = 0.0f;
@@ -114,8 +113,6 @@ void game_update( const GameInput* pInput )
 		s_game.lastButtonMask = buttonMask;
 		buttonMask = 0u;
 	}
-
-	s_game.remainingPageTime -= timeStep;
 }
 
 void game_render_car( const Player* pPlayer )
@@ -160,14 +157,10 @@ void game_render_car( const Player* pPlayer )
 		float2_add( &steerPoints[ i ], &steerPoints[ i ], &worldOffset );
 	}
 
-	float2 position;
-	float2_set( &position, 0.0f, 0.0f );
+    renderer_setTransform( 0 );
 
-	const StrokeDefinition carStrokes = { carPoints, SYS_COUNTOF( carPoints ) };	
-	renderer_drawStroke( &carStrokes, &position, 1.0f, 2.0f, 0.0f );
-
-	const StrokeDefinition steerStrokes = { steerPoints, SYS_COUNTOF( steerPoints ) };	
-	renderer_drawStroke( &steerStrokes, &position, 1.0f, 1.0f, 0.0f );
+	renderer_addStroke( carPoints, SYS_COUNTOF( carPoints ) );
+    renderer_addStroke( steerPoints, SYS_COUNTOF( steerPoints ) );
 }
 
 void game_render_bomb( const Bomb* pBomb )
@@ -176,9 +169,6 @@ void game_render_bomb( const Bomb* pBomb )
 	float2_set( &worldOffset, 32.0f, 18.0f );
 	float2 worldScale;
 	float2_set( &worldScale, 1.0f, 1.0f );
-
-	float2 position;
-	float2_set( &position, 0.0f, 0.0f );
 
 	float2 bomb0Points[] =
 	{ 
@@ -200,8 +190,7 @@ void game_render_bomb( const Bomb* pBomb )
 		float2_add( &bomb0Points[ i ], &bomb0Points[ i ], &worldOffset );
 	}
 
-	const StrokeDefinition bomb0Strokes = { bomb0Points, SYS_COUNTOF( bomb0Points ) };	
-	renderer_drawStroke( &bomb0Strokes, &position, 1.0f, 2.0f, 0.0f );
+	renderer_addStroke( bomb0Points, SYS_COUNTOF( bomb0Points ) );
 
 	float2 bomb1Points[] =
 	{ 
@@ -223,8 +212,7 @@ void game_render_bomb( const Bomb* pBomb )
 		float2_add( &bomb1Points[ i ], &bomb1Points[ i ], &worldOffset );
 	}
 
-	const StrokeDefinition bomb1Strokes = { bomb1Points, SYS_COUNTOF( bomb1Points ) };	
-	renderer_drawStroke( &bomb1Strokes, &position, 1.0f, 2.0f, 0.0f );
+	renderer_addStroke( bomb1Points, SYS_COUNTOF( bomb1Points ) );
 }
 
 void game_render_explosion( const Explosion* pExplosion )
@@ -233,9 +221,6 @@ void game_render_explosion( const Explosion* pExplosion )
 	float2_set( &worldOffset, 32.0f, 18.0f );
 	float2 worldScale;
 	float2_set( &worldScale, 1.0f, 1.0f );
-
-	float2 position;
-	float2_set( &position, 0.0f, 0.0f );
 
 	float2 explosion0Points[] =
 	{ 
@@ -257,8 +242,7 @@ void game_render_explosion( const Explosion* pExplosion )
 		float2_add( &explosion0Points[ i ], &explosion0Points[ i ], &worldOffset );
 	}
 
-	const StrokeDefinition explosion0Strokes = { explosion0Points, SYS_COUNTOF( explosion0Points ) };	
-	renderer_drawStroke( &explosion0Strokes, &position, 1.0f, 2.0f, 0.0f );
+	renderer_addStroke( explosion0Points, SYS_COUNTOF( explosion0Points ) ); 
 
 	float2 explosion1Points[] =
 	{ 
@@ -280,40 +264,43 @@ void game_render_explosion( const Explosion* pExplosion )
 		float2_add( &explosion1Points[ i ], &explosion1Points[ i ], &worldOffset );
 	}
 
-	const StrokeDefinition explosion1Strokes = { explosion1Points, SYS_COUNTOF( explosion1Points ) };	
-	renderer_drawStroke( &explosion1Strokes, &position, 1.0f, 2.0f, 0.0f );
+	renderer_addStroke( explosion1Points, SYS_COUNTOF( explosion1Points ) );
 }
 
 void game_render()
 {
-	if( s_game.remainingPageTime < 0.0f )
+	if( renderer_isPageDone() )
 	{
+        // new page:
 		renderer_flipPage();
 
 		//const float speed = 5.0f;
-		const float width = 2.0f;
+		//const float width = 2.0f;
 		const float variance = s_game.variance;
 
 		float2 position = { 1.0f, 1.0f };
-		font_drawText( &position, 0.8f, width, variance, "HALLO" );
+		font_drawText( &position, 0.8f, variance, "HALLO" );
 		position.y += 10.0f;
-		font_drawText( &position, 0.8f, width, 2.0f * variance, "HALLO" );
+		font_drawText( &position, 0.8f, 2.0f * variance, "HALLO" );
 		position.y += 10.0f;
-		font_drawText( &position, 0.8f, 1.4f * width, 2.0f * variance, "HALLO" );
+		font_drawText( &position, 0.8f, 2.0f * variance, "HALLO" );
 		position.y += 10.0f;
-		font_drawText( &position, 0.8f, width, 0.5f * variance, "HALLO" );
+		font_drawText( &position, 0.8f, 0.5f * variance, "HALLO" );
 
-		static const float2 points[] =
+		const float2 points[] =
 		{
-			{ 0.0f, 1.0f },
-			{ 1.0f, 0.0f },
+			{ 0.0f, 2.0f },
+			{ 2.0f, 0.0f },
 			{ 6.0f, 5.0f }
 		};
 
-		static const StrokeDefinition strokeDefinition = { points, SYS_COUNTOF( points ) };
-		//renderer_startStroke( &strokeDefinition, &position, speed, width, variance );
-		float2_set( &position, 40.0f, 1.0f );
-		renderer_drawStroke( &strokeDefinition, &position, 2.0f, width, variance );
+        float2x3 transform;
+        float2x2_identity( &transform.rot );
+		float2_set( &transform.pos, 40.0f, 10.0f );
+        renderer_setTransform( &transform );
+		renderer_addStroke( points, SYS_COUNTOF( points ) );
+
+        renderer_setTransform( 0 );
 
 		for( uint i = 0u; i < s_game.gameState.playerCount; ++i )
 		{
@@ -336,9 +323,8 @@ void game_render()
 			const Explosion* pExplosion = &s_game.gameState.explosions[ i ];
 			game_render_explosion( pExplosion );
 		}
-
-		s_game.remainingPageTime = 1.0f / s_game.fps;
 	}
+    renderer_updatePage( 1.0f / 60.0f );
 
 	FrameData frame;
     //memset( &frame, 0u, sizeof( frame ) );

@@ -85,17 +85,19 @@ void font_done()
 {
 }
 
-void font_drawText( const float2* pPosition, float size, float width, float variance, const char* pText )
+void font_drawText( const float2* pPosition, float size, float variance, const char* pText )
 {
-    float2 positionOffset;
-    float2_rand_normal( &positionOffset, 0.0f, variance );
+    float2x3 transform;
 
-    float2 position;
-    float2_add( &position, pPosition, &positionOffset );
+    //float2x2_identity( &tansform.rot );
+    float2x2_rotationY( &transform.rot, float_rand_normal( 0.0f, DEG2RADF( variance * 10.0f ) ) );
+    float2x2_scale1f( &transform.rot, &transform.rot, size );
+    transform.pos = *pPosition;
 
-    //float2 dir;
-//    dir.x = float_rand_normal( 1.0f, 0.1f * variance );
-//    dir.y = sqrt(1.0f-(dir.x*dir.x));
+    //float2_add( &transform.pos, pPosition, &positionOffset );
+
+    float2 basePos;
+    float2_rand_normal( &basePos, 0.0f, variance );
 
     while( *pText )
     {
@@ -113,38 +115,45 @@ void font_drawText( const float2* pPosition, float size, float width, float vari
         }
 
         // search for     
-        StrokeDefinition stroke;
-        stroke.pPoints = pGlyph->pPoints;
-        stroke.pointCount = 1u;
+        const float2* pPoints = pGlyph->pPoints;
+        uint pointCount = 1u;
 
-        float2 lastPoint = stroke.pPoints[ 0u ];
+        float2 lastPoint = pPoints[ 0u ];
         for( uint i = 1u; i < pGlyph->pointCount; ++i )
         {
             const float2 currentPoint = pGlyph->pPoints[ i ];
 
             if( currentPoint.x == lastPoint.x && currentPoint.y == lastPoint.y )
             {
-                if( stroke.pointCount >= 2u )
+                if( pointCount >= 2u )
                 {
-                    renderer_drawStroke( &stroke, &position, size, width, variance );
+                    float2x3 drawTransform;
+                    drawTransform.rot = transform.rot;
+                    float2x3_transform( &drawTransform.pos, &transform, &basePos );
+                    renderer_setTransform( &drawTransform );
+                    renderer_addStroke( pPoints, pointCount );
                 }
-                stroke.pointCount = 0u;
-                stroke.pPoints = &pGlyph->pPoints[ i + 1u ];
+                pointCount = 0u;
+                pPoints = &pGlyph->pPoints[ i + 1u ];
             }
             else
             {
-                stroke.pointCount++;
+                pointCount++;
             }
             lastPoint = currentPoint;
         }
 
-        if( stroke.pointCount >= 2u )
+        if( pointCount >= 2u )
         {
-            renderer_drawStroke( &stroke, &position, size, width, variance );
+            float2x3 drawTransform;
+            drawTransform.rot = transform.rot;
+            float2x3_transform( &drawTransform.pos, &transform, &basePos );
+            renderer_setTransform( &drawTransform );
+            renderer_addStroke( pPoints, pointCount );
         }
-        const float x = ( pGlyph->advance + float_rand_normal( 0.0f, variance ) ); 
-        position.x += x * size;
-        position.y = float_rand_normal( pPosition->y, variance );
+    
+        basePos.x += pGlyph->advance + float_rand_normal( 0.0f, variance );
+        basePos.y = float_rand_normal( 0.0f, variance );
     }
 }
 

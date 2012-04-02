@@ -14,6 +14,12 @@
 
 #include <math.h>
 
+enum 
+{
+    MaxPointCount = 1024u,
+    MaxCommandCount = 256u
+};
+
 typedef struct
 {
     uint    dummy;
@@ -21,19 +27,58 @@ typedef struct
 
 typedef struct 
 {
-    float2                  translation;        // todo: add complete matrix
-    float                   progress;           // current position [0..length]
-    uint                    activeSegment;
-    float2                  startOffset;
-    float2                  endOffset;
-    float                   segmentProgress;    // 0..length of active segment
-    float                   size;
-    float                   width;
-    float                   speed;          
-    float                   length;
-    float                   variance;
-    const StrokeDefinition* pDefinition;        // 0 for inactive strokes
+    float           progress;           // current position [0..length]
+    uint            activeSegment;
+    float           segmentProgress;    // 0..length of active segment
+    float           length;
 } Stroke;
+
+typedef struct 
+{
+    float           width;
+    float           pressure;
+    float3          color;
+} PenDefinition;
+
+typedef enum 
+{
+    StrokeCommandType_Draw,
+    StrokeCommandType_Delay,
+    StrokeCommandType_Count
+} StrokeCommandType;
+
+typedef struct
+{
+    uint        pointIndex;
+    uint        pointCount;
+    uint        penId;
+    float       variance;
+} StrokeDrawCommandData;
+
+typedef struct
+{
+    float       time;
+} StrokeDelayCommandData;
+
+typedef union
+{
+    StrokeDrawCommandData   draw;
+    StrokeDelayCommandData  delay;
+} StrokeCommandData;
+
+typedef struct
+{
+    StrokeCommandType   type;
+    StrokeCommandData   data;
+} StrokeCommand;
+
+typedef struct
+{
+    float2          points[ MaxPointCount ];
+    uint            pointCount;
+    StrokeCommand   commands[ MaxCommandCount ];
+    uint            commandCount;
+} StrokeBuffer;
 
 typedef struct
 {
@@ -41,20 +86,58 @@ typedef struct
     RenderTarget    fgTarget;
 } Page;
 
+typedef enum
+{
+    PageState_BeforeDraw,
+    PageState_Draw,
+    PageState_AfterDraw,
+    PageState_Done,
+    PageState_Count
+} PageState;
+
 typedef struct 
 {
     Shader          paperShader;
     Shader          penShader;
     Shader          pageShader;
-    Page            pages[ 2u ];
+    
+    Page            pages[ 2u ];    
     uint            currentPage;
     uint            lastPage;
-    float           flipProgress;
-    float           flipSpeed;
+
+    PageState       pageState;
+    float           stateTime;
+
+    float           flipTime;
+
+    uint            currentCommand;
+    float           currentCommandTime;
     Stroke          currentStroke;
+    StrokeBuffer    strokeBuffer;
+
+    PenDefinition   pens[ Pen_Count ];
+
+    float           strokeDrawSpeed;
+    float           delayAfterFlip;
+    float           delayAfterDraw;
+    float           flipDuration;
+
+    Pen             currentPen;
+    float           currentVariance;
+    float2x3        currentTransform;
 } Renderer;
 
 static Renderer s_renderer;
+
+static void setPageState( PageState newState )
+{
+    if( s_renderer.pageState != newState )
+    {
+        //SYS_TRACE_DEBUG( "page state switched from %i to %i!\n", s_renderer.pageState, newState );
+        s_renderer.pageState = newState;
+        s_renderer.stateTime = 0.0f;
+    }
+}
 
 static void page_create( Page* pPage, int width, int height )
 {
@@ -70,12 +153,12 @@ static void page_create( Page* pPage, int width, int height )
 
     // render paper:
     shader_activate( &s_renderer.paperShader );
+    
+    int paramId = glGetUniformLocationARB( s_renderer.paperShader.id, "params0" );    
+    SYS_ASSERT( paramId >= 0 );
 
     float4 params;
     float4_set( &params, float_rand(), float_rand(), float_rand(), float_rand() );
-    int paramId = glGetUniformLocationARB( s_renderer.paperShader.id, "params0" );
-    SYS_TRACE_DEBUG( "%i->%f,%f\n", paramId, params.x, params.y );
-    SYS_ASSERT( paramId >= 0 );
     glUniform4fv( paramId, 1u, &params.x );
     
     glRectf( -1.0f, -1.0f, 1.0f, 1.0f );
@@ -90,6 +173,19 @@ static void page_create( Page* pPage, int width, int height )
     // 
     glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
     glClear( GL_COLOR_BUFFER_BIT );
+}
+
+static void clearStrokeBuffer( StrokeBuffer* pBuffer )
+{
+    pBuffer->pointCount = 0u;
+    pBuffer->commandCount = 0u;
+}
+
+static void createPen( PenDefinition* pPen, float width, float pressure, const float3* pColor )
+{
+    pPen->width = width;
+    pPen->pressure = pressure;
+    pPen->color = *pColor;
 }
 
 void renderer_init()
@@ -110,12 +206,29 @@ void renderer_init()
     s_renderer.currentPage = 0u;
     s_renderer.lastPage = 1u;
     
-    s_renderer.currentStroke.pDefinition = 0;
+//    s_renderer.currentStroke.pDefinition = 0;
+    s_renderer.currentCommand = 0u;
+
+    s_renderer.pageState = PageState_Done;
+    s_renderer.stateTime = 0.0f;
+
+    clearStrokeBuffer( &s_renderer.strokeBuffer );
+
+    float3 color;
+    color.x = 0.2f;
+    color.y = 0.2f;
+    color.z = 0.2f;
+    createPen( &s_renderer.pens[ Pen_Default ], 1.0f, 1.0f, &color );
+    createPen( &s_renderer.pens[ Pen_Font ], 1.0f, 1.0f, &color );
 
     // :TODO: create page flip mesh:
 
-    s_renderer.flipProgress = 0.0f;
-    s_renderer.flipSpeed = -1.0f;
+    s_renderer.flipTime = -1.0f;
+
+    renderer_setDrawSpeed( 0.5f );
+    renderer_setPen( Pen_Default );
+    renderer_setVariance( 0.2f );
+    renderer_setTransform( 0 );
 }
 
 void renderer_done()
@@ -123,18 +236,109 @@ void renderer_done()
     // :TODO:
 }
 
-void renderer_startPageFlip( float duration )
+static float getDelayValue( const float2* pKeys, float maxValue, float x )
+{
+    const float x0 = pKeys->x;
+    const float x1 = pKeys->y;
+    SYS_ASSERT( x0 < x1 );
+    const float m = -1.0f / ( x1 - x0 );
+    const float y0 = 1.0f - m * x0;
+
+    return maxValue * float_saturate( y0 + m * x );
+}
+
+void renderer_setDrawSpeed( float speed )
+{
+    speed = float_saturate( speed );
+
+    const float maxStrokeDrawSpeed = 10000.0f;    // units per second..
+    const float maxDelayAfterFlip = 1.0f; 
+    const float maxDelayAfterDraw = 1.0f;
+    const float maxFlipDuration = 0.5f;
+
+    const float2 afterFlipDelayKeys = { 0.2f, 0.8f };
+    const float2 afterDrawDelayKeys = { 0.4f, 0.9f };
+    const float2 flipDurationKeys = { 0.5f, 0.95f };
+   
+    if( speed >= 0.99f )
+    {
+        // don't wait:
+        s_renderer.strokeDrawSpeed = 0.0f; 
+        s_renderer.delayAfterFlip = 0.0f;
+        s_renderer.delayAfterDraw = 0.0f;
+        s_renderer.flipDuration = 0.0f;
+    }
+    else
+    {
+        s_renderer.strokeDrawSpeed = float_max( speed, 0.001f ) * maxStrokeDrawSpeed;
+        s_renderer.delayAfterFlip = getDelayValue( &afterFlipDelayKeys, maxDelayAfterFlip, speed );
+        s_renderer.delayAfterDraw = getDelayValue( &afterDrawDelayKeys, maxDelayAfterDraw, speed );
+        s_renderer.flipDuration = getDelayValue( &flipDurationKeys, maxFlipDuration, speed );
+    } 
+
+    SYS_TRACE_DEBUG( "speed=%f delays=(%f,%f,%f)\n", 
+        s_renderer.strokeDrawSpeed,
+        s_renderer.delayAfterFlip,
+        s_renderer.delayAfterDraw,
+        s_renderer.flipDuration );
+}
+
+void renderer_setPen( Pen pen )
+{
+    SYS_ASSERT( pen < Pen_Count );
+    s_renderer.currentPen = pen;
+}
+
+void renderer_setVariance( float variance )
+{
+    s_renderer.currentVariance = variance;
+}
+
+void renderer_setTransform( const float2x3* pTransform )
+{
+    if( pTransform )
+    {
+        s_renderer.currentTransform = *pTransform;
+    }
+    else
+    {
+        float2x2_identity( &s_renderer.currentTransform.rot );
+        float2_set( &s_renderer.currentTransform.pos, 0.0f, 0.0f );
+    }
+}
+
+static void renderer_updatePageFlip( float timeStep )
+{
+    if( s_renderer.flipTime < 0.0f || s_renderer.flipDuration <= 0.0f )
+    {
+        return;
+    }
+
+    s_renderer.flipTime += timeStep;
+    
+    const float flipProgress = float_saturate( s_renderer.flipTime / s_renderer.flipDuration );
+    if( flipProgress >= 1.0f )
+    {
+        s_renderer.flipTime = -1.0f;
+    }
+}
+
+void renderer_flipPage()
 {
     // 
-    if( s_renderer.flipSpeed > 0.0f )
+    if( s_renderer.flipTime >= 0.0f )
     {
-        SYS_TRACE_WARNING( "starting page flip while another flip is still active!\n" ); 
+        //SYS_TRACE_WARNING( "starting page flip while another flip is still active!\n" ); 
     }
     
     s_renderer.lastPage = s_renderer.currentPage;
     s_renderer.currentPage = 1 - s_renderer.currentPage;
 
-    s_renderer.currentStroke.pDefinition = 0;
+    //s_renderer.currentStroke.pDefinition = 0;
+    s_renderer.currentCommand = 0u;
+    clearStrokeBuffer( &s_renderer.strokeBuffer );
+
+    setPageState( PageState_BeforeDraw );
 
     Page* pPage = &s_renderer.pages[ s_renderer.currentPage ];
     
@@ -149,92 +353,103 @@ void renderer_startPageFlip( float duration )
     glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
     glClear( GL_COLOR_BUFFER_BIT );    
 
-    if( duration > 0.0f )
+    if( s_renderer.flipDuration > 0.0f )
     {
-        s_renderer.flipProgress = 0.0f;
-        s_renderer.flipSpeed = 1.0f / duration;
+        s_renderer.flipTime = 0.0f;
     }
     else
     {
         // flip instantly:
-        s_renderer.flipProgress = 1.0f;
-        s_renderer.flipSpeed = -1.0f;
+        s_renderer.flipTime = -1.0f;
     }
 }
 
-int renderer_advancePageFlip( float timeStep )
+void renderer_addStroke( const float2* pStrokePoints, uint pointCount )
 {
-    if( s_renderer.flipSpeed <= 0.0f )
+    SYS_ASSERT( pStrokePoints && pointCount >= 2 );
+    SYS_ASSERT( s_renderer.pageState == PageState_BeforeDraw );
+
+    // allocate space in output buffer
+    if( ( s_renderer.strokeBuffer.pointCount + pointCount > MaxPointCount ) ||
+        ( s_renderer.strokeBuffer.commandCount + 1u > MaxCommandCount ) )
     {
-        return 0;
+        SYS_TRACE_WARNING( "not enough space in command buffer!\n" );
+        return;
     }
 
-    s_renderer.flipProgress += timeStep * s_renderer.flipSpeed;
+    StrokeCommand* pCommand = &s_renderer.strokeBuffer.commands[ s_renderer.strokeBuffer.commandCount ];
+    s_renderer.strokeBuffer.commandCount += 1u;
 
-    if( s_renderer.flipProgress >= 1.0f )
+    pCommand->type = StrokeCommandType_Draw;
+    pCommand->data.draw.pointIndex = s_renderer.strokeBuffer.pointCount;
+    pCommand->data.draw.pointCount = pointCount;
+
+    float2* pPoints = &s_renderer.strokeBuffer.points[ s_renderer.strokeBuffer.pointCount ];
+    s_renderer.strokeBuffer.pointCount += pointCount;
+
+    const float variance = s_renderer.currentVariance;
+    const float2x3* pTransform = &s_renderer.currentTransform;
+
+    // transform, randomize and copy positions
+    for( uint i = 0u; i < pointCount; ++i )
     {
-        s_renderer.flipProgress = 1.0f;
-        s_renderer.flipSpeed = -1.0f;
+        const float2 strokePoint = pStrokePoints[ i ];
+
+        float2 offset;
+        float2_rand_normal( &offset, 0.0f, i == 0 ?variance / 4.0f : variance );  // reduced variance in the beginning
+
+        float2 point;
+        float2x3_transform( &point, pTransform, &strokePoint );
+        float2_add( &point, &point, &offset );
+
+        *pPoints++ = point;
     }
 
-    return s_renderer.flipSpeed > 0.0f;
+    //SYS_TRACE_DEBUG( "added stroke with %i points (pos=%i)\n", pointCount, s_renderer.strokeBuffer.commandCount - 1u );
 }
 
-void renderer_flipPage()
+static void startStroke( uint pointIndex, uint pointCount )
 {
-    renderer_startPageFlip( 0.0f );
-}
-
-void renderer_startStroke( const StrokeDefinition* pDefinition, const float2* pPositionOnPage, float speed, float size, float width, float variance )
-{
-    SYS_ASSERT( pDefinition && pDefinition->pPoints && pDefinition->pointCount >= 2 );
-    SYS_ASSERT( pPositionOnPage );
+    SYS_ASSERT( pointCount >= 2u );
 
     Stroke* pStroke = &s_renderer.currentStroke;
 
-    pStroke->pDefinition        = pDefinition;
-    pStroke->translation        = *pPositionOnPage;
     pStroke->progress           = 0.0f;
     pStroke->activeSegment      = 0u;
     pStroke->segmentProgress    = 0.0f;
-    pStroke->speed              = speed;
-    pStroke->size               = size;
-    pStroke->width              = width;
-    pStroke->variance           = variance;
-
-    float2_rand_normal( &pStroke->startOffset, 0.0f, variance / 4.0f );
-    float2_rand_normal( &pStroke->endOffset, 0.0f, variance );
 
     // compute total length of this stroke:
     float strokeLength = 0.0f;
 
-    float2 segmentStart = pDefinition->pPoints[ 0u ];
-    for( uint i = 1u; i < pDefinition->pointCount; ++i )
+    float2 segmentStart = s_renderer.strokeBuffer.points[ pointIndex ];
+    for( uint i = 1u; i < pointCount; ++i )
     {
-        const float2 segmentEnd = pDefinition->pPoints[ i ];
+        const float2 segmentEnd = s_renderer.strokeBuffer.points[ i ];
         float segmentLength = float2_distance( &segmentStart, &segmentEnd );
-
-        SYS_ASSERT( segmentLength > 0.0f );
 
         strokeLength += segmentLength;
         segmentStart = segmentEnd;
     }
     pStroke->length = strokeLength;
 
-    //SYS_TRACE_DEBUG( "Starting new stroke (length=%.2f #segments=%i width=%.2f speed=%.2f)\n", strokeLength, pDefinition->pointCount - 1u, width, speed );
+    //SYS_TRACE_DEBUG( "Starting new stroke (length=%.2f #segments=%i)\n", strokeLength, pointCount - 1u );
 }
 
-int renderer_advanceStroke( float timeStep )
+static int advanceStroke( float* pRemainingTime, float timeStep )
 {
     // draw stroke..
     Page* pPage = &s_renderer.pages[ s_renderer.currentPage ];
     Stroke* pStroke = &s_renderer.currentStroke;
+    const StrokeCommand* pCommand = &s_renderer.strokeBuffer.commands[ s_renderer.currentCommand ];
 
-    if( !pStroke->pDefinition )
+    if( !pCommand || pCommand->type != StrokeCommandType_Draw )
     {
         SYS_TRACE_ERROR( "no active stroke!\n" );
         return 0;
     }
+    
+    const StrokeDrawCommandData* pDrawCommand = &pCommand->data.draw;
+
     rendertarget_activate( &pPage->fgTarget );
     shader_activate( &s_renderer.penShader );
 
@@ -243,55 +458,74 @@ int renderer_advanceStroke( float timeStep )
     glBlendFuncSeparate( GL_ONE, GL_ONE, GL_ONE, GL_ONE ); 
     glBlendFuncSeparate( GL_ONE, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA ); 
 
+    const PenDefinition* pPen = &s_renderer.pens[ pDrawCommand->penId ];
+    const float variance = pDrawCommand->variance;
+
     // set constant shader parameters:
     float4 params;
-    float4_set( &params, pStroke->width, pStroke->variance, pStroke->variance * 0.5f, 0.0f );
+    float4_set( &params, pPen->width, variance, variance * 0.5f, 0.0f );
     int paramId = glGetUniformLocationARB( s_renderer.paperShader.id, "params0" );
     SYS_ASSERT( paramId >= 0 );
     glUniform4fv( paramId, 1u, &params.x );
 
     float currentProgress = pStroke->progress;
-    const float newProgress = float_min( currentProgress + pStroke->speed * timeStep, pStroke->length );
 
-    //SYS_TRACE_DEBUG( "advancing stroke from %f to %f! length=%f\n", currentProgress, newProgress );
-
-    const uint segmentCount = pStroke->pDefinition->pointCount - 1u;
-    float remainingLength = newProgress - currentProgress;
-    
-    while( remainingLength > 0.0f )
+    float newProgress;
+    if( s_renderer.strokeDrawSpeed <= 0.0f )
     {
-        if( pStroke->activeSegment >= segmentCount )
+        // always finish the whole stroke:
+        newProgress = pStroke->length;
+
+        // and we don't need any time:
+        *pRemainingTime = timeStep;
+    }
+    else
+    {
+        // how long until we reach the end of this stroke?:
+        const float remainingStrokeTime = ( pStroke->length - pStroke->progress ) / s_renderer.strokeDrawSpeed;        
+        const float usedTime = float_min( timeStep, remainingStrokeTime );
+
+        newProgress = pStroke->progress + usedTime * s_renderer.strokeDrawSpeed;
+        *pRemainingTime = timeStep - usedTime;
+    }
+
+//    SYS_TRACE_DEBUG( "advancing stroke from %f to %f! length=%f\n", currentProgress, newProgress, pStroke->length );
+
+    if( newProgress <= currentProgress )
+    {
+        return 1;
+    }
+
+    const uint segmentCount = pDrawCommand->pointCount - 1u;
+    float remainingLength = newProgress - currentProgress;
+
+    const float2* pStrokePoints = &s_renderer.strokeBuffer.points[ pDrawCommand->pointIndex ];
+    
+    while( pStroke->activeSegment < segmentCount && remainingLength > 0.0f )
+    {
+        const float2 segmentStart = pStrokePoints[ pStroke->activeSegment ];
+        const float2 segmentEnd = pStrokePoints[ pStroke->activeSegment + 1u ];
+
+        // get remaining length in current segment:
+        float activeSegmentLength = float2_distance( &segmentStart, &segmentEnd );
+
+        if( activeSegmentLength <= 0.0f )
         {
-            pStroke->pDefinition = 0u;
+            SYS_TRACE_ERROR( "blub!\n" );
             break;
         }
-        // get remaining length in current segment:
-        float2 segmentStart;
-        float2_add( &segmentStart, &pStroke->pDefinition->pPoints[ pStroke->activeSegment ], &pStroke->startOffset );
-        float2_scale1f( &segmentStart, pStroke->size );
-        float2_add( &segmentStart, &segmentStart, &pStroke->translation );
-        float2 segmentEnd;
-        float2_add( &segmentEnd, &pStroke->pDefinition->pPoints[ pStroke->activeSegment + 1u ], &pStroke->endOffset );
-        float2_scale1f( &segmentEnd, pStroke->size );
-        float2_add( &segmentEnd, &segmentEnd, &pStroke->translation );
 
-        float activeSegmentLength = float2_distance( &segmentStart, &segmentEnd );
         float remainingSegmentLength = activeSegmentLength - pStroke->segmentProgress;
-
-        // draw segment part:
-        float partStart = pStroke->segmentProgress;
-        float partEnd;
-
+        
         const float segmentAdvance = float_min( remainingSegmentLength, remainingLength );
 
-        // stay in this segment:
-        pStroke->segmentProgress += segmentAdvance;
-        partEnd = pStroke->segmentProgress;
-        remainingLength -= segmentAdvance;
+        // draw segment part:
+        const float partStart = pStroke->segmentProgress;
+        const float partEnd = partStart + segmentAdvance;
 
         // draw the active segment between partStart and partEnd:
         //SYS_TRACE_DEBUG( "drawing segment part from %f to %f!\n", partStart / activeSegmentLength, partEnd / activeSegmentLength );
-            
+           
         // compute part 
 
         // :todo: draw start and end parts if this is the start/end of the segment
@@ -310,15 +544,13 @@ int renderer_advanceStroke( float timeStep )
         const float ws = 1.0f;
 
         float2 vertices[ 4u ];
-        float2_addScaled1f( &vertices[ 0u ], &startPos, &segmentUp,  ws * pStroke->width );
-        float2_addScaled1f( &vertices[ 1u ], &startPos, &segmentUp, -ws * pStroke->width );
-        float2_addScaled1f( &vertices[ 2u ], &endPos, &segmentUp, -ws * pStroke->width );
-        float2_addScaled1f( &vertices[ 3u ], &endPos, &segmentUp,  ws * pStroke->width );
+        float2_addScaled1f( &vertices[ 0u ], &startPos, &segmentUp,  ws * pPen->width );
+        float2_addScaled1f( &vertices[ 1u ], &startPos, &segmentUp, -ws * pPen->width );
+        float2_addScaled1f( &vertices[ 2u ], &endPos, &segmentUp, -ws * pPen->width );
+        float2_addScaled1f( &vertices[ 3u ], &endPos, &segmentUp,  ws * pPen->width );
 
         const float u0 = partStart / activeSegmentLength;
         const float u1 = partEnd / activeSegmentLength;
-
-        currentProgress += segmentAdvance;
         
         glBegin( GL_TRIANGLES );
             glTexCoord2f( u0, 0.0 );   glVertex2f( vertices[ 0u ].x, vertices[ 0u ].y );
@@ -330,33 +562,143 @@ int renderer_advanceStroke( float timeStep )
             glTexCoord2f( u1, 0.0 );   glVertex2f( vertices[ 3u ].x, vertices[ 3u ].y );
         glEnd();
         
+        pStroke->segmentProgress += segmentAdvance;
+        remainingLength -= segmentAdvance;
+        currentProgress += segmentAdvance;
+
         if( segmentAdvance >= remainingSegmentLength )
         {
             // next segment:
             pStroke->activeSegment++;
             pStroke->segmentProgress = 0.0f;
-            pStroke->startOffset = pStroke->endOffset;
-
-            float2_rand_normal( &pStroke->endOffset, 0.0f, pStroke->variance );
         }
     }
 
     if( newProgress < pStroke->length )
     {
         pStroke->progress = newProgress;  
-    }
-    else
-    {
-        pStroke->pDefinition = 0u;
+        return 1u;
     }
 
-    return pStroke->pDefinition != 0u;
+    return 0u;
 }
 
-void renderer_drawStroke( const StrokeDefinition* pDefinition, const float2* pPositionOnPage, float size, float width, float variance )
+static void startDrawCommand()
 {
-    renderer_startStroke( pDefinition, pPositionOnPage, 1.0f, size, width, variance );
-    renderer_advanceStroke( s_renderer.currentStroke.length );
+    if( s_renderer.currentCommand >= s_renderer.strokeBuffer.commandCount )
+    {
+        return;
+    }
+    const StrokeCommand* pCurrentCommand = &s_renderer.strokeBuffer.commands[ s_renderer.currentCommand ];
+
+    switch( pCurrentCommand->type )
+    {
+    case StrokeCommandType_Draw:
+        startStroke( pCurrentCommand->data.draw.pointIndex, pCurrentCommand->data.draw.pointCount );
+        break;
+
+    case StrokeCommandType_Delay:
+        
+        break;
+
+    default:
+        break;
+    }
+}
+
+static void updateDrawCommands( float timeStep )
+{
+    while( timeStep > 0.0f && s_renderer.currentCommand < s_renderer.strokeBuffer.commandCount )
+    {
+        const StrokeCommand* pCurrentCommand = &s_renderer.strokeBuffer.commands[ s_renderer.currentCommand ];
+//        SYS_TRACE_DEBUG( "command %i/%i remaining time = %f\n", s_renderer.currentCommand, s_renderer.strokeBuffer.commandCount, timeStep );
+        switch( pCurrentCommand->type )
+        {
+        case StrokeCommandType_Draw:
+            if( !advanceStroke( &timeStep, timeStep ) )
+            {
+                s_renderer.currentCommand++;
+                startDrawCommand();
+            }
+            break;
+
+        case StrokeCommandType_Delay:
+            // done..
+            s_renderer.currentCommand++;
+            startDrawCommand();
+            break;
+
+        default:
+            break;
+        }
+    }
+}
+
+void renderer_updateState( float timeStep )
+{
+    float newStateTime = s_renderer.stateTime + timeStep;
+    switch( s_renderer.pageState )
+    {
+    case PageState_BeforeDraw:
+        if( newStateTime >= s_renderer.delayAfterFlip )
+        {
+            setPageState( PageState_Draw );
+            startDrawCommand();
+            
+            newStateTime -= s_renderer.delayAfterFlip;
+            renderer_updateState( newStateTime );
+        }
+        else
+        {
+            s_renderer.stateTime = newStateTime;
+        }
+        break;
+
+    case PageState_Draw:
+        // until the last stroke is done..
+        if( s_renderer.currentCommand >= s_renderer.strokeBuffer.commandCount )
+        {
+            setPageState( PageState_AfterDraw );
+            renderer_updateState( timeStep );
+        }
+        else
+        {
+            // update current stroke.. 
+            updateDrawCommands( timeStep );
+            // don't flip immediately..
+        }
+        break;
+
+    case PageState_AfterDraw:
+        if( newStateTime >= s_renderer.delayAfterDraw )
+        {
+            setPageState( PageState_Done );
+            newStateTime -= s_renderer.delayAfterFlip;
+            renderer_updateState( newStateTime );
+        }
+        else
+        {
+            s_renderer.stateTime = newStateTime;
+        }
+        break;
+
+    case PageState_Done:
+        break;
+
+    default:
+        break;
+    }
+}
+
+void renderer_updatePage( float timeStep )
+{
+    renderer_updateState( timeStep );
+    renderer_updatePageFlip( timeStep );
+}
+
+int renderer_isPageDone()
+{
+    return s_renderer.pageState == PageState_Done;
 }
 
 void renderer_drawFrame( const FrameData* pFrame )
@@ -379,8 +721,7 @@ void renderer_drawFrame( const FrameData* pFrame )
     glUniform1i( bgTextureId, 0 );
     glUniform1i( fgTextureId, 1 );
 
-    glEnable( GL_TEXTURE_2D );
-    
+    glEnable( GL_TEXTURE_2D );    
     glActiveTexture( GL_TEXTURE0 );
     glBindTexture( GL_TEXTURE_2D, s_renderer.pages[ s_renderer.currentPage ].bgTarget.id );
 
@@ -393,36 +734,28 @@ void renderer_drawFrame( const FrameData* pFrame )
         glTexCoord2f( 1.0, 1.0 );   glVertex2i(  1, -1 );
         glTexCoord2f( 0.0, 1.0 );   glVertex2i( -1, -1 );
     glEnd();
-/*    glClearColor( 1.0f, 0.0f, 1.0f, 1.0f );
-    glClear( GL_COLOR_BUFFER_BIT );
 
-    glEnable( GL_BLEND );
-    glBlendEquationSeparate( GL_FUNC_ADD, GL_FUNC_ADD );
-    glBlendFuncSeparate( GL_ONE, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ZERO ); 
+    // render the flipped page on top:
+    if( s_renderer.flipTime >= 0.0f )
+    {
+        const float flipProgress = float_saturate( s_renderer.flipTime / s_renderer.flipDuration );
 
-    glBindTexture( GL_TEXTURE_2D, s_renderer.pages[ s_renderer.currentPage ].fgTarget.id );
-    //glTexEnvf( GL_TEXTURE_ENV, GL_TEXTURE_ENV_MODE, GL_MODULATE );
-    glEnable( GL_TEXTURE_2D );
+        glEnable( GL_TEXTURE_2D );    
+        glActiveTexture( GL_TEXTURE0 );
+        glBindTexture( GL_TEXTURE_2D, s_renderer.pages[ s_renderer.lastPage ].bgTarget.id );
 
-    int width = sys_getScreenWidth();
-    int height = sys_getScreenHeight();
+        glActiveTexture( GL_TEXTURE0 + 1u );
+        glBindTexture( GL_TEXTURE_2D, s_renderer.pages[ s_renderer.lastPage ].fgTarget.id );
+    
+        // :TODO: nicer flip effect please:
+        const float offset = 2.0f * flipProgress;
 
-    glMatrixMode( GL_PROJECTION );
-    glLoadIdentity();
-    glOrtho( 0, width, height, 0, 0, 1 );
-    glMatrixMode( GL_MODELVIEW );
-    glLoadIdentity();
-
-    glTranslatef( 0.5f * width, 0.5f * height, 0.0f );
-   // glRotatef( 10.0f * pFrame->time, 0.0f, 0.0f, 1.0f );
-    glTranslatef( -0.5f * width, -0.5f * height, 0.0f );
-
-    glColor3f( 1.0f, 1.0f, 1.0f );
-    glBegin( GL_QUADS );
-        glTexCoord2f( 0.0, 0.0 );   glVertex2i( 0, 0 );
-        glTexCoord2f( 1.0, 0.0 );   glVertex2i( width, 0 );
-        glTexCoord2f( 1.0, 1.0 );   glVertex2i( width, height );
-        glTexCoord2f( 0.0, 1.0 );   glVertex2i( 0, height );
-    glEnd();*/
+        glBegin( GL_QUADS );
+            glTexCoord2f( 0.0, 0.0 );   glVertex2f( -1.0f,  1.0f + offset );
+            glTexCoord2f( 1.0, 0.0 );   glVertex2f(  1.0f,  1.0f + offset );
+            glTexCoord2f( 1.0, 1.0 );   glVertex2f(  1.0f, -1.0f + offset );
+            glTexCoord2f( 0.0, 1.0 );   glVertex2f( -1.0f, -1.0f + offset );
+        glEnd();
+    }
 }
 

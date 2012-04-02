@@ -34,7 +34,7 @@ void gamestate_init( GameState* pGameState, uint playerCount )
 
 void gamestate_update( GameState* pGameState, const World* pWorld, const uint32* pInputs )
 {
-	(void*)pWorld;
+	SYS_USE_ARGUMENT( pWorld );
 	for( uint i = 0u; i < pGameState->playerCount; ++i )
 	{
 		Player* pPlayer = &pGameState->player[ i ];
@@ -123,3 +123,4 @@ void gamestate_update( GameState* pGameState, const World* pWorld, const uint32*
 		index++;
 	}
 }
+

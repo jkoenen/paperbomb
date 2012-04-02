@@ -24,13 +24,14 @@ float rand(vec2 co){
 uniform vec4 params0;
 void main()
 {
-    float width = params0.x/36.0;    // * rand( gl_FragCoord );
+    float width = params0.x/5.0f; ///18.0;    // * rand( gl_FragCoord );
     float offset = params0.y;
-    float d = params0.z;
+    float curveSize = params0.z;
 
-    float linepos = texCoord.y+d*width*sin(texCoord.x*3.14159+offset);
+    float pixelPos = texCoord.y;
+    float linepos = 0.5f + curveSize*sin(texCoord.x*3.14159+offset);
  
-    float distance = abs(0.5-linepos);
+    float distance = abs( linepos - pixelPos );
     float x=(distance/width);
 
     float intensity = mix(0.7f,0.8f,cos(texCoord.x*3.14159))*max(1.0-x*x,0.0);
