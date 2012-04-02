@@ -66,6 +66,11 @@ typedef struct
     float   x, y, z, w;
 } float4;
 
+static inline float float_abs( float x )
+{
+	return x < 0.0f ? -x : x;
+}
+
 static inline float float_min( float x, float y )
 {
     return x < y ? x : y;

@@ -268,11 +268,11 @@ int renderer_advanceStroke( float timeStep )
         // get remaining length in current segment:
         float2 segmentStart;
         float2_add( &segmentStart, &pStroke->pDefinition->pPoints[ pStroke->activeSegment ], &pStroke->startOffset );
-        float2_scale( &segmentStart, pStroke->size );
+        float2_scale1f( &segmentStart, pStroke->size );
         float2_add( &segmentStart, &segmentStart, &pStroke->translation );
         float2 segmentEnd;
         float2_add( &segmentEnd, &pStroke->pDefinition->pPoints[ pStroke->activeSegment + 1u ], &pStroke->endOffset );
-        float2_scale( &segmentEnd, pStroke->size );
+        float2_scale1f( &segmentEnd, pStroke->size );
         float2_add( &segmentEnd, &segmentEnd, &pStroke->translation );
 
         float activeSegmentLength = float2_distance( &segmentStart, &segmentEnd );

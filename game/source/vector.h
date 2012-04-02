@@ -38,7 +38,7 @@ static inline float2* float2_rand_normal( float2* pValue, float mean, float sd )
 	return pValue;
 }
 
-static inline float2* float2_scale( float2* pValue, float factor )
+static inline float2* float2_scale1f( float2* pValue, float factor )
 {
 	const float x = pValue->x;
 	const float y = pValue->y;
@@ -51,7 +51,7 @@ static inline float2* float2_scale( float2* pValue, float factor )
 	return pValue;
 }
 
-static inline float2* float2_scale( float2* pValue, float2* pFactor )
+static inline float2* float2_scale2f( float2* pValue, float2* pFactor )
 {
 	const float x = pValue->x;
 	const float y = pValue->y;
@@ -76,14 +76,6 @@ static inline float2* float2_add( float2* pResult, const float2* pA, const float
 
 	pResult->x = rx;
 	pResult->y = ry;
-
-	return pResult;
-}
-
-static inline float2* float2_add( float2* pResult, const float2* pA )
-{
-	pResult->x = pResult->x + pA->x;
-	pResult->y = pResult->y + pA->y;
 
 	return pResult;
 }
@@ -138,7 +130,22 @@ static inline float float2_distance( const float2* pA, const float2* pB )
 static inline float2* float2_normalize( float2* pValue )
 {
 	const float invLength = 1.0f / float2_length(pValue);
-	float2_scale( pValue, invLength );
+	float2_scale1f( pValue, invLength );
+	return pValue;
+}
+
+static inline float2* float2_normalize0( float2* pValue )
+{
+	const float length = float2_length( pValue );
+	if( length < 0.000001f )
+	{
+		float2_set( pValue, 0.0f, 0.0f );
+	}
+	else
+	{
+		const float invLength = 1.0f / length;
+		float2_scale1f( pValue, invLength );
+	}
 	return pValue;
 }
 
@@ -201,6 +208,18 @@ static inline void float2_rotate( float2* pValue, float angle )
 
 	pValue->x = newX;
 	pValue->y = newY;
+}
+
+static inline float2* float2_from_angle( float2* pTarget, float angle )
+{
+	pTarget->x = cosf( angle );
+	pTarget->y = sinf( angle );
+	return pTarget;
+}
+
+static inline float float2_dot( const float2* pA, const float2* pB )
+{
+	return pA->x * pB->x + pA->y * pB->y;
 }
 
 #endif

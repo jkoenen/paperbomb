@@ -76,7 +76,7 @@ void game_init()
 	s_game.variance = 0.2f;
 
     s_game.gameTime = 0.0f;
-	s_game.playerCount = 1u;
+	s_game.playerCount = 2u;
 	for( uint i = 0u; i < s_game.playerCount; ++i )
 	{
 		player_reset( &s_game.player[ i ] );
@@ -97,14 +97,15 @@ void game_update( const GameInput* pInput )
 
 	debug_update( pInput->buttonMask, s_game.player[ 0u ].lastButtonMask );
 
-	player_update( &s_game.player[ 0u ], timeStep, pInput->buttonMask );
+	player_update( &s_game.player[ 0u ], pInput->buttonMask & Button_PlayerMask );
+	player_update( &s_game.player[ 1u ], ( pInput->buttonMask >> Button_PlayerShift ) & Button_PlayerMask );
 
 	s_game.remainingPageTime -= timeStep;
 }
 
 void game_render_car( const Player* pPlayer )
 {
-	float2 points[] =
+	float2 carPoints[] =
 	{ 
 		{ -1.0f,  0.5f },
 		{  1.0f,  0.5f },
@@ -113,25 +114,102 @@ void game_render_car( const Player* pPlayer )
 		{ -1.0f,  0.5f }
 	};
 
+	float2 steerPoints[] =
+	{ 
+		{  0.0f,  0.0f },
+		{  0.5f,  0.0f }
+	};
+
 	float2 worldOffset;
 	float2_set( &worldOffset, 32.0f, 18.0f );
-
 	float2 worldScale;
 	float2_set( &worldScale, 1.8f, 1.8f );
 
-	for( uint i = 0u; i < SYS_COUNTOF( points ); ++i )
+	for( uint i = 0u; i < SYS_COUNTOF( carPoints ); ++i )
 	{
-		float2_rotate( &points[ i ], pPlayer->direction );
-		float2_add( &points[ i ], &pPlayer->position );
-		float2_scale( &points[ i ], &worldScale );
-		float2_add( &points[ i ], &worldOffset );
+		float2_rotate( &carPoints[ i ], pPlayer->direction );
+		float2_add( &carPoints[ i ], &carPoints[ i ], &pPlayer->position );
+		float2_scale2f( &carPoints[ i ], &worldScale );
+		float2_add( &carPoints[ i ], &carPoints[ i ], &worldOffset );
 	}
 
-	const StrokeDefinition strokeDefinition = { points, SYS_COUNTOF( points ) };
-	
+	float2 steerOffset;
+	float2_set( &steerOffset, 1.0f, 0.6f );
+	for( uint i = 0u; i < SYS_COUNTOF( steerPoints ); ++i )
+	{
+		float2_rotate( &steerPoints[ i ], pPlayer->steer );
+		float2_add( &steerPoints[ i ], &steerPoints[ i ], &steerOffset );
+		float2_rotate( &steerPoints[ i ], pPlayer->direction );
+		float2_add( &steerPoints[ i ], &steerPoints[ i ], &pPlayer->position );
+		float2_scale2f( &steerPoints[ i ], &worldScale );
+		float2_add( &steerPoints[ i ], &steerPoints[ i ], &worldOffset );
+	}
+
 	float2 position;
 	float2_set( &position, 0.0f, 0.0f );
-	renderer_drawStroke( &strokeDefinition, &position, 1.0f, 2.0f, 0.2f );
+
+	const StrokeDefinition carStrokes = { carPoints, SYS_COUNTOF( carPoints ) };	
+	renderer_drawStroke( &carStrokes, &position, 1.0f, 2.0f, 0.0f );
+
+	const StrokeDefinition steerStrokes = { steerPoints, SYS_COUNTOF( steerPoints ) };	
+	renderer_drawStroke( &steerStrokes, &position, 1.0f, 1.0f, 0.0f );
+}
+
+void game_render_bomb( const Bomb* pBomb )
+{
+	float2 worldOffset;
+	float2_set( &worldOffset, 32.0f, 18.0f );
+	float2 worldScale;
+	float2_set( &worldScale, 1.8f, 1.8f );
+
+	float2 position;
+	float2_set( &position, 0.0f, 0.0f );
+
+	float2 bomb0Points[] =
+	{ 
+		{ -1.0f,  1.0f },
+		{  1.0f,  1.0f },
+		{  1.0f, -1.0f },
+		{ -1.0f, -1.0f },
+		{ -1.0f,  1.0f }
+	};
+
+	for( uint i = 0u; i < SYS_COUNTOF( bomb0Points ); ++i )
+	{
+		float2 scale;
+		float2_set( &scale, 1.0f, 0.2f );
+		float2_scale2f( &bomb0Points[ i ], &scale );
+		float2_rotate( &bomb0Points[ i ], pBomb->direction );
+		float2_add( &bomb0Points[ i ], &bomb0Points[ i ], &pBomb->position );
+		float2_scale2f( &bomb0Points[ i ], &worldScale );
+		float2_add( &bomb0Points[ i ], &bomb0Points[ i ], &worldOffset );
+	}
+
+	const StrokeDefinition bomb0Strokes = { bomb0Points, SYS_COUNTOF( bomb0Points ) };	
+	renderer_drawStroke( &bomb0Strokes, &position, 1.0f, 2.0f, 0.0f );
+
+	float2 bomb1Points[] =
+	{ 
+		{ -1.0f,  1.0f },
+		{  1.0f,  1.0f },
+		{  1.0f, -1.0f },
+		{ -1.0f, -1.0f },
+		{ -1.0f,  1.0f }
+	};
+
+	for( uint i = 0u; i < SYS_COUNTOF( bomb1Points ); ++i )
+	{
+		float2 scale;
+		float2_set( &scale, 0.2f, 1.0f );
+		float2_scale2f( &bomb1Points[ i ], &scale );
+		float2_rotate( &bomb1Points[ i ], pBomb->direction );
+		float2_add( &bomb1Points[ i ], &bomb1Points[ i ], &pBomb->position );
+		float2_scale2f( &bomb1Points[ i ], &worldScale );
+		float2_add( &bomb1Points[ i ], &bomb1Points[ i ], &worldOffset );
+	}
+
+	const StrokeDefinition bomb1Strokes = { bomb1Points, SYS_COUNTOF( bomb1Points ) };	
+	renderer_drawStroke( &bomb1Strokes, &position, 1.0f, 2.0f, 0.0f );
 }
 
 void game_render()
@@ -168,6 +246,13 @@ void game_render()
 		for( uint i = 0u; i < s_game.playerCount; ++i )
 		{
 			game_render_car( &s_game.player[ i ] );
+			for( uint j = 0u; j < SYS_COUNTOF( s_game.player[ i ].bombs ); ++j )
+			{
+				if( s_game.player[ i ].bombs[ j ].active )
+				{
+					game_render_bomb( &s_game.player[ i ].bombs[ j ] );
+				}
+			}
 		}
 
 		s_game.remainingPageTime = 1.0f / s_game.fps;

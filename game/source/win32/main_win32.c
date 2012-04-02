@@ -14,7 +14,7 @@
 #include <GL/glew.h>
 
 static uint s_width = 800;
-static uint s_height = 600;
+static uint s_height = 450;
 
 static uint32 s_currentButtonMask = 0u;
 
@@ -108,6 +108,26 @@ static LRESULT CALLBACK WndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 			case VK_SPACE:
 				updateButtonMask( &s_currentButtonMask, ButtonMask_PlaceBomb, uMsg == WM_KEYDOWN );
 				break;		
+
+			case 'A':
+				updateButtonMask( &s_currentButtonMask, ButtonMask_Player2Left, uMsg == WM_KEYDOWN );
+				break;
+
+			case 'D':
+				updateButtonMask( &s_currentButtonMask, ButtonMask_Player2Right, uMsg == WM_KEYDOWN );
+				break;
+
+			case 'W':
+				updateButtonMask( &s_currentButtonMask, ButtonMask_Player2Up, uMsg == WM_KEYDOWN );
+				break;
+
+			case 'S':
+				updateButtonMask( &s_currentButtonMask, ButtonMask_Player2Down, uMsg == WM_KEYDOWN );
+				break;
+
+			case VK_TAB:
+				updateButtonMask( &s_currentButtonMask, ButtonMask_Player2PlaceBomb, uMsg == WM_KEYDOWN );
+				break;		
 			}
 		}
 		break;
@@ -153,8 +173,6 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 	SYS_USE_ARGUMENT( lpCmdLine );
 	SYS_USE_ARGUMENT( nCmdShow );
 
-	const uint width = 800u;
-	const uint height = 600u;
 	const char* pWndClass = "paperbomb_wc";
 
     WNDCLASS wc;
@@ -183,8 +201,8 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
         devmode.dmSize       = sizeof(DEVMODE);
         devmode.dmFields     = DM_BITSPERPEL|DM_PELSWIDTH|DM_PELSHEIGHT;
         devmode.dmBitsPerPel = 32;
-        devmode.dmPelsWidth  = 800;
-        devmode.dmPelsHeight = 600;
+        devmode.dmPelsWidth  = s_width;
+        devmode.dmPelsHeight = s_height;
 
         SYS_VERIFY( ChangeDisplaySettings( &devmode,CDS_FULLSCREEN ) == DISP_CHANGE_SUCCESSFUL );
 
@@ -204,8 +222,8 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 
     rect.left   = 0;
     rect.top    = 0;
-    rect.right  = width;
-    rect.bottom = height;
+    rect.right  = (int)s_width;
+    rect.bottom = (int)s_height;
 
     AdjustWindowRect( &rect, dwStyle, 0 );
 
@@ -269,7 +287,7 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
             const float timingTimeSpan = ( float )( currentTime - lastTimingTime ) / 1000.0f;
             const float currentFps = ( float )( timingFrameCount ) / timingTimeSpan;
 
-            SYS_TRACE_DEBUG( "fps=%f\n", currentFps );
+            //SYS_TRACE_DEBUG( "fps=%f\n", currentFps );
 
             char windowTitle[ 100u ];
             sprintf_s( windowTitle, sizeof( windowTitle ), "fps=%f", currentFps );
