@@ -24,7 +24,7 @@ float rand(vec2 co){
 uniform vec4 params0;
 void main()
 {
-    float width = params0.x/5.0f; ///18.0;    // * rand( gl_FragCoord );
+    float width = 0.1f; ///18.0;    // * rand( gl_FragCoord );
     float offset = params0.y;
     float curveSize = params0.z;
 

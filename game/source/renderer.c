@@ -157,9 +157,15 @@ static void page_create( Page* pPage, int width, int height )
     int paramId = glGetUniformLocationARB( s_renderer.paperShader.id, "params0" );    
     SYS_ASSERT( paramId >= 0 );
 
+    int paperSizeId = glGetUniformLocationARB( s_renderer.paperShader.id, "paperSize" );
+    SYS_ASSERT( paperSizeId >= 0 );
+
     float4 params;
-    float4_set( &params, float_rand(), float_rand(), float_rand(), float_rand() );
+    float4_set( &params, float_rand(), float_rand(), 2.0f / width, 2.0f / height );
     glUniform4fv( paramId, 1u, &params.x );
+
+    float4_set( &params, 32.0f, 18.0f, 0.4f, 0.3f );
+    glUniform4fv( paperSizeId, 1u, &params.x );
     
     glRectf( -1.0f, -1.0f, 1.0f, 1.0f );
     
@@ -220,6 +226,7 @@ void renderer_init()
     color.z = 0.2f;
     createPen( &s_renderer.pens[ Pen_Default ], 1.0f, 1.0f, &color );
     createPen( &s_renderer.pens[ Pen_Font ], 1.0f, 1.0f, &color );
+    createPen( &s_renderer.pens[ Pen_Fat ], 3.0f, 1.0f, &color );
 
     // :TODO: create page flip mesh:
 
@@ -383,6 +390,7 @@ void renderer_addStroke( const float2* pStrokePoints, uint pointCount )
     pCommand->type = StrokeCommandType_Draw;
     pCommand->data.draw.pointIndex = s_renderer.strokeBuffer.pointCount;
     pCommand->data.draw.pointCount = pointCount;
+    pCommand->data.draw.penId = s_renderer.currentPen;
 
     float2* pPoints = &s_renderer.strokeBuffer.points[ s_renderer.strokeBuffer.pointCount ];
     s_renderer.strokeBuffer.pointCount += pointCount;
@@ -463,7 +471,7 @@ static int advanceStroke( float* pRemainingTime, float timeStep )
 
     // set constant shader parameters:
     float4 params;
-    float4_set( &params, pPen->width, variance, variance * 0.5f, 0.0f );
+    float4_set( &params, 0.5f * pPen->width, variance, variance, 0.0f );
     int paramId = glGetUniformLocationARB( s_renderer.paperShader.id, "params0" );
     SYS_ASSERT( paramId >= 0 );
     glUniform4fv( paramId, 1u, &params.x );

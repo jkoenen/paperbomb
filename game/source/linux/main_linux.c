@@ -14,6 +14,12 @@
 #include <math.h>
 #include <stdarg.h>
 
+enum
+{
+    ScreenWidth = 640,
+    ScreenHeight = 360
+};
+
 static float s_soundBuffer[ SoundChannelCount * SoundBufferSampleCount ];
 
 static uint s_callbackCount = 0u;
@@ -55,14 +61,14 @@ void sys_exit( int exitcode )
 
 int sys_getScreenWidth()
 {
-//    return 1280;
-    return 640;
+    return 1280;
+//    return 640;
 }
 
 int sys_getScreenHeight()
 {
-//    return 720;
-    return 360;
+    return 720;
+//    return 360;
 }
 
 static void updateButtonMask( uint32* pButtonMask, uint32 button, int isDown )
@@ -86,7 +92,7 @@ int main()
         SYS_BREAK( "SDL_Init failed!\n" );
     }
 
-    SDL_SetVideoMode( 640u, 360u, 0u, SDL_OPENGL /*| SDL_FULLSCREEN */ );
+    SDL_SetVideoMode( 1280u, 720u, 0u, SDL_OPENGL /*| SDL_FULLSCREEN */ );
     SDL_ShowCursor( SDL_DISABLE );
     SDL_GL_SetAttribute( SDL_GL_SWAP_CONTROL, 1 );
 
@@ -100,11 +106,11 @@ int main()
     audioSpec.callback  = soundCallback;
     audioSpec.userdata  = s_soundBuffer;
 
-    SYS_VERIFY( SDL_OpenAudio( &audioSpec, NULL ) >= 0 );
+    SDL_OpenAudio( &audioSpec, NULL );
 
     game_init();
 
-    //SDL_PauseAudio( 0 );
+//    SDL_PauseAudio( 0 );
 
     uint32 lastTime = SDL_GetTicks();
     uint32 buttonMask = 0u;

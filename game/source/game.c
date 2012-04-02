@@ -60,6 +60,7 @@ static void debug_update( uint buttonMask, uint lastButtonMask )
 	{
 		s_game.variance = float_max( 0.0f, variance );
 		SYS_TRACE_DEBUG( "variance=%f\n", s_game.variance );
+        renderer_setVariance( s_game.variance );
 	}
 
 	sound_setEngineFrequency( ( buttonMask & ButtonMask_CtrlUp ) ? 1.0f : 0.0f );
@@ -298,7 +299,9 @@ void game_render()
         float2x2_identity( &transform.rot );
 		float2_set( &transform.pos, 40.0f, 10.0f );
         renderer_setTransform( &transform );
+        renderer_setPen( Pen_Fat );
 		renderer_addStroke( points, SYS_COUNTOF( points ) );
+        renderer_setPen( Pen_Default );
 
         renderer_setTransform( 0 );
 
