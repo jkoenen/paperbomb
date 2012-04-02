@@ -18,6 +18,7 @@ typedef struct
 	float2	positon;
 	float	direction;
 	float	length;
+	float	time;
 
 } Explosion;
 

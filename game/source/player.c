@@ -3,24 +3,22 @@
 #include "input.h"
 #include "vector.h"
 
-void player_reset( Player* pPlayer )
+
+void player_init( Player* pPlayer, const float2* pPosition, float direction )
 {
-	pPlayer->position.x		= 0.0f;
-	pPlayer->position.y		= 0.0f;
-	pPlayer->direction		= 0.0f;
+	pPlayer->position		= *pPosition;
+	pPlayer->direction		= direction;
 	pPlayer->steer			= 0.0f;
 	pPlayer->velocity.x		= 0.0f;
 	pPlayer->position.y		= 0.0f;
 	pPlayer->health			= 100.0f;
 	pPlayer->lastButtonMask	= 0u;
 	pPlayer->maxBombs		= 2u;
-	for( uint i = 0u; i < SYS_COUNTOF( pPlayer->bombs ); ++i )
+	for( uint i				= 0u; i < SYS_COUNTOF( pPlayer->bombs ); ++i )
 	{
 		pPlayer->bombs[ i ].active = 0;
 	}
 }
-
-#define M_PI_4F ((float)M_PI_4)
 
 void player_update( Player* pPlayer, uint32 buttonMask )
 {
@@ -29,14 +27,15 @@ void player_update( Player* pPlayer, uint32 buttonMask )
 	const float steerSpeed = 0.02f;
 	const float steerDamping = 0.9f;
 	const float maxSpeed = 0.05f;
+	const float maxSteer = (float)PI * 0.2f;
 		
 	if( buttonMask & ButtonMask_Left )
 	{
-		pPlayer->steer = float_min( pPlayer->steer + steerSpeed, M_PI_4F );
+		pPlayer->steer = float_min( pPlayer->steer + steerSpeed, maxSteer );
 	}
 	else if( buttonMask & ButtonMask_Right )
 	{
-		pPlayer->steer = float_max( pPlayer->steer - steerSpeed, -M_PI_4F );
+		pPlayer->steer = float_max( pPlayer->steer - steerSpeed, -maxSteer );
 	}
 	else
 	{
@@ -96,11 +95,13 @@ void player_update( Player* pPlayer, uint32 buttonMask )
 	float2 directionVector;
 	float2_from_angle( &directionVector, pPlayer->direction );
 
+	float dirVecDot = float2_dot( &directionVector, &pPlayer->velocity );
+
+	pPlayer->direction += dirVecDot * pPlayer->steer;
+
 	float2 velocityNormalized = pPlayer->velocity;
 	float2_normalize0( &velocityNormalized );
-
-	const float dirVecDot = float2_dot( &directionVector, &velocityNormalized );
-	pPlayer->direction += dirVecDot * pPlayer->steer * 0.05f;
+	dirVecDot = float2_dot( &directionVector, &velocityNormalized );
 
 	float2 velocityForward = pPlayer->velocity;
 	float2_scale1f( &velocityForward, float_abs( dirVecDot ) );
@@ -126,7 +127,7 @@ void player_update( Player* pPlayer, uint32 buttonMask )
 
 	float2_add( &pPlayer->position, &pPlayer->position, &pPlayer->velocity );
 
-	pPlayer->position.x = float_clamp( pPlayer->position.x, -16.0f, 16.0f );
-	pPlayer->position.y = float_clamp( pPlayer->position.y, -9.0f, 9.0f );
+	pPlayer->position.x = float_clamp( pPlayer->position.x, -32.0f, 32.0f );
+	pPlayer->position.y = float_clamp( pPlayer->position.y, -18.0f, 18.0f );
 	pPlayer->lastButtonMask = buttonMask;
 }

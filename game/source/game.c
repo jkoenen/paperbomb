@@ -7,22 +7,22 @@
 #include "font.h"
 #include "input.h"
 #include "vector.h"
+#include "gamestate.h"
+#include "world.h"
 
-enum
-{
-	MaxPlayer = 8u
-};
+#include <string.h>
 
 typedef struct
 {
     float		gameTime;
+	uint32		lastButtonMask;
 
 	float       fps;
 	float       variance;
 	float       remainingPageTime;
 
-	Player		player[ MaxPlayer ];
-	uint		playerCount;
+	GameState	gameState;
+
 } Game;
 
 static Game s_game;
@@ -76,11 +76,9 @@ void game_init()
 	s_game.variance = 0.2f;
 
     s_game.gameTime = 0.0f;
-	s_game.playerCount = 2u;
-	for( uint i = 0u; i < s_game.playerCount; ++i )
-	{
-		player_reset( &s_game.player[ i ] );
-	}
+	s_game.lastButtonMask = 0u;
+
+	gamestate_init( &s_game.gameState, 2u );
 }
 
 void game_done()
@@ -95,12 +93,19 @@ void game_update( const GameInput* pInput )
 
     s_game.gameTime += timeStep;
 
-	debug_update( pInput->buttonMask, s_game.player[ 0u ].lastButtonMask );
+	debug_update( pInput->buttonMask, s_game.lastButtonMask );
 
-	player_update( &s_game.player[ 0u ], pInput->buttonMask & Button_PlayerMask );
-	player_update( &s_game.player[ 1u ], ( pInput->buttonMask >> Button_PlayerShift ) & Button_PlayerMask );
+	uint32 playerInputs[ MaxPlayer ];
+	memset( playerInputs, sizeof( playerInputs ), 0u );
+	playerInputs[ 0u ] = pInput->buttonMask & Button_PlayerMask;
+	playerInputs[ 1u ] = ( pInput->buttonMask >> Button_PlayerShift ) & Button_PlayerMask;
+
+	World world;
+
+	gamestate_update( &s_game.gameState, &world, playerInputs );
 
 	s_game.remainingPageTime -= timeStep;
+	s_game.lastButtonMask = pInput->buttonMask;
 }
 
 void game_render_car( const Player* pPlayer )
@@ -123,7 +128,7 @@ void game_render_car( const Player* pPlayer )
 	float2 worldOffset;
 	float2_set( &worldOffset, 32.0f, 18.0f );
 	float2 worldScale;
-	float2_set( &worldScale, 1.8f, 1.8f );
+	float2_set( &worldScale, 1.0f, 1.0f );
 
 	for( uint i = 0u; i < SYS_COUNTOF( carPoints ); ++i )
 	{
@@ -160,7 +165,7 @@ void game_render_bomb( const Bomb* pBomb )
 	float2 worldOffset;
 	float2_set( &worldOffset, 32.0f, 18.0f );
 	float2 worldScale;
-	float2_set( &worldScale, 1.8f, 1.8f );
+	float2_set( &worldScale, 1.0f, 1.0f );
 
 	float2 position;
 	float2_set( &position, 0.0f, 0.0f );
@@ -243,14 +248,18 @@ void game_render()
 		float2_set( &position, 40.0f, 1.0f );
 		renderer_drawStroke( &strokeDefinition, &position, 2.0f, width, variance );
 
-		for( uint i = 0u; i < s_game.playerCount; ++i )
+		for( uint i = 0u; i < s_game.gameState.playerCount; ++i )
 		{
-			game_render_car( &s_game.player[ i ] );
-			for( uint j = 0u; j < SYS_COUNTOF( s_game.player[ i ].bombs ); ++j )
+			const Player* pPlayer = &s_game.gameState.player[ i ];
+
+			game_render_car( pPlayer );
+			for( uint j = 0u; j < SYS_COUNTOF( pPlayer->bombs ); ++j )
 			{
-				if( s_game.player[ i ].bombs[ j ].active )
+				const Bomb* pBomb = &pPlayer->bombs[ j ];
+
+				if( pBomb->active )
 				{
-					game_render_bomb( &s_game.player[ i ].bombs[ j ] );
+					game_render_bomb( pBomb );
 				}
 			}
 		}

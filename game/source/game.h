@@ -7,6 +7,7 @@ typedef struct
 {
     uint32      buttonMask;
     float       timeStep;
+
 } GameInput;
 
 void game_init();
