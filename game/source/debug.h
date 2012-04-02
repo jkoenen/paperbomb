@@ -1,6 +1,8 @@
 #ifndef DEBUG_H_INCLUDED
 #define DEBUG_H_INCLUDED
 
+#include "types.h"
+
 #ifdef SYS_TRACE_ENABLED
 
 enum
@@ -13,7 +15,7 @@ enum
 };
 
 void sys_trace( const char* pFormat, ... );
-void sys_exit( int extCode );
+void sys_exit( int extCode ) SYS_NO_RETURN;
 
 #   define SYS_TRACE_EMERGENCY  sys_trace
 #   define SYS_TRACE_ERROR		sys_trace

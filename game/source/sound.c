@@ -31,8 +31,8 @@ void sound_setEngineFrequency( float frequency )
 
 static inline void pan( float* pLeft, float* pRight, float sample, float panning )
 {
-    *pLeft = sample * sqrt( 1.0f - panning );
-    *pRight = sample * sqrt( panning );
+    *pLeft = sample * sqrtf( 1.0f - panning );
+    *pRight = sample * sqrtf( panning );
 }
 
 void sound_fillBuffer( float* pBuffer, uint count )

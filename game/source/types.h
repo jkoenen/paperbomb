@@ -33,6 +33,12 @@ typedef unsigned __int64     uint64_t;
 
 #define PI 3.14159265
 
+#ifndef _MSC_VER
+#   define SYS_NO_RETURN   __attribute__ ((__noreturn__))
+#else
+#   define SYS_NO_RETURN    
+#endif
+
 typedef uint8_t uint8;
 typedef uint16_t uint16;
 typedef uint32_t uint32;

@@ -5,6 +5,7 @@
 
 typedef struct
 {
+    uint    dummy;
 } FrameData;
 
 typedef struct
