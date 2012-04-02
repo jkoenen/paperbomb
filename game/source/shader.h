@@ -11,12 +11,12 @@ enum
 
 typedef struct
 {
-    int     id;
+    uint     id;
     int     vsUniforms[ MaxVSUniformCount ];
     int     fsUniforms[ MaxFSUniformCount ];
 } Shader;
 
-int shader_create( Shader* pShader, const GlslShaderDefinition* pDefinition );
+uint shader_create( Shader* pShader, const GlslShaderDefinition* pDefinition );
 void shader_activate( const Shader* pShader );
 
 #endif

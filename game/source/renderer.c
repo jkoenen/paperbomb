@@ -54,7 +54,7 @@ typedef struct
 
 static Renderer s_renderer;
 
-static void page_create( Page* pPage, uint width, uint height )
+static void page_create( Page* pPage, int width, int height )
 {
     SYS_VERIFY( rendertarget_create( &pPage->bgTarget, width, height, GL_RGBA8 ) );
     SYS_VERIFY( rendertarget_create( &pPage->fgTarget, width, height, GL_RGBA8 ) );
@@ -96,8 +96,8 @@ void renderer_init()
     SYS_VERIFY( shader_create( &s_renderer.penShader, &s_shader_pen ) );
     SYS_VERIFY( shader_create( &s_renderer.pageShader, &s_shader_page ) );
 
-    const uint width = sys_getScreenWidth();
-    const uint height = sys_getScreenHeight();
+    const int width = sys_getScreenWidth();
+    const int height = sys_getScreenHeight();
 
     // create page:
     for( uint i = 0u; i < SYS_COUNTOF( s_renderer.pages ); ++i )

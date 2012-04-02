@@ -98,7 +98,7 @@ void font_drawText( const float2* pPosition, float size, float width, float vari
 
     while( *pText )
     {
-        const uint charCode = *pText++;
+        const uint charCode = (uint)*pText++;
         const uint glyphIndex = s_font.glyphMap[ charCode ];
         if( !glyphIndex )
         {

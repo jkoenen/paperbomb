@@ -1,13 +1,13 @@
+#include "types.h"
 #include "shader.h"
 #include "debug.h"
-#include <GL/gl.h>
-#include <GL/glext.h>
+#include "opengl.h"
 
-int shader_create( Shader* pShader, const GlslShaderDefinition* pDefinition )
+uint shader_create( Shader* pShader, const GlslShaderDefinition* pDefinition )
 {
-    const int shaderId = glCreateProgram();                           
-    const int vsId = glCreateShader( GL_VERTEX_SHADER );
-    const int fsId = glCreateShader( GL_FRAGMENT_SHADER );
+    const uint shaderId = glCreateProgram();                           
+    const uint vsId = glCreateShader( GL_VERTEX_SHADER );
+    const uint fsId = glCreateShader( GL_FRAGMENT_SHADER );
     const char* pVsCode = pDefinition->pVsCode;
     const char* pFsCode = pDefinition->pFsCode;
     glShaderSource( vsId, 1, &pVsCode, 0 );

@@ -46,7 +46,7 @@ void sound_fillBuffer( float* pBuffer, uint count )
 
     for( uint i = 0u; i < count; ++i )
     {
-        double engineShift = float_clamp( 
+        double engineShift = double_clamp( 
             ( s_sound.targetEngineFrequency - engineFrequency ),
             -4.0f * engineFrequencyShiftSpeed,
             engineFrequencyShiftSpeed );
@@ -58,12 +58,12 @@ void sound_fillBuffer( float* pBuffer, uint count )
         const double sample0 = cos( 4.0f * x ) * sin( 120.0f * x );
         const double sample1 = cos( 23.0f * x ) * sin( 80.0f * x );
 
-        const double sample = float_lerp( sample0, sample1, engineFrequency );
+        const double sample = double_lerp( sample0, sample1, engineFrequency );
         
-        const float panning = fabsf( 0.1f * cosf( x ) );
+        const float panning = fabsf( 0.1f * cosf( (float)x ) );
 
         float left, right;
-        pan( &left, &right, sample, panning );
+        pan( &left, &right, (float)sample, panning );
 
         // left:
         *pBuffer++ = left;
@@ -73,6 +73,6 @@ void sound_fillBuffer( float* pBuffer, uint count )
         samplePos += 1.0;
         s_sound.samplePos++;
     }
-    s_sound.currentEngineFrequency = engineFrequency;
+    s_sound.currentEngineFrequency = (float)engineFrequency;
 }
 

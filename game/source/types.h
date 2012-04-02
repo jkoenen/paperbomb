@@ -75,6 +75,26 @@ static inline float float_clamp( float x, float min, float max )
     return float_min( float_max( x, min ), max );
 }
 
+static inline double double_min( double x, double y )
+{
+	return x < y ? x : y;
+}
+
+static inline double double_max( double x, double y )
+{
+	return x > y ? x : y;
+}
+
+static inline double double_lerp( double a, double b, double x )
+{
+	return a + ( b - a ) * x;
+}
+
+static inline double double_clamp( double x, double min, double max )
+{
+	return double_min( double_max( x, min ), max );
+}
+
 static inline float float_saturate( float x )
 {
     return float_clamp( x, 0.0f, 1.0f );
@@ -100,7 +120,7 @@ static inline float float_rand_normal( float mean, float sd )
     const float x0 = float_rand();
     const float x1 = float_rand();
     
-    const float y = sqrtf( -2.0 * logf( x0 ) ) * sinf( 2.0f * PI * x1 );
+    const float y = sqrtf( -2.0f * logf( x0 ) ) * sinf( 2.0f * (float)PI * x1 );
     return mean + y * sd;
 }
 

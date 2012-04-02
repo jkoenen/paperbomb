@@ -2,6 +2,7 @@
 #include "types.h"
 #include "debug.h"
 #include "game.h"
+#include "input.h"
 
 #include <stdio.h>
 #include <stdarg.h>
@@ -12,7 +13,20 @@
 #include <mmsystem.h>
 #include <GL/glew.h>
 
+static uint s_width = 800;
+static uint s_height = 600;
+
 static uint32 s_currentButtonMask = 0u;
+
+int sys_getScreenWidth()
+{
+	return (int)s_width;
+}
+
+int sys_getScreenHeight()
+{
+	return (int)s_height;
+}
 
 static void updateButtonMask( uint32* pButtonMask, uint32 button, int isDown )
 {
@@ -28,7 +42,7 @@ static void updateButtonMask( uint32* pButtonMask, uint32 button, int isDown )
     *pButtonMask = buttonMask;
 }
 
-void sys_trace( int level, const char* pFormat, ... )
+void sys_trace( const char* pFormat, ... )
 {
 	va_list	vargs;
 	char buffer[ 2048u ];
@@ -36,8 +50,6 @@ void sys_trace( int level, const char* pFormat, ... )
 	va_start( vargs, pFormat );
 	vsnprintf_s( buffer, sizeof( buffer ), sizeof( buffer ) - 1u, pFormat, vargs );
 	va_end(vargs);
-
-	(void) level;
 
 	OutputDebugString( buffer );
 }
@@ -137,8 +149,8 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 	SYS_USE_ARGUMENT( lpCmdLine );
 	SYS_USE_ARGUMENT( nCmdShow );
 
-	const uint width = 1280u;
-	const uint height = 720u;
+	const uint width = 800u;
+	const uint height = 600u;
 	const char* pWndClass = "paperbomb_wc";
 
     WNDCLASS wc;
@@ -167,8 +179,8 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
         devmode.dmSize       = sizeof(DEVMODE);
         devmode.dmFields     = DM_BITSPERPEL|DM_PELSWIDTH|DM_PELSHEIGHT;
         devmode.dmBitsPerPel = 32;
-        devmode.dmPelsWidth  = 1280;
-        devmode.dmPelsHeight = 720;
+        devmode.dmPelsWidth  = 800;
+        devmode.dmPelsHeight = 600;
 
         SYS_VERIFY( ChangeDisplaySettings( &devmode,CDS_FULLSCREEN ) == DISP_CHANGE_SUCCESSFUL );
 
