@@ -3,6 +3,8 @@
 
 #include "types.h"
 
+void sys_exit( int extCode ) SYS_NO_RETURN;
+
 #ifdef SYS_TRACE_ENABLED
 
 enum
@@ -15,7 +17,6 @@ enum
 };
 
 void sys_trace( const char* pFormat, ... );
-void sys_exit( int extCode ) SYS_NO_RETURN;
 
 #   define SYS_TRACE_EMERGENCY  sys_trace
 #   define SYS_TRACE_ERROR		sys_trace
@@ -30,11 +31,11 @@ void sys_exit( int extCode ) SYS_NO_RETURN;
 #      define SYS_TRACE_INFO		__noop
 #       define SYS_TRACE_DEBUG		__noop
 #   else
-#       define SYS_TRACE_EMERGENCY(format,...)
-#       define SYS_TRACE_ERROR(format,...)
-#       define SYS_TRACE_WARNING(format,...)
-#       define SYS_TRACE_INFO(format,...)
-#       define SYS_TRACE_DEBUG(format,...)
+#       define SYS_TRACE_EMERGENCY(...)
+#       define SYS_TRACE_ERROR(...)
+#       define SYS_TRACE_WARNING(...)
+#       define SYS_TRACE_INFO(...)
+#       define SYS_TRACE_DEBUG(...)
 #   endif
 #endif
 

@@ -144,7 +144,7 @@ int main()
             case SDL_KEYDOWN:
             case SDL_KEYUP:
 				{
-					const int crtlPressed = 0;	// fill me!
+					const int ctrlPressed = ( event.key.keysym.mod & KMOD_CTRL ) != 0;
 
 					switch( event.key.keysym.sym )
 					{

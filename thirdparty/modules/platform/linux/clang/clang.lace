@@ -4,6 +4,7 @@ else
 
 end
 
+$elfkickers_bin_dir = to_path( '../../../../elfkickers/bin' )
 set_global_attribute :c_warning_level, 2
 
 class ClangCppCompiler < SingleFileCompiler
@@ -259,14 +260,15 @@ class GccLinker < MultiFileCompiler
 			infiles.map { |f| f.path },
 			lib_options,
 			'-o', bin_name
-        
+
         if @project.global_context.get_attribute_value( :strip_executable )
             sh 'strip',
                 '-s',
                 '-R .comment',
                 '-R .gnu.version ', 
                 bin_name
-            sh 'sstrip',
+            sstrip_bin = $elfkickers_bin_dir + 'sstrip'
+            sh sstrip_bin,
                 bin_name
         end
         if @project.global_context.get_attribute_value( :compress_executable )
@@ -278,6 +280,8 @@ class GccLinker < MultiFileCompiler
 
             bin_size = File.size( bin_name )
             compressed_bin_size = File.size( compressed_bin_name )
+
+            p compressed_bin_name
 
             puts "Compressed binary from #{bin_size} Bytes to #{compressed_bin_size} Bytes (Saving #{100*(bin_size-compressed_bin_size)/(bin_size)}%)!"
         end
