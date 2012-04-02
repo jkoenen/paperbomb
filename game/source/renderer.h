@@ -13,6 +13,7 @@ typedef enum
 {
     Pen_Default,
     Pen_Font,
+    Pen_Fat,
     Pen_Count
 } Pen;
 
