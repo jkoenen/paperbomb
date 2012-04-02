@@ -64,7 +64,7 @@ void player_update( Player* pPlayer, float timeStep, uint32 buttonMask )
 
 	float2_add( &pPlayer->position, &pPlayer->position, &pPlayer->velocity );
 
-	pPlayer->position.x = float_clamp( pPlayer->position.x, -1.0f, 1.0f );
-	pPlayer->position.y = float_clamp( pPlayer->position.y, -1.0f, 1.0f );
+	pPlayer->position.x = float_clamp( pPlayer->position.x, -10.0f, 10.0f );
+	pPlayer->position.y = float_clamp( pPlayer->position.y, -10.0f, 10.0f );
 	pPlayer->lastButtonMask = buttonMask;
 }

@@ -102,6 +102,38 @@ void game_update( const GameInput* pInput )
 	s_game.remainingPageTime -= timeStep;
 }
 
+void game_render_car( const Player* pPlayer )
+{
+	float2 points[] =
+	{ 
+		{ -1.0f,  0.5f },
+		{  1.0f,  0.5f },
+		{  1.0f, -0.5f },
+		{ -1.0f, -0.5f },
+		{ -1.0f,  0.5f }
+	};
+
+	float2 worldOffset;
+	float2_set( &worldOffset, 32.0f, 18.0f );
+
+	float2 worldScale;
+	float2_set( &worldScale, 1.8f, 1.8f );
+
+	for( uint i = 0u; i < SYS_COUNTOF( points ); ++i )
+	{
+		float2_rotate( &points[ i ], pPlayer->direction );
+		float2_add( &points[ i ], &pPlayer->position );
+		float2_scale( &points[ i ], &worldScale );
+		float2_add( &points[ i ], &worldOffset );
+	}
+
+	const StrokeDefinition strokeDefinition = { points, SYS_COUNTOF( points ) };
+	
+	float2 position;
+	float2_set( &position, 0.0f, 0.0f );
+	renderer_drawStroke( &strokeDefinition, &position, 1.0f, 2.0f, 0.2f );
+}
+
 void game_render()
 {
 	if( s_game.remainingPageTime < 0.0f )
@@ -132,6 +164,11 @@ void game_render()
 		//renderer_startStroke( &strokeDefinition, &position, speed, width, variance );
 		float2_set( &position, 40.0f, 1.0f );
 		renderer_drawStroke( &strokeDefinition, &position, 2.0f, width, variance );
+
+		for( uint i = 0u; i < s_game.playerCount; ++i )
+		{
+			game_render_car( &s_game.player[ i ] );
+		}
 
 		s_game.remainingPageTime = 1.0f / s_game.fps;
 	}

@@ -51,6 +51,19 @@ static inline float2* float2_scale( float2* pValue, float factor )
 	return pValue;
 }
 
+static inline float2* float2_scale( float2* pValue, float2* pFactor )
+{
+	const float x = pValue->x;
+	const float y = pValue->y;
+
+	const float rx = x * pFactor->x;
+	const float ry = y * pFactor->y;
+
+	pValue->x = rx;
+	pValue->y = ry;
+	return pValue;
+}
+
 static inline float2* float2_add( float2* pResult, const float2* pA, const float2* pB )
 {
 	const float ax = pA->x;
@@ -63,6 +76,14 @@ static inline float2* float2_add( float2* pResult, const float2* pA, const float
 
 	pResult->x = rx;
 	pResult->y = ry;
+
+	return pResult;
+}
+
+static inline float2* float2_add( float2* pResult, const float2* pA )
+{
+	pResult->x = pResult->x + pA->x;
+	pResult->y = pResult->y + pA->y;
 
 	return pResult;
 }
