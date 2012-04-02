@@ -167,10 +167,6 @@ int main()
 
                 case SDLK_SPACE:
                     updateButtonMask( &buttonMask, ButtonMask_PlaceBomb, event.type == SDL_KEYDOWN );
-                    //pageId = 1 - pageId;
-                    if( event.type == SDL_KEYDOWN )
-                    {
-                    }
                     break;
 
                 default:
@@ -190,30 +186,12 @@ int main()
         gameInput.buttonMask = buttonMask;
 
         game_update( &gameInput );
-//        game_render();
+        game_render();
 
         if( buttonMask & ButtonMask_Down )
         {
             // if( !renderer_advanceStroke( timeStep ) )
             {
-                renderer_flipPage();
-
-                //const float speed = 5.0f;
-                const float width = 0.06f;
-                const float variance = 0.01f;
-
-                static const float2 points[] =
-                {
-                    { .x = -0.2f, .y = 0.0f },
-                    { 0.0f, 0.8f },
-                    { 0.2f, 0.0f }
-                };
-
-                static const StrokeDefinition strokeDefinition = { points, SYS_COUNTOF( points ) };
-                float2 position;
-                float2_set( &position, 0.0f, 0.0f );
-                //renderer_startStroke( &strokeDefinition, &position, speed, width, variance );
-                renderer_drawStroke( &strokeDefinition, &position, width, variance );
             }
         }
 

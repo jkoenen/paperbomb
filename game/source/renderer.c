@@ -13,14 +13,6 @@
 
 #include <math.h>
 
-enum 
-{
-    // at the same time:
-    MaxPageCount = 4,
-    MaxStrokeCount = 4
-};
-
-
 typedef struct
 {
 } Mesh;
@@ -33,6 +25,7 @@ typedef struct
     float2                  startOffset;
     float2                  endOffset;
     float                   segmentProgress;    // 0..length of active segment
+    float                   size;
     float                   width;
     float                   speed;          
     float                   length;
@@ -77,7 +70,7 @@ static void page_create( Page* pPage, uint width, uint height )
     shader_activate( &s_renderer.paperShader );
 
     float4 params;
-    float4_set( &params, float_rand(), float_rand(), 1.0f, 1.0f );
+    float4_set( &params, float_rand(), float_rand(), float_rand(), float_rand() );
     int paramId = glGetUniformLocationARB( s_renderer.paperShader.id, "params0" );
     SYS_TRACE_DEBUG( "%i->%f,%f\n", paramId, params.x, params.y );
     SYS_ASSERT( paramId >= 0 );
@@ -190,7 +183,7 @@ void renderer_flipPage()
     renderer_startPageFlip( 0.0f );
 }
 
-void renderer_startStroke( const StrokeDefinition* pDefinition, const float2* pPositionOnPage, float speed, float width, float variance )
+void renderer_startStroke( const StrokeDefinition* pDefinition, const float2* pPositionOnPage, float speed, float size, float width, float variance )
 {
     SYS_ASSERT( pDefinition && pDefinition->pPoints && pDefinition->pointCount >= 2 );
     SYS_ASSERT( pPositionOnPage );
@@ -203,6 +196,7 @@ void renderer_startStroke( const StrokeDefinition* pDefinition, const float2* pP
     pStroke->activeSegment      = 0u;
     pStroke->segmentProgress    = 0.0f;
     pStroke->speed              = speed;
+    pStroke->size               = size;
     pStroke->width              = width;
     pStroke->variance           = variance;
 
@@ -249,7 +243,7 @@ int renderer_advanceStroke( float timeStep )
 
     // set constant shader parameters:
     float4 params;
-    float4_set( &params, pStroke->width, pStroke->variance, 0.8f, 0.0f );
+    float4_set( &params, pStroke->width, pStroke->variance, pStroke->variance * 0.5f, 0.0f );
     int paramId = glGetUniformLocationARB( s_renderer.paperShader.id, "params0" );
     SYS_ASSERT( paramId >= 0 );
     glUniform4fv( paramId, 1u, &params.x );
@@ -272,8 +266,12 @@ int renderer_advanceStroke( float timeStep )
         // get remaining length in current segment:
         float2 segmentStart;
         float2_add( &segmentStart, &pStroke->pDefinition->pPoints[ pStroke->activeSegment ], &pStroke->startOffset );
+        float2_scale( &segmentStart, pStroke->size );
+        float2_add( &segmentStart, &segmentStart, &pStroke->translation );
         float2 segmentEnd;
         float2_add( &segmentEnd, &pStroke->pDefinition->pPoints[ pStroke->activeSegment + 1u ], &pStroke->endOffset );
+        float2_scale( &segmentEnd, pStroke->size );
+        float2_add( &segmentEnd, &segmentEnd, &pStroke->translation );
 
         float activeSegmentLength = float2_distance( &segmentStart, &segmentEnd );
         float remainingSegmentLength = activeSegmentLength - pStroke->segmentProgress;
@@ -353,9 +351,9 @@ int renderer_advanceStroke( float timeStep )
     return pStroke->pDefinition != 0u;
 }
 
-void renderer_drawStroke( const StrokeDefinition* pDefinition, const float2* pPositionOnPage, float width, float variance )
+void renderer_drawStroke( const StrokeDefinition* pDefinition, const float2* pPositionOnPage, float size, float width, float variance )
 {
-    renderer_startStroke( pDefinition, pPositionOnPage, 1.0f, width, variance );
+    renderer_startStroke( pDefinition, pPositionOnPage, 1.0f, size, width, variance );
     renderer_advanceStroke( s_renderer.currentStroke.length );
 }
 

@@ -6,7 +6,13 @@ varying vec2 texCoord;
 void main()
 {
     texCoord = gl_MultiTexCoord0.xy;
-    gl_Position = gl_Vertex;
+
+    vec2 paperSize = vec2( 64.0, 36.0 );
+
+    vec2 paperPos = gl_Vertex.xy;
+    vec2 clipPos = vec2(2.0f*paperPos.x/paperSize.x,2.0f*(paperSize.y-paperPos.y)/paperSize.y)-vec2(1.0f,1.0f);
+
+    gl_Position = vec4(clipPos,0.0f,1.0f);
 };
 
 
@@ -19,18 +25,19 @@ float rand(vec2 co){
 uniform vec4 params0;
 void main()
 {
-    float width = params0.x;    // * rand( gl_FragCoord );
+    float width = params0.x/36.0;    // * rand( gl_FragCoord );
     float offset = params0.y;
     float d = params0.z;
 
-    float linepos = texCoord.y + d * width * sin( texCoord.x * 3.14159 + offset );
+    float linepos = texCoord.y+d*width*sin(texCoord.x*3.14159+offset);
  
     float distance = abs(0.5-linepos);
     float x=(distance/width);
 
-    float intensity = mix( 0.7f, 0.8f, cos( texCoord.x * 3.14159 )) * max(1.0-x*x,0.0);
+    float intensity = mix(0.7f,0.8f,cos(texCoord.x*3.14159))*max(1.0-x*x,0.0);
 
     vec4 color=vec4(0.1,0.1,0.1,1.0)*intensity;
+//color=vec4(1,0,1,1);
     gl_FragColor=color;
 };
 

@@ -2,7 +2,6 @@
 varying vec2 paperPos;
 
 <VS>
-//uniform vec4 p0[4];
 void main()
 {
     paperPos = gl_Vertex.xy*vec2(32,18);
@@ -76,9 +75,10 @@ float snoise(vec2 v)
 uniform vec4 params0;
 void main()
 {
-    vec2 noiseOffset=params0.xy*10.0f;
+    vec2 noiseOffset=params0.xy*20.0;
+    vec2 gridOffset=params0.zw;
     vec3 c1=vec3(0.3,0.3,0.4);
-    vec2 s=smoothstep(vec2(0.01,0.01),vec2(0.1,0.1),fract(paperPos));
+    vec2 s=smoothstep(vec2(0.01,0.01),vec2(0.1,0.1),fract(paperPos+gridOffset/10.0f));
     vec3 gridColor = vec3( 108.0/255.0, 101.0/255.0, 91.0/255.0 );
     vec3 paperColor0 = vec3( 190.0/255.0, 187.0/255.0, 168.0/255.0 );
     vec3 paperColor1 = vec3( 197.0/255.0, 190.0/255.0, 172.0/255.0 );
