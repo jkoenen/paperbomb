@@ -229,6 +229,67 @@ void game_render_bomb( const Bomb* pBomb )
 	renderer_addStroke( &bomb1Strokes, Pen_Default, &transform, 0.0f );
 }
 
+void game_render_explosion( const Explosion* pExplosion )
+{
+	float2 worldOffset;
+	float2_set( &worldOffset, 32.0f, 18.0f );
+	float2 worldScale;
+	float2_set( &worldScale, 1.0f, 1.0f );
+
+	float2 position;
+	float2_set( &position, 0.0f, 0.0f );
+
+	float2 explosion0Points[] =
+	{ 
+		{ -1.0f,  1.0f },
+		{  1.0f,  1.0f },
+		{  1.0f, -1.0f },
+		{ -1.0f, -1.0f },
+		{ -1.0f,  1.0f }
+	};
+
+	for( uint i = 0u; i < SYS_COUNTOF( explosion0Points ); ++i )
+	{
+		float2 scale;
+		float2_set( &scale, pExplosion->length, 1.0f );
+		float2_scale2f( &explosion0Points[ i ], &scale );
+		float2_rotate( &explosion0Points[ i ], pExplosion->direction );
+		float2_add( &explosion0Points[ i ], &explosion0Points[ i ], &pExplosion->position );
+		float2_scale2f( &explosion0Points[ i ], &worldScale );
+		float2_add( &explosion0Points[ i ], &explosion0Points[ i ], &worldOffset );
+	}
+
+	const StrokeDefinition explosion0Strokes = { explosion0Points, SYS_COUNTOF( explosion0Points ) };	
+    float2x3 transform;
+    float2x2_identity( &transform.rot );
+    transform.pos = position;
+	renderer_addStroke( &explosion0Strokes, Pen_Default, &transform, 0.0f );
+
+	float2 explosion1Points[] =
+	{ 
+		{ -1.0f,  1.0f },
+		{  1.0f,  1.0f },
+		{  1.0f, -1.0f },
+		{ -1.0f, -1.0f },
+		{ -1.0f,  1.0f }
+	};
+
+	for( uint i = 0u; i < SYS_COUNTOF( explosion1Points ); ++i )
+	{
+		float2 scale;
+		float2_set( &scale, 1.0f, pExplosion->length );
+		float2_scale2f( &explosion1Points[ i ], &scale );
+		float2_rotate( &explosion1Points[ i ], pExplosion->direction );
+		float2_add( &explosion1Points[ i ], &explosion1Points[ i ], &pExplosion->position );
+		float2_scale2f( &explosion1Points[ i ], &worldScale );
+		float2_add( &explosion1Points[ i ], &explosion1Points[ i ], &worldOffset );
+	}
+
+	const StrokeDefinition explosion1Strokes = { explosion1Points, SYS_COUNTOF( explosion1Points ) };	
+    transform.pos = position;
+	renderer_addStroke( &explosion1Strokes, Pen_Default, &transform, 0.0f );
+}
+
 void game_render()
 {
 	if( renderer_isPageDone() )
@@ -276,6 +337,12 @@ void game_render()
 					game_render_bomb( pBomb );
 				}
 			}
+		}
+
+		for( uint i = 0u; i < s_game.gameState.explosionCount; ++i )
+		{
+			const Explosion* pExplosion = &s_game.gameState.explosions[ i ];
+			game_render_explosion( pExplosion );
 		}
 	}
     renderer_updatePage( 1.0f / 60.0f );

@@ -3,7 +3,6 @@
 #include "input.h"
 #include "vector.h"
 
-
 void player_init( Player* pPlayer, const float2* pPosition, float direction )
 {
 	pPlayer->position		= *pPosition;

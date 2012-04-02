@@ -44,7 +44,7 @@ void gamestate_update( GameState* pGameState, const World* pWorld, const uint32*
 		{
 			Bomb* pBomb = &pPlayer->bombs[ j ];
 
-			bomb_update( pBomb, &pGameState->explosions[ pGameState->explosionCount ], SYS_COUNTOF( pGameState->explosions ) - pGameState->explosionCount );
+			pGameState->explosionCount += bomb_update( pBomb, SYS_COUNTOF( pGameState->explosions ) > pGameState->explosionCount ? &pGameState->explosions[ pGameState->explosionCount ] : 0 );
 		}
 	}
 
@@ -53,41 +53,72 @@ void gamestate_update( GameState* pGameState, const World* pWorld, const uint32*
 	{
 		Explosion* pExplosion = &pGameState->explosions[ index ];
 
+		if( pExplosion->time == 0.0f )
+		{
+			Capsule capsule0;
+			Capsule capsule1;
+			capsule0.radius = 1.0f;
+			capsule1.radius = 1.0f;
+
+			float2 length;
+			float2_set( &length, pExplosion->length, 0.0f );
+			float2_rotate( &length, pExplosion->direction );
+
+			float2_add( &capsule0.line.a, &pExplosion->position, &length );
+			float2_sub( &capsule0.line.b, &pExplosion->position, &length );
+
+			float2_set( &length, pExplosion->length, 0.0f );
+			float2_rotate( &length, pExplosion->direction + (float)PI );
+
+			float2_add( &capsule1.line.a, &pExplosion->position, &length );
+			float2_sub( &capsule1.line.b, &pExplosion->position, &length );
+
+			for( uint i = 0u; i < pGameState->playerCount; ++i )
+			{
+				Player* pPlayer = &pGameState->player[ i ];
+
+				Circle playerCirlce;
+				playerCirlce.center = pPlayer->position;
+				playerCirlce.radius = 1.0f;
+
+				for( uint j = 0u; j < SYS_COUNTOF( pPlayer->bombs ); ++j )
+				{
+					Bomb* pBomb = &pPlayer->bombs[ j ];
+
+					if( pBomb->active )
+					{
+						Circle bombCircle;
+						bombCircle.center = pBomb->position;
+						bombCircle.radius = 1.0f;
+
+						if( isCircleCapsuleIntersecting( &bombCircle, &capsule0 ) || isCircleCapsuleIntersecting( &bombCircle, &capsule1 ) )
+						{
+							if( pGameState->explosionCount < SYS_COUNTOF( pGameState->explosions ) )
+							{
+								bomb_explode( &pGameState->explosions[ pGameState->explosionCount++ ], pBomb );
+								pBomb->active = 0;
+							}
+						}
+					}
+				}
+
+				if( isCircleCapsuleIntersecting( &playerCirlce, &capsule0 ) || isCircleCapsuleIntersecting( &playerCirlce, &capsule1 ) )
+				{
+					player_init( pPlayer, &s_playerStartPositions[ i ], s_playerStartDirections[ i ] );
+				}
+			}
+		}
+
 		pExplosion->time += GAMETIMESTEP;
 		if( pExplosion->time > 1.0f )
 		{
 			pGameState->explosionCount--;
-			*pExplosion = pGameState->explosions[ pGameState->explosionCount ];
+			if( pGameState->explosionCount > 0u )
+			{
+				*pExplosion = pGameState->explosions[ pGameState->explosionCount ];
+			}
 			continue;
 		}
-
-		float2 length;
-		float2_set( &length, pExplosion->length, 0.0f );
-		float2_rotate( &length, pExplosion->direction );
-
-		Capsule capsule;
-		capsule.radius = 1.0f;
-		float2_add( &capsule.line.a, &pExplosion->positon, &length );
-		float2_sub( &capsule.line.b, &pExplosion->positon, &length );
-
-		//for( uint i = 0u; i < pGameState->playerCount; ++i )
-		//{
-		//	Player* pPlayer = &pGameState->player[ i ];
-
-		//	Circle playerCirlce;
-		//	playerCirlce.center = pPlayer->position;
-		//	playerCirlce.radius = 1.0f;
-
-		//	if( isCircleCapsuleIntersecting( &playerCirlce, &capsule ) )
-		//	{
-		//		
-		//	}
-
-		//	for( uint j = 0u; j < SYS_COUNTOF( pPlayer->bombs ); ++j )
-		//	{
-		//		Bomb* pBomb = &pPlayer->bombs[ j ];
-
-		//if( isCircleCapsuleLIntersecting())
 
 		index++;
 	}
