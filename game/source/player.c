@@ -3,7 +3,7 @@
 #include "input.h"
 #include "vector.h"
 
-void player_init( Player* pPlayer, const float2* pPosition, float direction )
+void player_init( Player* pPlayer, const float2* pPosition, float direction, int clearBombs )
 {
 	pPlayer->age			= 0.0f;
 	pPlayer->position		= *pPosition;
@@ -14,10 +14,14 @@ void player_init( Player* pPlayer, const float2* pPosition, float direction )
 	pPlayer->health			= 100.0f;
 	pPlayer->lastButtonMask	= 0u;
 	pPlayer->maxBombs		= 4u;
+	pPlayer->bombLength		= 8.0f;
 
-	for( uint i	= 0u; i < SYS_COUNTOF( pPlayer->bombs ); ++i )
+	if( clearBombs )
 	{
-		pPlayer->bombs[ i ].active = 0;
+		for( uint i	= 0u; i < SYS_COUNTOF( pPlayer->bombs ); ++i )
+		{
+			pPlayer->bombs[ i ].active = 0;
+		}
 	}
 }
 
@@ -65,33 +69,16 @@ void player_update_input( Player* pPlayer, uint32 buttonMask )
 			{
 				activeBombCount++;
 			}
-			else
+			else if( freeIndex < 0 )
 			{
-				freeIndex = ( int )i;
+				freeIndex = (int)i;
 			}
 		}
 		if( ( pPlayer->maxBombs > activeBombCount ) && ( freeIndex >= 0 ) )
 		{
 			Bomb* pBomb = &pPlayer->bombs[ freeIndex ];
 
-			pBomb->position		= pPlayer->position;
-			pBomb->direction	= pPlayer->direction;
-			pBomb->length		= 8.0f;
-			pBomb->time			= 5.0f;
-			pBomb->active		= 1;
-		}
-	}
-
-	for( uint i = 0u; i < SYS_COUNTOF( pPlayer->bombs ); ++i )
-	{
-		Bomb* pBomb = &pPlayer->bombs[ i ];
-		if( pBomb->active )
-		{
-			pBomb->time -= 1.0f / 60.0f;
-			if( pBomb->time <= 0.0f )
-			{
-				pBomb->active = 0;
-			}
+			bomb_place( pBomb, &pPlayer->position, pPlayer->direction, pPlayer->bombLength );
 		}
 	}
 

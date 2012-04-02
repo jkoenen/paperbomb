@@ -27,3 +27,11 @@ uint bomb_update( Bomb* pBomb, Explosion* pExplosion )
 	return result;
 }
 
+void bomb_place( Bomb* pBomb, const float2* pPosition, float direction, float length )
+{
+	pBomb->position		= *pPosition;
+	pBomb->direction	= direction;
+	pBomb->length		= length;
+	pBomb->time			= 4.0f;
+	pBomb->active		= 1;
+}

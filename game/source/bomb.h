@@ -22,6 +22,7 @@ typedef struct
 
 } Explosion;
 
+void	bomb_place( Bomb* pBomb, const float2* pPosition, float direction, float length );
 uint	bomb_update( Bomb* pBomb, Explosion* pExplosion );
 void	bomb_explode( Explosion* pExplosion, const Bomb* pBomb );
 

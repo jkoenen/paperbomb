@@ -12,7 +12,7 @@ static float getLinePointDistance( const Line* pLine, const float2* pPoint )
 	float2_sub( &line, &pLine->b, &pLine->a );
 
 	float2 point;
-	float2_sub( &point, pPoint, &pLine->a );
+	float2_sub( &point, &pLine->a, pPoint );
 
 	const float lineLength = float2_length( &line );
 	if( lineLength < 0.0001f )
@@ -21,7 +21,7 @@ static float getLinePointDistance( const Line* pLine, const float2* pPoint )
 	}
 	else
 	{
-		return float_abs( float2_dot( &point, &line ) ) / lineLength;
+		return float_abs( point.y * line.x - point.x * line.y ) / lineLength;
 	}
 }
 

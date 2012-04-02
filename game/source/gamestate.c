@@ -3,6 +3,7 @@
 #include "player.h"
 #include "vector.h"
 #include "geometry.h"
+#include "debug.h"
 
 #include <math.h>
 
@@ -27,7 +28,7 @@ void gamestate_init( GameState* pGameState, uint playerCount )
 	pGameState->playerCount = playerCount;
 	for( uint i = 0u; i < pGameState->playerCount; ++i )
 	{
-		player_init( &pGameState->player[ i ], &s_playerStartPositions[ i ], s_playerStartDirections[ i ] );
+		player_init( &pGameState->player[ i ], &s_playerStartPositions[ i ], s_playerStartDirections[ i ], 1 );
 	}
 	pGameState->explosionCount = 0u;
 }
@@ -96,6 +97,8 @@ void gamestate_update( GameState* pGameState, const World* pWorld, const uint32*
 						{
 							if( pGameState->explosionCount < SYS_COUNTOF( pGameState->explosions ) )
 							{
+								SYS_TRACE_DEBUG( "%d hits %d\n", index, pGameState->explosionCount );
+
 								bomb_explode( &pGameState->explosions[ pGameState->explosionCount++ ], pBomb );
 							}
 							pBomb->active = 0;
@@ -107,7 +110,7 @@ void gamestate_update( GameState* pGameState, const World* pWorld, const uint32*
 
 				if( isPlayerOldEnough && ( isCircleCapsuleIntersecting( &playerCirlce, &capsule0 ) || isCircleCapsuleIntersecting( &playerCirlce, &capsule1 ) ) )
 				{
-					player_init( pPlayer, &s_playerStartPositions[ i ], s_playerStartDirections[ i ] );
+					player_init( pPlayer, &s_playerStartPositions[ i ], s_playerStartDirections[ i ], 0 );
 				}
 			}
 		}

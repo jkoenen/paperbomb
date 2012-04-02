@@ -19,11 +19,12 @@ typedef struct
 	float	health;
 	uint32	lastButtonMask;
 	uint	maxBombs;
+	float	bombLength;
 	Bomb	bombs[ MaxBombs ];
 
 } Player;
 
-void player_init( Player* pPlayer, const float2* pPosition, float direction );
+void player_init( Player* pPlayer, const float2* pPosition, float direction, int clearBombs );
 void player_update_input( Player* pPlayer, uint32 buttonMask );
 
 #endif
