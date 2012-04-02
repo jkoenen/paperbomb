@@ -67,8 +67,8 @@ void gamestate_update( GameState* pGameState, const World* pWorld, const uint32*
 			float2_add( &capsule0.line.a, &pExplosion->position, &length );
 			float2_sub( &capsule0.line.b, &pExplosion->position, &length );
 
-			float2_set( &length, pExplosion->length, 0.0f );
-			float2_rotate( &length, pExplosion->direction + (float)PI );
+			float2_set( &length, 0.0f, pExplosion->length );
+			float2_rotate( &length, pExplosion->direction );
 
 			float2_add( &capsule1.line.a, &pExplosion->position, &length );
 			float2_sub( &capsule1.line.b, &pExplosion->position, &length );
