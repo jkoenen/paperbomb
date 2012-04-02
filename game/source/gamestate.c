@@ -106,7 +106,7 @@ void gamestate_update( GameState* pGameState, const World* pWorld, const PlayerI
 					}
 				}
 
-				const int isPlayerOldEnough = pPlayer->age > 1.0f;
+				const int isPlayerOldEnough = pPlayer->age > s_playerBulletProofAge;
 
 				if( isPlayerOldEnough && ( isCircleCapsuleIntersecting( &playerCirlce, &capsule0 ) || isCircleCapsuleIntersecting( &playerCirlce, &capsule1 ) ) )
 				{

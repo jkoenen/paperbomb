@@ -124,6 +124,15 @@ void game_update( const GameInput* pInput )
 
 void game_render_car( const Player* pPlayer )
 {
+	if( pPlayer->age <= s_playerBulletProofAge )
+	{
+		const int frames = (int)( pPlayer->age * 15.0f );
+		if( frames & 1 )
+		{
+			return;
+		}
+	}
+	
 	float2 carPoints[] =
 	{ 
 		{ -1.0f,  0.5f },

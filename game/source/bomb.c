@@ -32,6 +32,6 @@ void bomb_place( Bomb* pBomb, const float2* pPosition, float direction, float le
 	pBomb->position		= *pPosition;
 	pBomb->direction	= direction;
 	pBomb->length		= length;
-	pBomb->time			= 4.0f;
+	pBomb->time			= 2.0f;
 	pBomb->active		= 1;
 }

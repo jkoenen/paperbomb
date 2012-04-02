@@ -13,7 +13,7 @@ void player_init( Player* pPlayer, const float2* pPosition, float direction, int
 	pPlayer->position.y		= 0.0f;
 	pPlayer->health			= 100.0f;
 	pPlayer->maxBombs		= 4u;
-	pPlayer->bombLength		= 8.0f;
+	pPlayer->bombLength		= 12.0f;
 
 	if( clearBombs )
 	{
