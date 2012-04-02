@@ -2,6 +2,12 @@
 #define PLAYER_H_INCLUDED
 
 #include "types.h"
+#include "bomb.h"
+
+enum
+{
+	MaxBombs = 4u
+};
 
 typedef struct 
 {
@@ -9,12 +15,14 @@ typedef struct
 	float	direction;
 	float	steer;
 	float2	velocity;
-	uint	health;
+	float	health;
 	uint32	lastButtonMask;
+	uint	maxBombs;
+	Bomb	bombs[ MaxBombs ];
 
 } Player;
 
-void player_reset( Player* pPlayer );
-void player_update( Player* pPlayer, float timeStep, uint32 buttonMask );
+void player_init( Player* pPlayer, const float2* pPosition, float direction );
+void player_update_input( Player* pPlayer, uint32 buttonMask );
 
 #endif

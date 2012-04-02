@@ -3,68 +3,133 @@
 #include "input.h"
 #include "vector.h"
 
-void player_reset( Player* pPlayer )
+
+void player_init( Player* pPlayer, const float2* pPosition, float direction )
 {
-	pPlayer->position.x = 0.0f;
-	pPlayer->position.y = 0.0f;
-	pPlayer->direction = 0.0f;
-	pPlayer->steer = 0.0f;
-	pPlayer->velocity.x = 0.0f;
-	pPlayer->position.y = 0.0f;
-	pPlayer->health = 100u;
-	pPlayer->lastButtonMask = 0u;
+	pPlayer->position		= *pPosition;
+	pPlayer->direction		= direction;
+	pPlayer->steer			= 0.0f;
+	pPlayer->velocity.x		= 0.0f;
+	pPlayer->position.y		= 0.0f;
+	pPlayer->health			= 100.0f;
+	pPlayer->lastButtonMask	= 0u;
+	pPlayer->maxBombs		= 2u;
+	for( uint i				= 0u; i < SYS_COUNTOF( pPlayer->bombs ); ++i )
+	{
+		pPlayer->bombs[ i ].active = 0;
+	}
 }
 
-#define M_PI_4F ((float)M_PI_4)
-
-void player_update( Player* pPlayer, float timeStep, uint32 buttonMask )
+void player_update_input( Player* pPlayer, uint32 buttonMask )
 {
 	const uint32 buttonDownMask = buttonMask & ~pPlayer->lastButtonMask;
 
-	float accelerate = 0.0f;
+	const float steerSpeed = 0.05f;
+	const float steerDamping = 0.8f;
+	const float maxSpeed = 0.5f;
+	const float maxSteer = (float)PI * 0.2f;
+		
 	if( buttonMask & ButtonMask_Left )
 	{
-		pPlayer->steer = float_clamp( pPlayer->steer + 0.1f * timeStep, -M_PI_4F, M_PI_4F );
+		pPlayer->steer = float_min( pPlayer->steer + steerSpeed, maxSteer );
 	}
 	else if( buttonMask & ButtonMask_Right )
 	{
-		pPlayer->steer = float_clamp( pPlayer->steer - 0.1f * timeStep, -M_PI_4F, M_PI_4F );
+		pPlayer->steer = float_max( pPlayer->steer - steerSpeed, -maxSteer );
 	}
 	else
 	{
-		pPlayer->steer *= 0.9f;
+		pPlayer->steer *= steerDamping;
 	}
 
+	float acceleration = 0.0f;
 	if( buttonMask & ButtonMask_Up )
 	{
-		accelerate = 1.0f;
+		acceleration = 0.02f;
 	}
 	else if( buttonMask & ButtonMask_Down )
-	{
-		accelerate -= 1.0f;
+	{ 
+		acceleration = -0.02f;
 	}
 
 	if( buttonDownMask & ButtonMask_PlaceBomb )
 	{
-		SYS_TRACE_DEBUG( "place bomb!\n" );
+		int freeIndex = -1;
+		uint activeBombCount = 0u;
+		for( uint i = 0u; i < SYS_COUNTOF( pPlayer->bombs ); ++i )
+		{
+			if( pPlayer->bombs[ i ].active )
+			{
+				activeBombCount++;
+			}
+			else
+			{
+				freeIndex = ( int )i;
+			}
+		}
+		if( ( pPlayer->maxBombs > activeBombCount ) && ( freeIndex >= 0 ) )
+		{
+			Bomb* pBomb = &pPlayer->bombs[ freeIndex ];
+
+			pBomb->position		= pPlayer->position;
+			pBomb->direction	= pPlayer->direction;
+			pBomb->length		= 8.0f;
+			pBomb->time			= 5.0f;
+			pBomb->active		= 1;
+		}
 	}
 
-	const float speed = timeStep * accelerate;
+	for( uint i = 0u; i < SYS_COUNTOF( pPlayer->bombs ); ++i )
+	{
+		Bomb* pBomb = &pPlayer->bombs[ i ];
+		if( pBomb->active )
+		{
+			pBomb->time -= 1.0f / 60.0f;
+			if( pBomb->time <= 0.0f )
+			{
+				pBomb->active = 0;
+			}
+		}
+	}
 
-	pPlayer->direction += pPlayer->steer;
+	float2 directionVector;
+	float2_from_angle( &directionVector, pPlayer->direction );
+
+	float dirVecDot = float2_dot( &directionVector, &pPlayer->velocity );
+
+	pPlayer->direction += dirVecDot * pPlayer->steer;
+
+	float2 velocityNormalized = pPlayer->velocity;
+	float2_normalize0( &velocityNormalized );
+	dirVecDot = float2_dot( &directionVector, &velocityNormalized );
+
+	float2 velocityForward = pPlayer->velocity;
+	float2_scale1f( &velocityForward, float_abs( dirVecDot ) );
+
+	float2 velocitySide;
+	float2_sub( &velocitySide, &pPlayer->velocity, &velocityForward );
 
 	float2 velocity;
-	velocity.x = speed;
+	velocity.x = acceleration;
 	velocity.y = 0.0f;
 
 	float2_rotate( &velocity, pPlayer->direction );
+	float2_addScaled1f( &velocity, &velocity, &velocityForward, 0.94f );
+	float2_addScaled1f( &velocity, &velocity, &velocitySide, 0.8f );
 
-	float2_scale1f( &pPlayer->velocity, 0.9f );
-	float2_add( &pPlayer->velocity, &pPlayer->velocity, &velocity );
+	pPlayer->velocity = velocity; 
+
+	const float speed = float_abs( float2_length( &pPlayer->velocity ) );
+	if( speed > maxSpeed )
+	{
+		float2_scale1f( &pPlayer->velocity, maxSpeed / speed );
+	}
+
+//	SYS_TRACE_DEBUG( "speed %.4f\n", speed );
 
 	float2_add( &pPlayer->position, &pPlayer->position, &pPlayer->velocity );
 
-	pPlayer->position.x = float_clamp( pPlayer->position.x, -10.0f, 10.0f );
-	pPlayer->position.y = float_clamp( pPlayer->position.y, -10.0f, 10.0f );
+	pPlayer->position.x = float_clamp( pPlayer->position.x, -32.0f, 32.0f );
+	pPlayer->position.y = float_clamp( pPlayer->position.y, -18.0f, 18.0f );
 	pPlayer->lastButtonMask = buttonMask;
 }

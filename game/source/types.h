@@ -32,6 +32,7 @@ typedef unsigned __int64     uint64_t;
 #define SYS_COUNTOF(x) ((sizeof(x))/sizeof(x[0]))
 
 #define PI 3.14159265
+#define GAMETIMESTEP ( 1.0f / 60.0f )
 
 #define DEG2RADF(deg)    ((deg)*(float)PI/180.0f)
 
@@ -67,6 +68,16 @@ typedef struct
 {
     float   x, y, z, w;
 } float4;
+
+static inline float float_sqr( float x )
+{
+	return x * x;
+}
+
+static inline float float_abs( float x )
+{
+	return x < 0.0f ? -x : x;
+}
 
 static inline float float_min( float x, float y )
 {

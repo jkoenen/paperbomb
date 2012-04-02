@@ -80,8 +80,8 @@ void main()
     vec3 c1=vec3(0.3,0.3,0.4);
     vec2 s=smoothstep(vec2(0.01,0.01),vec2(0.1,0.1),fract(paperPos+gridOffset/10.0f));
     vec3 gridColor = vec3( 108.0/255.0, 101.0/255.0, 91.0/255.0 );
-    vec3 paperColor0 = vec3( 190.0/255.0, 187.0/255.0, 168.0/255.0 )*1.2;
-    vec3 paperColor1 = vec3( 197.0/255.0, 190.0/255.0, 172.0/255.0 )*1.2;
+    vec3 paperColor0 = vec3( 190.0/255.0, 187.0/255.0, 168.0/255.0 )*1.3;
+    vec3 paperColor1 = vec3( 197.0/255.0, 190.0/255.0, 172.0/255.0 )*1.3;
     float pn=snoise( paperPos + noiseOffset );
     vec3 paperColor = mix(paperColor0, paperColor1, pn );
     gl_FragColor = vec4( mix( gridColor, paperColor, s.x*s.y), 1.0);

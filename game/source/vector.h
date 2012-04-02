@@ -10,7 +10,6 @@ static inline float2* float2_set( float2* pValue, float x, float y )
 	return pValue;
 }
 
-
 static inline float3* float3_set( float3* pValue, float x, float y, float z )
 {
 	pValue->x = x;
@@ -134,6 +133,21 @@ static inline float2* float2_normalize( float2* pValue )
 	return pValue;
 }
 
+static inline float2* float2_normalize0( float2* pValue )
+{
+	const float length = float2_length( pValue );
+	if( length < 0.000001f )
+	{
+		float2_set( pValue, 0.0f, 0.0f );
+	}
+	else
+	{
+		const float invLength = 1.0f / length;
+		float2_scale1f( pValue, invLength );
+	}
+	return pValue;
+}
+
 static inline float2* float2_perpendicular( float2* pResult, const float2* pA )
 {
 	const float x = pA->x;
@@ -193,6 +207,18 @@ static inline void float2_rotate( float2* pValue, float angle )
 
 	pValue->x = newX;
 	pValue->y = newY;
+}
+
+static inline float2* float2_from_angle( float2* pTarget, float angle )
+{
+	pTarget->x = cosf( angle );
+	pTarget->y = sinf( angle );
+	return pTarget;
+}
+
+static inline float float2_dot( const float2* pA, const float2* pB )
+{
+	return pA->x * pB->x + pA->y * pB->y;
 }
 
 #endif
