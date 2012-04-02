@@ -16,7 +16,8 @@ void player_reset( Player* pPlayer )
 	pPlayer->lastInputMask = 0u;
 };
 
-#define M_PI_4 (3.14159265f/4.0f)
+#define M_PI_4F (float)M_PI_4
+
 void player_update( Player* pPlayer, float timeStep, uint32 inputMask )
 {
 	const uint32 buttonDownMask = inputMask & ~pPlayer->lastInputMask;
@@ -24,11 +25,11 @@ void player_update( Player* pPlayer, float timeStep, uint32 inputMask )
 	float accelerate = 0.0f;
 	if( inputMask & ButtonMask_Left )
 	{
-		pPlayer->steer = float_clamp( pPlayer->steer + 0.1f * timeStep, -M_PI_4, M_PI_4 );
+		pPlayer->steer = float_clamp( pPlayer->steer + 0.1f * timeStep, -M_PI_4F, M_PI_4F );
 	}
 	else if( inputMask & ButtonMask_Right )
 	{
-		pPlayer->steer = float_clamp( pPlayer->steer - 0.1f * timeStep, -M_PI_4, M_PI_4 );
+		pPlayer->steer = float_clamp( pPlayer->steer - 0.1f * timeStep, -M_PI_4F, M_PI_4F );
 	}
 	else
 	{

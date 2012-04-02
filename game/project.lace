@@ -28,6 +28,8 @@ when :win32
     import 'platform/win32'
     import 'glew'
     
+    add_c_define '_USE_MATH_DEFINES'
+    
     add_attribute :msvc_disabled_warnings, 4206
     ! source/win32/*.c
     
