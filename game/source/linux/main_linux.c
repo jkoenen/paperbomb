@@ -2,6 +2,7 @@
 #include "debug.h"
 #include "game.h"
 #include "sound.h"
+#include "input.h"
 
 #include "renderer.h"
 
@@ -23,13 +24,13 @@ static void soundCallback( void* pUserData, Uint8* pStream, int size )
 s_callbackCount++;
     SYS_ASSERT( size >= 0 );
 
-    const size_t sampleCount = size / ( SoundChannelCount * sizeof( int16 ) );
+    const size_t sampleCount = ( size_t )size / ( SoundChannelCount * sizeof( int16 ) );
     SYS_ASSERT( sampleCount * SoundChannelCount * sizeof( int16 ) == ( size_t ) size );
 
     SYS_ASSERT( sampleCount <= SYS_COUNTOF( s_soundBuffer ) );
-    sound_fillBuffer( s_soundBuffer, ( size_t )sampleCount );
+    sound_fillBuffer( s_soundBuffer, ( uint )sampleCount );
 
-    int16* pTarget = ( int16* )pStream;
+    int16* pTarget = ( int16* )(void*)pStream;
     const float* pSource = &s_soundBuffer[ 0u ];
 
     for( size_t i = 0u; i < sampleCount; ++i )
@@ -39,16 +40,15 @@ s_callbackCount++;
     }
 }
 
-void sys_trace( int level, const char* pFormat, ... )
+void sys_trace( const char* pFormat, ... )
 {
-    (void)level;
     va_list arg_list;
     va_start( arg_list, pFormat );
     vprintf( pFormat, arg_list );
     va_end( arg_list );
 }
 
-void sys_exit( int exitcode )
+void sys_exit( int exitcode ) 
 {
     exit( exitcode );
 }

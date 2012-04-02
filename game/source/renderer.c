@@ -15,6 +15,7 @@
 
 typedef struct
 {
+    uint    dummy;
 } Mesh;
 
 typedef struct 

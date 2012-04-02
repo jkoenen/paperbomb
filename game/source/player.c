@@ -14,9 +14,9 @@ void player_reset( Player* pPlayer )
 	pPlayer->position.y = 0.0f;
 	pPlayer->health = 100u;
 	pPlayer->lastInputMask = 0u;
-};
+}
 
-#define M_PI_4F (float)M_PI_4
+#define M_PI_4F ((float)M_PI_4)
 
 void player_update( Player* pPlayer, float timeStep, uint32 inputMask )
 {
@@ -58,8 +58,8 @@ void player_update( Player* pPlayer, float timeStep, uint32 inputMask )
 	velocity.x = speed;
 	velocity.y = 0.0f;
 
-	velocity.x = velocity.x * cos( pPlayer->direction ) - velocity.y * sin( pPlayer->direction );
-	velocity.y = velocity.y * cos( pPlayer->direction ) + velocity.x * sin( pPlayer->direction );
+	velocity.x = velocity.x * cosf( pPlayer->direction ) - velocity.y * sinf( pPlayer->direction );
+	velocity.y = velocity.y * cosf( pPlayer->direction ) + velocity.x * sinf( pPlayer->direction );
 
 	float2_scale( &pPlayer->velocity, 0.9f );
 	float2_add( &pPlayer->velocity, &pPlayer->velocity, &velocity );
