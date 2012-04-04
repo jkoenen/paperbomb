@@ -33,7 +33,6 @@ void graphics_resetState()
     graphics_setBlendMode( BlendMode_Disabled );
     
     glDisable( GL_DEPTH_TEST );
-    glDisable( GL_TEXTURE_2D );
 }
 
 void graphics_clear( float r, float g, float b, float a )
@@ -44,7 +43,7 @@ void graphics_clear( float r, float g, float b, float a )
 
 void graphics_drawFullscreenQuad()
 {
-    graphics_setVertexFormat( VertexFormat_None );
+//    graphics_setVertexFormat( VertexFormat_None );
     glBegin( GL_QUADS );
         glTexCoord2f( 0.0, 0.0 );   glVertex2i( -1,  1 );
         glTexCoord2f( 1.0, 0.0 );   glVertex2i(  1,  1 );
@@ -69,7 +68,9 @@ void graphics_drawQuad( const float2* pVertices, float u0, float v0, float u1, f
 
 void graphics_setFsTexture( uint index, uint textureId )
 {
-    glEnable( GL_TEXTURE_2D );    
+    SYS_ASSERT( s_graphics.pShader );
+
+    glUniform1i( s_graphics.pShader->ft[ index ], ( int )index );
     glActiveTexture( GL_TEXTURE0 + index );
     glBindTexture( GL_TEXTURE_2D, textureId );
 }

@@ -11,6 +11,7 @@
 #include "paper_glsl.h"
 #include "pen_glsl.h"
 #include "page_glsl.h"
+#include "pageflip_glsl.h"
 
 #include <math.h>
 
@@ -101,6 +102,7 @@ typedef struct
     Shader          paperShader;
     Shader          penShader;
     Shader          pageShader;
+    Shader          pageFlipShader;
     
     Page            pages[ 2u ];    
     uint            currentPage;
@@ -117,6 +119,8 @@ typedef struct
     StrokeBuffer    strokeBuffer;
 
     PenDefinition   pens[ Pen_Count ];
+
+    Mesh2d          pageFlipMesh;
 
     float           strokeDrawSpeed;
     float           delayAfterFlip;
@@ -159,6 +163,8 @@ static void page_create( Page* pPage, int width, int height )
     graphics_setRenderTarget( &pPage->fgTarget );
     graphics_setShader( 0 );
     graphics_clear( 0.0f, 0.0f, 0.0f, 0.0f );
+
+    
 }
 
 static void clearStrokeBuffer( StrokeBuffer* pBuffer )
@@ -174,11 +180,59 @@ static void createPen( PenDefinition* pPen, float width, float pressure, const f
     pPen->color = *pColor;
 }
 
+static void createPageFlipMesh( Mesh2d* pMesh, uint meshWidth, uint meshHeight )
+{
+    const uint meshVertexCount=(meshWidth+1u)*(meshHeight+1u);
+    const uint meshIndexCount=2u*3u*meshWidth*meshHeight;
+    graphics_createMesh2d( pMesh, meshVertexCount, meshIndexCount );
+    Mesh2dLock meshLock;
+    SYS_VERIFY( graphics_lockMesh2d( &meshLock, pMesh ) );
+
+    // fill vertices:
+    const float xScale = 1.0f/(float)(meshWidth);
+    const float yScale = 1.0f/(float)(meshHeight);
+    Vertex2d* pVertex = meshLock.pVertexData;
+    for( uint y = 0u; y < meshHeight + 1u; ++y )
+    {
+        for( uint x = 0u; x < meshWidth + 1u; ++x )
+        {
+            const float u = (float)x*xScale;
+            const float v = (float)y*yScale;
+
+            float2_set( &pVertex->pos, 2.0f * u - 1.0f, -2.0f * v + 1.0f );
+            float2_set( &pVertex->texCoord, u, v );
+            pVertex++;
+        }
+    }
+
+    // fill indices:
+    Index* pIndex = meshLock.pIndexData;
+    for( uint y = 0u; y < meshHeight; ++y )
+    {
+        for( uint x = 0u; x < meshWidth; ++x )
+        {
+            const Index i0 = (Index)(y*(meshWidth+1u)+x);
+            const Index i1 = i0 + 1u;
+            const Index i2 = (Index)(i0+(meshWidth+1u));
+            const Index i3 = i2 + 1u;
+            *pIndex++ = i0;
+            *pIndex++ = i2;
+            *pIndex++ = i1;
+            *pIndex++ = i2;
+            *pIndex++ = i3;
+            *pIndex++ = i1;
+        }
+    }
+
+    graphics_unlockMesh2d( pMesh );    
+}
+
 void renderer_init()
 {
     SYS_VERIFY( shader_create( &s_renderer.paperShader, &s_shader_paper, 1u, 1u, 0u ) );
     SYS_VERIFY( shader_create( &s_renderer.penShader, &s_shader_pen, 0u, 2u, 0u ) );
     SYS_VERIFY( shader_create( &s_renderer.pageShader, &s_shader_page, 0u, 0u, 2u ) );
+    SYS_VERIFY( shader_create( &s_renderer.pageFlipShader, &s_shader_pageflip, 1u, 0u, 2u ) );
 
     const int width = sys_getScreenWidth();
     const int height = sys_getScreenHeight();
@@ -192,7 +246,6 @@ void renderer_init()
     s_renderer.currentPage = 0u;
     s_renderer.lastPage = 1u;
     
-//    s_renderer.currentStroke.pDefinition = 0;
     s_renderer.currentCommand = 0u;
 
     s_renderer.pageState = PageState_Done;
@@ -208,7 +261,8 @@ void renderer_init()
     createPen( &s_renderer.pens[ Pen_Font ], 5.0f, 1.0f, &color );
     createPen( &s_renderer.pens[ Pen_Fat ], 20.0f, 1.0f, &color );
 
-    // :TODO: create page flip mesh:
+    // create page flip mesh:
+    createPageFlipMesh( &s_renderer.pageFlipMesh, 64u, 36u );
 
     s_renderer.flipTime = -1.0f;
 
@@ -240,8 +294,8 @@ void renderer_setDrawSpeed( float speed )
 
     const float maxStrokeDrawSpeed = 10000.0f;    // units per second..
     const float maxDelayAfterFlip = 1.0f; 
-    const float maxDelayAfterDraw = 1.0f;
-    const float maxFlipDuration = 0.5f;
+    const float maxDelayAfterDraw = 3.0f;
+    const float maxFlipDuration = 2.5f;
 
     const float2 afterFlipDelayKeys = { 0.2f, 0.8f };
     const float2 afterDrawDelayKeys = { 0.4f, 0.9f };
@@ -403,7 +457,6 @@ static void computeAverageNormal( float2* pAverageNormal, const float2* pNormal0
 
     *pAverageNormal = averageNormal;
 }
-
 
 static void renderer_addSingleStroke( const float2* pStrokePoints, uint strokePointCount )
 {
@@ -692,7 +745,7 @@ static int advanceStroke( float* pRemainingTime, float timeStep )
         const float u0 = strokeU0;
         const float u1 = strokeU1;
 
-        //SYS_TRACE_DEBUG( "u0=%f u1=%f\n", u0, u1 );
+        //SYS_TRACE_DEBUG( "u0=%f u1=%f v0=%f,%f v3=%f,%f\n", u0, u1, vertices[ 0u ].x, vertices[ 0u ].y, vertices[ 3u ].x, vertices[ 3u ].y );
 
         graphics_drawQuad( vertices, u0, 0.0f, u1, 1.0f );
         
@@ -855,10 +908,16 @@ void renderer_drawFrame( const FrameData* pFrame )
     // render the flipped page on top:
     if( s_renderer.flipTime >= 0.0f )
     {
-        //const float flipProgress = float_saturate( s_renderer.flipTime / s_renderer.flipDuration );
+        const float flipProgress = float_saturate( s_renderer.flipTime / s_renderer.flipDuration );
+        SYS_TRACE_DEBUG( "%f (%f/%f)\n", flipProgress, s_renderer.flipTime, s_renderer.flipDuration );
+
+        graphics_setShader( &s_renderer.pageFlipShader );
 
         graphics_setFsTexture( 0, s_renderer.pages[ s_renderer.lastPage ].bgTarget.id );
         graphics_setFsTexture( 1, s_renderer.pages[ s_renderer.lastPage ].fgTarget.id );
+
+        graphics_setVp4f( 0u, flipProgress, 0.0f, 0.0f, 0.0f );
+        graphics_drawMesh2d( &s_renderer.pageFlipMesh ); 
 
         // :TODO: nicer flip effect please:
         /*const float offset = 2.0f * flipProgress;

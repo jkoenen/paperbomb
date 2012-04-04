@@ -95,6 +95,20 @@ static inline float2* float2_sub( float2* pResult, const float2* pA, const float
 	return pResult;
 }
 
+static inline float2* float2_add2f( float2* pResult, const float2* pA, float bx, float by )
+{
+	const float ax = pA->x;
+	const float ay = pA->y;
+
+	const float rx = ax + bx;
+	const float ry = ay + by;
+
+	pResult->x = rx;
+	pResult->y = ry;
+
+	return pResult;
+}
+
 static inline float float2_squareLength( const float2* pX )
 {
 	const float x = pX->x;

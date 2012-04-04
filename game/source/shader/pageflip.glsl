@@ -2,10 +2,14 @@
 varying vec2 texCoord;
 
 <VS>
+uniform vec4 vp0;
 void main()
 {
+    float progress=vp0.x;
     texCoord = gl_MultiTexCoord0.xy;
-    gl_Position = gl_Vertex;
+    vec4 pos = gl_Vertex;
+    pos.y += progress * sin( 6.2f * texCoord.x );//progress;
+    gl_Position = pos;
 }
 
 <FS>
@@ -18,6 +22,7 @@ void main()
     vec4 fgColor = texture2D( ft1, texCoord );
 
     vec4 result = bgColor * (1.0-fgColor.w) + fgColor;
+//result=fgColor;
     gl_FragColor = result;
 }
 

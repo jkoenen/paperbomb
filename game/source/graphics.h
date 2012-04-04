@@ -22,7 +22,7 @@ typedef enum
 typedef struct 
 {
     float2  pos;
-    float3  texCoord;   // xy=uv z=pressure
+    float2  texCoord;
 } Vertex2d;
 
 typedef uint16 Index;

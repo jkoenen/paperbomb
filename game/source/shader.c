@@ -93,7 +93,6 @@ uint shader_create( Shader* pShader, const GlslShaderDefinition* pDefinition, ui
         {
             SYS_TRACE_DEBUG( "Could not find fs texture parameter %s\n", s_pFSTextureNames[ i ] );
         }
-        glUniform1i( pShader->ft[ i ], ( int )i );
     }
 
     return shaderId;
