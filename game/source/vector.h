@@ -230,7 +230,20 @@ static inline float2* float2_from_angle( float2* pTarget, float angle )
 
 static inline float float2_dot( const float2* pA, const float2* pB )
 {
-	return pA->x * pB->x + pA->y * pB->y;
+	const float ax = pA->x;
+	const float ay = pA->y;
+	const float bx = pB->x;
+	const float by = pB->y;
+	return ax*bx+ay*by;
+}
+
+static inline int float2_isEqual( const float2* pA, const float2* pB )
+{
+	const float ax = pA->x;
+	const float ay = pA->y;
+	const float bx = pB->x;
+	const float by = pB->y;
+    return float_isEqual( ax, bx ) && float_isEqual( ay, by );
 }
 
 #endif

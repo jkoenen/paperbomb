@@ -143,5 +143,10 @@ static inline float float_rand_normal( float mean, float sd )
 	return mean + y * sd;
 }
 
+static inline int float_isEqual( float a, float b )
+{
+    return a == b;
+}
+
 #endif
 

@@ -176,7 +176,7 @@ void game_render_car( const Player* pPlayer )
     renderer_setTransform( 0 );
 
 	renderer_addStroke( carPoints, SYS_COUNTOF( carPoints ) );
-    renderer_addStroke( steerPoints, SYS_COUNTOF( steerPoints ) );
+    //renderer_addStroke( steerPoints, SYS_COUNTOF( steerPoints ) );
 }
 
 void game_render_bomb( const Bomb* pBomb )

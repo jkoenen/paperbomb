@@ -14,10 +14,18 @@
 #include <math.h>
 #include <stdarg.h>
 
+//#define TEST_RENDERER
+
+#ifdef TEST_RENDERER
+#   include "font.h"
+#endif
+
 enum
 {
     ScreenWidth = 1280,
     ScreenHeight = 720
+    //ScreenWidth = 640,
+    //ScreenHeight = 360
 };
 
 static float s_soundBuffer[ SoundChannelCount * SoundBufferSampleCount ];
@@ -108,7 +116,7 @@ int main()
 
     game_init();
 
-    SDL_PauseAudio( 0 );
+//    SDL_PauseAudio( 0 );
 
     uint32 lastTime = SDL_GetTicks();
     uint32 buttonMask = 0u;
@@ -197,12 +205,13 @@ int main()
 
         game_update( &gameInput );
 
-        /*if( renderer_isPageDone() )
+#ifdef TEST_RENDERER
+        if( renderer_isPageDone() )
         {
             // new page:
             renderer_flipPage();
             
-            const float2 points[] =
+           /* const float2 points[] =
             {
                 {  0.0f, 0.0f },
                 { 10.0f, 0.0f },
@@ -221,6 +230,16 @@ int main()
             float2_set( &transform.pos, 10.0f, 10.0f );
             renderer_setTransform( &transform );
             renderer_addStroke( points, SYS_COUNTOF( points ) );
+            
+            float2_set( &transform.pos, 10.0f, 20.0f );
+            renderer_setTransform( &transform );
+            renderer_addStroke( points, SYS_COUNTOF( points ) );*/
+
+            renderer_setPen( Pen_Fat );
+
+            float2 position;
+            float2_set( &position, 2.0f, 3.0f );
+            font_drawText( &position, 1.0f, 0.0f, "OO" );
         }
         renderer_updatePage( timeStep );
 
@@ -228,16 +247,10 @@ int main()
         //memset( &frame, 0u, sizeof( frame ) );
         //frame.time = s_game.gameTime;
         //frame.playerPos = s_game.player[ 0u ].position;
-        renderer_drawFrame( &frame );*/
+        renderer_drawFrame( &frame );
+#else
         game_render();
-
-        if( buttonMask & ButtonMask_Down )
-        {
-            // if( !renderer_advanceStroke( timeStep ) )
-            {
-            }
-        }
-
+#endif
         SDL_GL_SwapBuffers();
 
 #ifndef SYS_BUILD_MASTER

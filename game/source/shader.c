@@ -1,10 +1,23 @@
 #include "types.h"
+#include "vector.h"
 #include "shader.h"
 #include "debug.h"
 #include "opengl.h"
 
-uint shader_create( Shader* pShader, const GlslShaderDefinition* pDefinition )
+static const char* s_pVSUniformNames[ MaxVSUniformCount ] =
 {
+    "vp0", "vp1", "vp2", "vp3"
+};
+
+static const char* s_pFSUniformNames[ MaxVSUniformCount ] =
+{
+    "fp0", "fp1", "fp2", "fp3"
+};
+
+uint shader_create( Shader* pShader, const GlslShaderDefinition* pDefinition, uint vsUniformCount, uint fsUniformCount )
+{
+    SYS_ASSERT( vsUniformCount <= MaxVSUniformCount );
+    SYS_ASSERT( fsUniformCount <= MaxFSUniformCount );
     const uint shaderId = glCreateProgram();                           
     const uint vsId = glCreateShader( GL_VERTEX_SHADER );
     const uint fsId = glCreateShader( GL_FRAGMENT_SHADER );
@@ -48,6 +61,24 @@ uint shader_create( Shader* pShader, const GlslShaderDefinition* pDefinition )
         return 0;
     }
 #endif
+
+    for( uint i = 0u; i < vsUniformCount; ++i )
+    {
+        pShader->vp[ i ] = glGetUniformLocationARB( shaderId, s_pVSUniformNames[ i ] );
+        if( pShader->vp[ i ] < 0 )
+        {
+            SYS_TRACE_DEBUG( "Could not find vs uniform parameter %s\n", s_pVSUniformNames[ i ] );
+        }
+    }
+    for( uint i = 0u; i < fsUniformCount; ++i )
+    {
+        pShader->fp[ i ] = glGetUniformLocationARB( shaderId, s_pFSUniformNames[ i ] );
+        if( pShader->fp[ i ] < 0 )
+        {
+            SYS_TRACE_DEBUG( "Could not find fs uniform parameter %s\n", s_pFSUniformNames[ i ] );
+        }
+    }
+
     return shaderId;
 }
 
@@ -62,4 +93,19 @@ void shader_activate( const Shader* pShader )
         glUseProgram( 0 );
     }
 }
+
+void shader_setVp4f( const Shader* pShader, uint index, float x, float y, float z, float w )
+{
+    float4 params;
+    float4_set( &params, x, y, z, w );
+    glUniform4fv( pShader->vp[ index ], 1u, &params.x );
+}
+
+void shader_setFp4f( const Shader* pShader, uint index, float x, float y, float z, float w )
+{
+    float4 params;
+    float4_set( &params, x, y, z, w );
+    glUniform4fv( pShader->fp[ index ], 1u, &params.x );
+}
+
 
