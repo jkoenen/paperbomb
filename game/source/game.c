@@ -63,7 +63,6 @@ static void debug_update( uint buttonMask, uint lastButtonMask )
         renderer_setVariance( s_game.variance );
 	}
 
-	sound_setEngineFrequency( ( buttonMask & ButtonMask_CtrlUp ) ? 1.0f : 0.0f );
 }
 
 void game_init()
@@ -117,6 +116,8 @@ void game_update( const GameInput* pInput )
 
 		World world;
 		gamestate_update( &s_game.gameState, &world, playerInputs );
+	
+        sound_setEngineFrequency( ( buttonMask & ButtonMask_Up ) ? 1.0f : 0.0f );
 
 		s_game.updateTime -= GAMETIMESTEP;
 	}

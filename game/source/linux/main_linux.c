@@ -28,7 +28,7 @@ enum
     //ScreenHeight = 360
 };
 
-static float s_soundBuffer[ SoundChannelCount * SoundBufferSampleCount ];
+static float2 s_soundBuffer[ SoundChannelCount * SoundBufferSampleCount ];
 
 static uint s_callbackCount = 0u;
 
@@ -45,12 +45,13 @@ s_callbackCount++;
     sound_fillBuffer( s_soundBuffer, ( uint )sampleCount );
 
     int16* pTarget = ( int16* )(void*)pStream;
-    const float* pSource = &s_soundBuffer[ 0u ];
+    const float2* pSource = &s_soundBuffer[ 0u ];
 
     for( size_t i = 0u; i < sampleCount; ++i )
     {
-        *pTarget++ = ( int16 )( 32767.0f * *pSource++ );
-        *pTarget++ = ( int16 )( 32767.0f * *pSource++ );
+        *pTarget++ = ( int16 )( 32767.0f * pSource->x );
+        *pTarget++ = ( int16 )( 32767.0f * pSource->y );
+        pSource++;
     }
 }
 
@@ -116,7 +117,7 @@ int main()
 
     game_init();
 
-//    SDL_PauseAudio( 0 );
+    SDL_PauseAudio( 0 );
 
     uint32 lastTime = SDL_GetTicks();
     uint32 buttonMask = 0u;
