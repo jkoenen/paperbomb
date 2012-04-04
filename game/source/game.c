@@ -102,7 +102,7 @@ void game_update( const GameInput* pInput )
 		debug_update(buttonMask, s_game.lastButtonMask );
 
 		uint32 playerInputs[ MaxPlayer ];
-		memset( playerInputs, sizeof( playerInputs ), 0u );
+		memset( playerInputs, 0, sizeof( playerInputs ) );
 		playerInputs[ 0u ] = buttonMask & Button_PlayerMask;
 		playerInputs[ 1u ] = ( buttonMask >> Button_PlayerShift ) & Button_PlayerMask;
 
