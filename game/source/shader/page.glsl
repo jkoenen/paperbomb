@@ -19,6 +19,7 @@ void main()
     vec4 fgColor = texture2D( fgTexture, texCoord );
 
     vec4 result = bgColor * (1.0-fgColor.w) + fgColor;
+//result=fgColor;
     gl_FragColor = result;
 }
 

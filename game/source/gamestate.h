@@ -22,7 +22,13 @@ typedef struct
 
 } GameState;
 
+typedef struct
+{
+    uint32      buttonMask;
+    uint32      buttonDownMask;
+} PlayerInput;
+
 void gamestate_init( GameState* pGameState, uint playerCount );
-void gamestate_update( GameState* pGameState, const World* pWorld, const uint32* pInputs );
+void gamestate_update( GameState* pGameState, const World* pWorld, const PlayerInput* pInputs );
 
 #endif

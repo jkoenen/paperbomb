@@ -2,10 +2,12 @@
 varying vec2 paperPos;
 
 <VS>
-uniform vec4 paperSize;
+uniform vec4 vp0;
 void main()
 {
-    paperPos = gl_Vertex.xy * paperSize.xy + paperSize.zw;
+    vec2 paperSize = vp0.xy;
+    vec2 paperOffset = vp0.zw;
+    paperPos = gl_Vertex.xy * paperSize + paperSize;
     gl_Position = gl_Vertex;
 }
 
@@ -73,12 +75,12 @@ float snoise(vec2 v)
   return 130.0 * dot(m, g);
 }
 
-uniform vec4 params0;
+uniform vec4 fp0;
 void main()
 {
-    vec2 noiseOffset=params0.xy*20.0;
-    vec2 gridOffset=params0.xy;
-    vec2 pixelSize=params0.zw;
+    vec2 noiseOffset=fp0.xy*20.0;
+    vec2 gridOffset=fp0.xy;
+    vec2 pixelSize=fp0.zw;
 
     vec2 s=vec2( 
         smoothstep( 0.0f, 72.0f * pixelSize.x, fract( paperPos.x ) ),

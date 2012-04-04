@@ -39,6 +39,21 @@ float2x2* float2x2_scale1f( float2x2* pResult, const float2x2* pMatrix, float sc
     return float2x2_set( pResult, r00, r10, r01, r11 );
 }
 
+float2x2* float2x2_scale2f( float2x2* pResult, const float2x2* pMatrix, float scaleX, float scaleY )
+{
+    const float m00 = pMatrix->x.x;
+    const float m10 = pMatrix->x.y;
+    const float m01 = pMatrix->y.x;
+    const float m11 = pMatrix->y.y;
+
+    const float r00 = m00 * scaleX;
+    const float r10 = m10 * scaleX;
+    const float r01 = m01 * scaleY;
+    const float r11 = m11 * scaleY;
+
+    return float2x2_set( pResult, r00, r10, r01, r11 );
+}
+
 float2* float2x3_transform( float2* pResult, const float2x3* pMatrix, const float2* pPoint )
 {
     const float m00 = pMatrix->rot.x.x;

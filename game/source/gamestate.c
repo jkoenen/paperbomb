@@ -33,13 +33,13 @@ void gamestate_init( GameState* pGameState, uint playerCount )
 	pGameState->explosionCount = 0u;
 }
 
-void gamestate_update( GameState* pGameState, const World* pWorld, const uint32* pInputs )
+void gamestate_update( GameState* pGameState, const World* pWorld, const PlayerInput* pInputs )
 {
 	SYS_USE_ARGUMENT( pWorld );
-	for( uint i = 0u; i < pGameState->playerCount; ++i )
+	for( uint i = 0u; i < 1u /*pGameState->playerCount*/; ++i )
 	{
 		Player* pPlayer = &pGameState->player[ i ];
-		player_update_input( pPlayer, pInputs[ i ] );
+		player_update_input( pPlayer, pInputs[ i ].buttonMask, pInputs[ i ].buttonDownMask );
 
 		for( uint j = 0u; j < SYS_COUNTOF( pPlayer->bombs ); ++j )
 		{

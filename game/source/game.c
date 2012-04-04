@@ -16,13 +16,13 @@ typedef struct
 {
     float		gameTime;
 	float		updateTime;
-	uint32		lastButtonMask;
+	uint32		lastButtonMask[ MaxPlayer ];
 
 	float       drawSpeed;
 	float       variance;
 
 	GameState	gameState;
-
+    uint32      debugLastButtonMask;
 } Game;
 
 static Game s_game;
@@ -63,7 +63,7 @@ static void debug_update( uint buttonMask, uint lastButtonMask )
         renderer_setVariance( s_game.variance );
 	}
 
-	sound_setEngineFrequency( ( buttonMask & ButtonMask_CtrlUp ) ? 1.0f : 0.0f );
+	sound_setEngineFrequency( ( buttonMask & ButtonMask_Up ) ? 1.0f : 0.0f );
 }
 
 void game_init()
@@ -78,7 +78,11 @@ void game_init()
 
     s_game.gameTime = 0.0f;
 	s_game.updateTime = 0.0f;
-	s_game.lastButtonMask = 0u;
+
+    for( uint i = 0u; i < MaxPlayer; ++i )
+    {
+    	s_game.lastButtonMask[ i ] = 0u;
+    }
 
 	gamestate_init( &s_game.gameState, 2u );
 }
@@ -99,20 +103,23 @@ void game_update( const GameInput* pInput )
 	uint32 buttonMask = pInput->buttonMask;
 	while( s_game.updateTime >= GAMETIMESTEP )
 	{
-		debug_update(buttonMask, s_game.lastButtonMask );
+		debug_update(buttonMask, s_game.debugLastButtonMask );
+        s_game.debugLastButtonMask = buttonMask;
 
-		uint32 playerInputs[ MaxPlayer ];
-		memset( playerInputs, 0, sizeof( playerInputs ) );
-		playerInputs[ 0u ] = buttonMask & Button_PlayerMask;
-		playerInputs[ 1u ] = ( buttonMask >> Button_PlayerShift ) & Button_PlayerMask;
+		PlayerInput playerInputs[ MaxPlayer ];
+		memset( playerInputs, 0u, sizeof( playerInputs ) );
+		playerInputs[ 0u ].buttonMask = buttonMask & Button_PlayerMask;
+        playerInputs[ 0u ].buttonDownMask = playerInputs[ 0u ].buttonMask & ~s_game.lastButtonMask[ 0u ];
+        s_game.lastButtonMask[ 0u ] = playerInputs[ 0u ].buttonMask;
+		playerInputs[ 1u ].buttonMask = ( buttonMask >> Button_PlayerShift ) & Button_PlayerMask;
+        playerInputs[ 1u ].buttonDownMask = playerInputs[ 1u ].buttonMask & ~s_game.lastButtonMask[ 1u ];
+        s_game.lastButtonMask[ 1u ] = playerInputs[ 1u ].buttonMask;
+
 
 		World world;
-
 		gamestate_update( &s_game.gameState, &world, playerInputs );
 
 		s_game.updateTime -= GAMETIMESTEP;
-		s_game.lastButtonMask = buttonMask;
-		buttonMask = 0u;
 	}
 }
 
@@ -170,59 +177,36 @@ void game_render_car( const Player* pPlayer )
     renderer_setTransform( 0 );
 
 	renderer_addStroke( carPoints, SYS_COUNTOF( carPoints ) );
-    renderer_addStroke( steerPoints, SYS_COUNTOF( steerPoints ) );
+    //renderer_addStroke( steerPoints, SYS_COUNTOF( steerPoints ) );
 }
 
 void game_render_bomb( const Bomb* pBomb )
 {
 	float2 worldOffset;
 	float2_set( &worldOffset, 32.0f, 18.0f );
-	float2 worldScale;
-	float2_set( &worldScale, 1.0f, 1.0f );
 
-	float2 bomb0Points[] =
+	float2 bombPoints0[] =
 	{ 
-		{ -1.0f,  1.0f },
-		{  1.0f,  1.0f },
-		{  1.0f, -1.0f },
-		{ -1.0f, -1.0f },
-		{ -1.0f,  1.0f }
+		{ -1.0f,  0.2f },
+		{  1.0f,  0.2f },
+		{  1.0f, -0.2f },
+		{ -1.0f, -0.2f },
+		{ -1.0f,  0.2f },
+        { -1.0f,  0.2f },
+		{ -0.2f,  1.0f },
+		{  0.2f,  1.0f },
+		{  0.2f, -1.0f },
+		{ -0.2f, -1.0f },
+		{ -0.2f,  1.0f }
 	};
 
-	for( uint i = 0u; i < SYS_COUNTOF( bomb0Points ); ++i )
-	{
-		float2 scale;
-		float2_set( &scale, 1.0f, 0.2f );
-		float2_scale2f( &bomb0Points[ i ], &scale );
-		float2_rotate( &bomb0Points[ i ], pBomb->direction );
-		float2_add( &bomb0Points[ i ], &bomb0Points[ i ], &pBomb->position );
-		float2_scale2f( &bomb0Points[ i ], &worldScale );
-		float2_add( &bomb0Points[ i ], &bomb0Points[ i ], &worldOffset );
-	}
+    float2x3 bombTransform;
+    float2x2_rotationY( &bombTransform.rot, pBomb->direction );
+    float2x2_scale2f( &bombTransform.rot, &bombTransform.rot, 1.0f, 1.0f );
+    float2_add( &bombTransform.pos, &pBomb->position, &worldOffset );
 
-	renderer_addStroke( bomb0Points, SYS_COUNTOF( bomb0Points ) );
-
-	float2 bomb1Points[] =
-	{ 
-		{ -1.0f,  1.0f },
-		{  1.0f,  1.0f },
-		{  1.0f, -1.0f },
-		{ -1.0f, -1.0f },
-		{ -1.0f,  1.0f }
-	};
-
-	for( uint i = 0u; i < SYS_COUNTOF( bomb1Points ); ++i )
-	{
-		float2 scale;
-		float2_set( &scale, 0.2f, 1.0f );
-		float2_scale2f( &bomb1Points[ i ], &scale );
-		float2_rotate( &bomb1Points[ i ], pBomb->direction );
-		float2_add( &bomb1Points[ i ], &bomb1Points[ i ], &pBomb->position );
-		float2_scale2f( &bomb1Points[ i ], &worldScale );
-		float2_add( &bomb1Points[ i ], &bomb1Points[ i ], &worldOffset );
-	}
-
-	renderer_addStroke( bomb1Points, SYS_COUNTOF( bomb1Points ) );
+    renderer_setTransform( &bombTransform );
+	renderer_addStroke( bombPoints0, SYS_COUNTOF( bombPoints0 ) );
 }
 
 void game_render_explosion( const Explosion* pExplosion )
@@ -288,6 +272,7 @@ void game_render()
 		//const float width = 2.0f;
 		const float variance = s_game.variance;
 
+        renderer_setPen( Pen_Font );
 		float2 position = { 1.0f, 1.0f };
 		font_drawText( &position, 0.8f, variance, "HALLO" );
 		position.y += 10.0f;
@@ -297,22 +282,9 @@ void game_render()
 		position.y += 10.0f;
 		font_drawText( &position, 0.8f, 0.5f * variance, "HALLO" );
 
-		const float2 points[] =
-		{
-			{ 0.0f, 2.0f },
-			{ 2.0f, 0.0f },
-			{ 6.0f, 5.0f }
-		};
-
-        float2x3 transform;
-        float2x2_identity( &transform.rot );
-		float2_set( &transform.pos, 40.0f, 10.0f );
-        renderer_setTransform( &transform );
-        renderer_setPen( Pen_Fat );
-		renderer_addStroke( points, SYS_COUNTOF( points ) );
-        renderer_setPen( Pen_Default );
-
         renderer_setTransform( 0 );
+
+        renderer_setPen( Pen_Default );
 
 		for( uint i = 0u; i < s_game.gameState.playerCount; ++i )
 		{

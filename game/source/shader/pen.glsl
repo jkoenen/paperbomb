@@ -21,23 +21,28 @@ float rand(vec2 co){
     return fract(sin(dot(co.xy ,vec2(12.9898,78.233))) * 43758.5453);
 }
 
-uniform vec4 params0;
+uniform vec4 fp0;
+uniform vec4 fp1;
 void main()
 {
-    float width = 0.1f; ///18.0;    // * rand( gl_FragCoord );
-    float offset = params0.y;
-    float curveSize = params0.z;
+    float width=0.25f; ///18.0;    // * rand( gl_FragCoord );
+    float offset=0.0f; //fp0.y;
+    float curveSize=fp0.z;
+    vec4 penColor=vec4( fp1.xyz, 1.0f );
 
-    float pixelPos = texCoord.y;
-    float linepos = 0.5f + curveSize*sin(texCoord.x*3.14159+offset);
+    float pixelPos=texCoord.y;
+    float linepos=0.5f;//-curveSize*sin(texCoord.x*3.14159+offset);
  
     float distance = abs( linepos - pixelPos );
     float x=(distance/width);
+    float strokeVariance=mix(0.7f,0.8f,cos(texCoord.x*3.14159));
 
-    float intensity = mix(0.7f,0.8f,cos(texCoord.x*3.14159))*max(1.0-x*x,0.0);
+    float intensity =strokeVariance*max(1.0-x*x,0.0);
 
-    vec4 color=vec4(0.1,0.1,0.1,1.0)*intensity;
+    vec4 color=penColor*intensity;
+//color.xw=vec2(1.0,1.0);//=vec4(1,0,1,1);
 //color=vec4(1,0,1,1);
+//color=vec4(texCoord.x,texCoord.x,texCoord.x,1);
     gl_FragColor=color;
 }
 

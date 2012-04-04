@@ -75,6 +75,7 @@ typedef struct
 typedef struct
 {
     float2          points[ MaxPointCount ];
+    float2          pointNormals[ MaxPointCount ];
     uint            pointCount;
     StrokeCommand   commands[ MaxCommandCount ];
     uint            commandCount;
@@ -82,7 +83,7 @@ typedef struct
 
 typedef struct
 {
-    RenderTarget    bgTarget;       // :TODO: share backgrounds?? we probably don't need that many
+    RenderTarget    bgTarget;
     RenderTarget    fgTarget;
 } Page;
 
@@ -154,18 +155,8 @@ static void page_create( Page* pPage, int width, int height )
     // render paper:
     shader_activate( &s_renderer.paperShader );
     
-    int paramId = glGetUniformLocationARB( s_renderer.paperShader.id, "params0" );    
-    SYS_ASSERT( paramId >= 0 );
-
-    int paperSizeId = glGetUniformLocationARB( s_renderer.paperShader.id, "paperSize" );
-    SYS_ASSERT( paperSizeId >= 0 );
-
-    float4 params;
-    float4_set( &params, float_rand(), float_rand(), 2.0f / width, 2.0f / height );
-    glUniform4fv( paramId, 1u, &params.x );
-
-    float4_set( &params, 32.0f, 18.0f, 0.4f, 0.3f );
-    glUniform4fv( paperSizeId, 1u, &params.x );
+    shader_setFp4f( &s_renderer.paperShader, 0u, float_rand(), float_rand(), 2.0f / width, 2.0f / height );
+    shader_setVp4f( &s_renderer.paperShader, 0u, 32.0f, 18.0f, 0.4f, 0.3f );
     
     glRectf( -1.0f, -1.0f, 1.0f, 1.0f );
     
@@ -196,9 +187,9 @@ static void createPen( PenDefinition* pPen, float width, float pressure, const f
 
 void renderer_init()
 {
-    SYS_VERIFY( shader_create( &s_renderer.paperShader, &s_shader_paper ) );
-    SYS_VERIFY( shader_create( &s_renderer.penShader, &s_shader_pen ) );
-    SYS_VERIFY( shader_create( &s_renderer.pageShader, &s_shader_page ) );
+    SYS_VERIFY( shader_create( &s_renderer.paperShader, &s_shader_paper, 1u, 1u ) );
+    SYS_VERIFY( shader_create( &s_renderer.penShader, &s_shader_pen, 0u, 2u ) );
+    SYS_VERIFY( shader_create( &s_renderer.pageShader, &s_shader_page, 0u, 0u ) );
 
     const int width = sys_getScreenWidth();
     const int height = sys_getScreenHeight();
@@ -221,12 +212,12 @@ void renderer_init()
     clearStrokeBuffer( &s_renderer.strokeBuffer );
 
     float3 color;
-    color.x = 0.2f;
+    color.x = 0.8f;
     color.y = 0.2f;
     color.z = 0.2f;
-    createPen( &s_renderer.pens[ Pen_Default ], 1.0f, 1.0f, &color );
-    createPen( &s_renderer.pens[ Pen_Font ], 1.0f, 1.0f, &color );
-    createPen( &s_renderer.pens[ Pen_Fat ], 3.0f, 1.0f, &color );
+    createPen( &s_renderer.pens[ Pen_Default ], 2.0f, 1.0f, &color );
+    createPen( &s_renderer.pens[ Pen_Font ], 5.0f, 1.0f, &color );
+    createPen( &s_renderer.pens[ Pen_Fat ], 20.0f, 1.0f, &color );
 
     // :TODO: create page flip mesh:
 
@@ -371,49 +362,203 @@ void renderer_flipPage()
     }
 }
 
-void renderer_addStroke( const float2* pStrokePoints, uint pointCount )
+static int pushStrokeCommand( const StrokeCommand* pCommand )
 {
-    SYS_ASSERT( pStrokePoints && pointCount >= 2 );
-    SYS_ASSERT( s_renderer.pageState == PageState_BeforeDraw );
-
-    // allocate space in output buffer
-    if( ( s_renderer.strokeBuffer.pointCount + pointCount > MaxPointCount ) ||
-        ( s_renderer.strokeBuffer.commandCount + 1u > MaxCommandCount ) )
+    if( s_renderer.strokeBuffer.commandCount >= MaxCommandCount )
     {
-        SYS_TRACE_WARNING( "not enough space in command buffer!\n" );
+        SYS_TRACE_DEBUG( "stroke command buffer is full!\n" );
+        return 0;
+    }
+    if( pCommand->data.draw.pointCount < 2u ) 
+    {
+        return 0;
+    }
+
+    s_renderer.strokeBuffer.commands[ s_renderer.strokeBuffer.commandCount ] = *pCommand;
+    s_renderer.strokeBuffer.commandCount++;
+    return 1u;
+}
+
+static int pushStrokePoint( const float2* pPoint )
+{
+    if( s_renderer.strokeBuffer.pointCount >= MaxPointCount )
+    {
+        SYS_TRACE_WARNING( "stroke point buffer is full!\n" );
+        return 0;
+    }
+    s_renderer.strokeBuffer.points[ s_renderer.strokeBuffer.pointCount ] = *pPoint;
+    float2_set( &s_renderer.strokeBuffer.pointNormals[ s_renderer.strokeBuffer.pointCount ], 1.0f, 0.0f );
+    s_renderer.strokeBuffer.pointCount++;
+    return 1u;
+}
+
+static void createDrawCommand( StrokeCommand* pCommand )
+{
+    pCommand->type = StrokeCommandType_Draw;
+    pCommand->data.draw.pointIndex = s_renderer.strokeBuffer.pointCount;
+    pCommand->data.draw.pointCount = 0u;
+    pCommand->data.draw.penId = s_renderer.currentPen;
+}
+
+static void computeAverageNormal( float2* pAverageNormal, const float2* pNormal0, const float2* pNormal1 )
+{
+    float2 averageNormal;
+    float2_add( &averageNormal, pNormal0, pNormal1 );
+    float2_normalize( &averageNormal );
+
+    // extend the normal 
+    const float dp = fabsf( float2_dot( pNormal0, pNormal1 ) );
+    const float disc = ( 1.0f - dp ) * 0.5f;
+    if( disc > 0.1f )
+    {
+        const float scale = 1.0f / sqrtf( disc );
+        float2_scale1f( &averageNormal, scale );
+    }
+
+    *pAverageNormal = averageNormal;
+}
+
+
+static void renderer_addSingleStroke( const float2* pStrokePoints, uint strokePointCount )
+{
+    SYS_ASSERT( s_renderer.pageState == PageState_BeforeDraw );
+    if( !pStrokePoints || strokePointCount < 2u )
+    {
         return;
     }
 
-    StrokeCommand* pCommand = &s_renderer.strokeBuffer.commands[ s_renderer.strokeBuffer.commandCount ];
-    s_renderer.strokeBuffer.commandCount += 1u;
-
-    pCommand->type = StrokeCommandType_Draw;
-    pCommand->data.draw.pointIndex = s_renderer.strokeBuffer.pointCount;
-    pCommand->data.draw.pointCount = pointCount;
-    pCommand->data.draw.penId = s_renderer.currentPen;
-
-    float2* pPoints = &s_renderer.strokeBuffer.points[ s_renderer.strokeBuffer.pointCount ];
-    s_renderer.strokeBuffer.pointCount += pointCount;
+    const uint firstCommandIndex = s_renderer.strokeBuffer.commandCount;
+    const uint firstPointIndex = s_renderer.strokeBuffer.pointCount;
+    
+    StrokeCommand command;
+    createDrawCommand( &command );
 
     const float variance = s_renderer.currentVariance;
     const float2x3* pTransform = &s_renderer.currentTransform;
 
     // transform, randomize and copy positions
-    for( uint i = 0u; i < pointCount; ++i )
+    for( uint i = 0u; i < strokePointCount; ++i )
     {
         const float2 strokePoint = pStrokePoints[ i ];
 
+        // reduced variance in the beginning
+        const int isFirstVertexInStroke = command.data.draw.pointCount == 0u;
+        const float pointVariance = isFirstVertexInStroke ? variance / 4.0f : variance;
+
         float2 offset;
-        float2_rand_normal( &offset, 0.0f, i == 0 ?variance / 4.0f : variance );  // reduced variance in the beginning
+        float2_rand_normal( &offset, 0.0f, pointVariance ); 
 
         float2 point;
         float2x3_transform( &point, pTransform, &strokePoint );
         float2_add( &point, &point, &offset );
 
-        *pPoints++ = point;
+		SYS_ASSERT( float2_length( &point ) < 10000.0f );
+
+        if( pushStrokePoint( &point ) )
+        {
+            command.data.draw.pointCount++;
+        }
+    }
+    
+    // push the last command:
+    pushStrokeCommand( &command );
+   
+    const uint pointCount = s_renderer.strokeBuffer.pointCount - firstPointIndex;
+
+    const float2* pPoints = &s_renderer.strokeBuffer.points[ firstPointIndex ];
+    float2* pPointNormals = &s_renderer.strokeBuffer.pointNormals[ firstPointIndex ];
+
+    // compute segment normals:
+    for( uint i = 1u; i < pointCount; ++i )
+    {
+        const float2 lastPoint = pPoints[ i - 1u ];
+        const float2 currentPoint = pPoints[ i ];
+
+        float2 dir;
+        float2_sub( &dir, &currentPoint, &lastPoint );
+        float2_normalize( &dir );
+        float2_perpendicular( &pPointNormals[ i ], &dir );
+    }
+    pPointNormals[ 0u ] = pPointNormals[ 1u ];
+
+    // compute averaged normals:
+    const uint commandCount = s_renderer.strokeBuffer.commandCount - firstCommandIndex;
+    //SYS_TRACE_DEBUG( "cc=%i pc=%i\n", commandCount, pointCount );
+
+    for( uint commandIndex = 0u; commandIndex < commandCount; ++commandIndex )
+    {
+        const StrokeCommand* pCommand = &s_renderer.strokeBuffer.commands[ firstCommandIndex ];
+        if( pCommand->type != StrokeCommandType_Draw )
+        {
+            continue;
+        }
+
+        for( uint i = 1u; i < pCommand->data.draw.pointCount - 1u; ++i )
+        {
+            SYS_ASSERT( pCommand->data.draw.pointIndex + i >= firstPointIndex )
+            const uint pointIndex = pCommand->data.draw.pointIndex + i - firstPointIndex;
+            const float2 lastNormal = pPointNormals[ pointIndex ];
+            const float2 nextNormal = pPointNormals[ pointIndex + 1 ];
+            computeAverageNormal( &pPointNormals[ pointIndex ], &lastNormal, &nextNormal );
+        }
+        
+        // check if this stroke is a cycle:
+        SYS_ASSERT( pCommand->data.draw.pointIndex >= firstPointIndex );
+        const uint pointIndex0 = pCommand->data.draw.pointIndex - firstPointIndex;
+        const uint pointIndexN = pointIndex0 + pCommand->data.draw.pointCount - 1u;
+        
+        if( float2_isEqual( &pStrokePoints[ pointIndex0 ], &pStrokePoints[ pointIndexN ] ) )
+        {
+            const float2 normal0 = pPointNormals[ pointIndex0 ];
+            const float2 normalN = pPointNormals[ pointIndexN ];
+            
+            float2 averageNormal;
+            computeAverageNormal( &averageNormal, &normal0, &normalN );
+            pPointNormals[ pointIndex0 ] = averageNormal;
+            pPointNormals[ pointIndexN ] = averageNormal;
+        }
     }
 
+/*    for( uint i = 0u; i < pointCount; ++i )
+    {
+        const float2 normal = pPointNormals[ i ];
+        SYS_TRACE_DEBUG( "normal[%i]=(%f,%f)\n", i, normal.x, normal.y );
+    }*/
+
     //SYS_TRACE_DEBUG( "added stroke with %i points (pos=%i)\n", pointCount, s_renderer.strokeBuffer.commandCount - 1u );
+}
+
+void renderer_addStroke( const float2* pStrokePoints, uint strokePointCount )
+{
+    uint pointIndex = 0u;
+    uint pointCount = 0u;
+
+    float2 lastStrokePoint;
+    for( uint i = 0u; i < strokePointCount; ++i )
+    {
+        const float2 strokePoint = pStrokePoints[ i ];
+
+        // check if we have to start a new stroke:
+        if( i > 0u && float2_isEqual( &lastStrokePoint, &strokePoint ) )
+        {
+            if( pointCount >= 2u )
+            {
+                renderer_addSingleStroke( &pStrokePoints[ pointIndex ], pointCount );
+            }
+            pointIndex = i + 1u;
+            pointCount = 0u;
+        }
+        else
+        {
+            pointCount++;
+        }
+
+        lastStrokePoint = strokePoint;
+    }
+    if( pointCount >= 2u )
+    {
+        renderer_addSingleStroke( &pStrokePoints[ pointIndex ], pointCount );
+    }
 }
 
 static void startStroke( uint pointIndex, uint pointCount )
@@ -432,13 +577,15 @@ static void startStroke( uint pointIndex, uint pointCount )
     float2 segmentStart = s_renderer.strokeBuffer.points[ pointIndex ];
     for( uint i = 1u; i < pointCount; ++i )
     {
-        const float2 segmentEnd = s_renderer.strokeBuffer.points[ i ];
+        const float2 segmentEnd = s_renderer.strokeBuffer.points[ pointIndex + i ];
         float segmentLength = float2_distance( &segmentStart, &segmentEnd );
 
         strokeLength += segmentLength;
         segmentStart = segmentEnd;
     }
     pStroke->length = strokeLength;
+
+	SYS_ASSERT( strokeLength < 100000.0f );
 
     //SYS_TRACE_DEBUG( "Starting new stroke (length=%.2f #segments=%i)\n", strokeLength, pointCount - 1u );
 }
@@ -462,27 +609,27 @@ static int advanceStroke( float* pRemainingTime, float timeStep )
     shader_activate( &s_renderer.penShader );
 
     glEnable( GL_BLEND );
-    glBlendEquationSeparate( GL_FUNC_ADD, GL_FUNC_ADD );
+    glBlendEquationSeparate( GL_MIN, GL_MAX );
     glBlendFuncSeparate( GL_ONE, GL_ONE, GL_ONE, GL_ONE ); 
+    
+    glBlendEquationSeparate( GL_ADD, GL_ADD );
     glBlendFuncSeparate( GL_ONE, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA ); 
-
+//glDisable( GL_BLEND );
     const PenDefinition* pPen = &s_renderer.pens[ pDrawCommand->penId ];
     const float variance = pDrawCommand->variance;
 
     // set constant shader parameters:
-    float4 params;
-    float4_set( &params, 0.5f * pPen->width, variance, variance, 0.0f );
-    int paramId = glGetUniformLocationARB( s_renderer.paperShader.id, "params0" );
-    SYS_ASSERT( paramId >= 0 );
-    glUniform4fv( paramId, 1u, &params.x );
+    shader_setFp4f( &s_renderer.penShader, 0u, 0.5f * pPen->width, variance, 0.05f * variance, 0.0f );
+    shader_setFp4f( &s_renderer.penShader, 1u, pPen->color.x, pPen->color.y, pPen->color.z, 1.0f );
 
     float currentProgress = pStroke->progress;
-
+    const float strokeLength = pStroke->length;
+    
     float newProgress;
     if( s_renderer.strokeDrawSpeed <= 0.0f )
     {
         // always finish the whole stroke:
-        newProgress = pStroke->length;
+        newProgress = strokeLength;
 
         // and we don't need any time:
         *pRemainingTime = timeStep;
@@ -490,14 +637,14 @@ static int advanceStroke( float* pRemainingTime, float timeStep )
     else
     {
         // how long until we reach the end of this stroke?:
-        const float remainingStrokeTime = ( pStroke->length - pStroke->progress ) / s_renderer.strokeDrawSpeed;        
+        const float remainingStrokeTime = ( strokeLength - pStroke->progress ) / s_renderer.strokeDrawSpeed;        
         const float usedTime = float_min( timeStep, remainingStrokeTime );
 
         newProgress = pStroke->progress + usedTime * s_renderer.strokeDrawSpeed;
         *pRemainingTime = timeStep - usedTime;
     }
 
-//    SYS_TRACE_DEBUG( "advancing stroke from %f to %f! length=%f\n", currentProgress, newProgress, pStroke->length );
+//    SYS_TRACE_DEBUG( "advancing stroke from %f to %f! length=%f\n", currentProgress, newProgress, strokeLength );
 
     if( newProgress <= currentProgress )
     {
@@ -508,18 +655,20 @@ static int advanceStroke( float* pRemainingTime, float timeStep )
     float remainingLength = newProgress - currentProgress;
 
     const float2* pStrokePoints = &s_renderer.strokeBuffer.points[ pDrawCommand->pointIndex ];
+    const float2* pStrokeNormals = &s_renderer.strokeBuffer.pointNormals[ pDrawCommand->pointIndex ];
     
     while( pStroke->activeSegment < segmentCount && remainingLength > 0.0f )
     {
         const float2 segmentStart = pStrokePoints[ pStroke->activeSegment ];
         const float2 segmentEnd = pStrokePoints[ pStroke->activeSegment + 1u ];
+        const float2 segmentNormalStart = pStrokeNormals[ pStroke->activeSegment ];
+        const float2 segmentNormalEnd = pStrokeNormals[ pStroke->activeSegment + 1u ];
 
         // get remaining length in current segment:
         float activeSegmentLength = float2_distance( &segmentStart, &segmentEnd );
 
         if( activeSegmentLength <= 0.0f )
         {
-            SYS_TRACE_ERROR( "blub!\n" );
             break;
         }
 
@@ -531,6 +680,12 @@ static int advanceStroke( float* pRemainingTime, float timeStep )
         const float partStart = pStroke->segmentProgress;
         const float partEnd = partStart + segmentAdvance;
 
+        const float strokeU0 = currentProgress / strokeLength;
+        const float strokeU1 = ( currentProgress + segmentAdvance ) / strokeLength;
+
+        const float segmentU0 = partStart / activeSegmentLength;
+        const float segmentU1 = partEnd / activeSegmentLength;
+        
         // draw the active segment between partStart and partEnd:
         //SYS_TRACE_DEBUG( "drawing segment part from %f to %f!\n", partStart / activeSegmentLength, partEnd / activeSegmentLength );
            
@@ -541,25 +696,28 @@ static int advanceStroke( float* pRemainingTime, float timeStep )
         // compute coordinates of quad enclosing the segment part:
         float2 segmentDir;
         float2_normalize( float2_sub( &segmentDir, &segmentEnd, &segmentStart ) );
-
-        float2 segmentUp;
-        float2_perpendicular( &segmentUp, &segmentDir );
+    
+        float2 normalStart, normalEnd;
+        float2_lerp( &normalStart, &segmentNormalStart, &segmentNormalEnd, segmentU0 );
+        float2_lerp( &normalEnd, &segmentNormalStart, &segmentNormalEnd, segmentU1 );
 
         float2 startPos, endPos;
         float2_addScaled1f( &startPos, &segmentStart, &segmentDir, partStart );
         float2_addScaled1f( &endPos, &segmentStart, &segmentDir, partEnd );
 
-        const float ws = 1.0f;
-
-        float2 vertices[ 4u ];
-        float2_addScaled1f( &vertices[ 0u ], &startPos, &segmentUp,  ws * pPen->width );
-        float2_addScaled1f( &vertices[ 1u ], &startPos, &segmentUp, -ws * pPen->width );
-        float2_addScaled1f( &vertices[ 2u ], &endPos, &segmentUp, -ws * pPen->width );
-        float2_addScaled1f( &vertices[ 3u ], &endPos, &segmentUp,  ws * pPen->width );
-
-        const float u0 = partStart / activeSegmentLength;
-        const float u1 = partEnd / activeSegmentLength;
+        const float ws = 2.0f * ( 64.0f / sys_getScreenWidth() );
         
+        float2 vertices[ 4u ];
+        float2_addScaled1f( &vertices[ 0u ], &startPos, &normalStart,  ws * pPen->width );
+        float2_addScaled1f( &vertices[ 1u ], &startPos, &normalStart, -ws * pPen->width );
+        float2_addScaled1f( &vertices[ 2u ], &endPos, &normalEnd, -ws * pPen->width );
+        float2_addScaled1f( &vertices[ 3u ], &endPos, &normalEnd,  ws * pPen->width );
+
+        const float u0 = strokeU0;
+        const float u1 = strokeU1;
+
+        //SYS_TRACE_DEBUG( "u0=%f u1=%f\n", u0, u1 );
+
         glBegin( GL_TRIANGLES );
             glTexCoord2f( u0, 0.0 );   glVertex2f( vertices[ 0u ].x, vertices[ 0u ].y );
             glTexCoord2f( u0, 1.0 );   glVertex2f( vertices[ 1u ].x, vertices[ 1u ].y );
@@ -582,7 +740,7 @@ static int advanceStroke( float* pRemainingTime, float timeStep )
         }
     }
 
-    if( newProgress < pStroke->length )
+    if( newProgress < strokeLength )
     {
         pStroke->progress = newProgress;  
         return 1u;

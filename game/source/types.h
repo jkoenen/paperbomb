@@ -136,11 +136,16 @@ static inline float float_rand_range( float min, float max )
 
 static inline float float_rand_normal( float mean, float sd )
 {
-	const float x0 = float_rand();
-	const float x1 = float_rand();
+	const float x0 = float_max( 0.0001f, float_rand() );
+	const float x1 = float_max( 0.0001f, float_rand() );
 
 	const float y = sqrtf( -2.0f * logf( x0 ) ) * sinf( 2.0f * (float)PI * x1 );
 	return mean + y * sd;
+}
+
+static inline int float_isEqual( float a, float b )
+{
+    return a == b;
 }
 
 #endif

@@ -14,10 +14,18 @@
 #include <math.h>
 #include <stdarg.h>
 
+//#define TEST_RENDERER
+
+#ifdef TEST_RENDERER
+#   include "font.h"
+#endif
+
 enum
 {
-    ScreenWidth = 640,
-    ScreenHeight = 360
+    ScreenWidth = 1280,
+    ScreenHeight = 720
+    //ScreenWidth = 640,
+    //ScreenHeight = 360
 };
 
 static float s_soundBuffer[ SoundChannelCount * SoundBufferSampleCount ];
@@ -61,14 +69,12 @@ void sys_exit( int exitcode )
 
 int sys_getScreenWidth()
 {
-    return 1280;
-//    return 640;
+    return ScreenWidth;
 }
 
 int sys_getScreenHeight()
 {
-    return 720;
-//    return 360;
+    return ScreenHeight;
 }
 
 static void updateButtonMask( uint32* pButtonMask, uint32 button, int isDown )
@@ -92,7 +98,7 @@ int main()
         SYS_BREAK( "SDL_Init failed!\n" );
     }
 
-    SDL_SetVideoMode( 1280u, 720u, 0u, SDL_OPENGL /*| SDL_FULLSCREEN */ );
+    SDL_SetVideoMode( ScreenWidth, ScreenHeight, 0u, SDL_OPENGL /*| SDL_FULLSCREEN */ );
     SDL_ShowCursor( SDL_DISABLE );
     SDL_GL_SetAttribute( SDL_GL_SWAP_CONTROL, 1 );
 
@@ -198,26 +204,94 @@ int main()
         gameInput.buttonMask = buttonMask;
 
         game_update( &gameInput );
-        game_render();
 
-        if( buttonMask & ButtonMask_Down )
+#ifdef TEST_RENDERER
+        if( renderer_isPageDone() )
         {
-            // if( !renderer_advanceStroke( timeStep ) )
+            // new page:
+            renderer_flipPage();
+
+            float2 bombPoints[] =
+            { 
+                { -1.0f,  0.2f },
+                {  1.0f,  0.2f },
+                {  1.0f, -0.2f },
+                { -1.0f, -0.2f },
+                { -1.0f,  0.2f },
+                { -1.0f,  0.2f },
+                { -0.2f,  1.0f },
+                {  0.2f,  1.0f },
+                {  0.2f, -1.0f },
+                { -0.2f, -1.0f },
+                { -0.2f,  1.0f }
+            };
+
+            renderer_setPen( Pen_Default );
+
+            const float2 worldOffset = { 32.0f, 16.0f };
+            const float2 position = { 5.0f, 0.0f };
+
+            float2x3 bombTransform;
+            float2x2_rotationY( &bombTransform.rot, 0.0f );
+            float2x2_scale1f( &bombTransform.rot, &bombTransform.rot, 5.0f );
+            float2_add( &bombTransform.pos, &position, &worldOffset );
+
+            renderer_setTransform( &bombTransform );
+
+        /*	for( uint i = 0u; i < SYS_COUNTOF( bomb0Points ); ++i )
             {
-            }
+                float2 scale;
+                float2_set( &scale, 1.0f, 0.2f );
+                float2_scale2f( &bomb0Points[ i ], &scale );
+                float2_rotate( &bomb0Points[ i ], pBomb->direction );
+                float2_add( &bomb0Points[ i ], &bomb0Points[ i ], &pBomb->position );
+                float2_scale2f( &bomb0Points[ i ], &worldScale );
+                float2_add( &bomb0Points[ i ], &bomb0Points[ i ], &worldOffset );
+            }*/
+
+            renderer_addStroke( bombPoints, SYS_COUNTOF( bombPoints ) );
+/*
+            
+            const float2 points[] =
+            {
+                {  0.0f, 0.0f },
+                { 10.0f, 0.0f },
+                { 20.0f, 0.0f },
+                { 20.0f, 10.0f }
+            };
+
+            float2x3 transform;
+            float2x2_identity( &transform.rot );
+            float2_set( &transform.pos, 40.0f, 10.0f );
+            renderer_setTransform( &transform );
+            renderer_setPen( Pen_Fat );
+            renderer_addStroke( points, SYS_COUNTOF( points ) );
+
+            renderer_setPen( Pen_Default );
+            float2_set( &transform.pos, 10.0f, 10.0f );
+            renderer_setTransform( &transform );
+            renderer_addStroke( points, SYS_COUNTOF( points ) );
+            
+            float2_set( &transform.pos, 10.0f, 20.0f );
+            renderer_setTransform( &transform );
+            renderer_addStroke( points, SYS_COUNTOF( points ) );
+
+            renderer_setPen( Pen_Fat );
+
+            float2 position;
+            float2_set( &position, 2.0f, 3.0f );
+            font_drawText( &position, 1.0f, 0.0f, "OO" );*/
         }
+        renderer_updatePage( timeStep );
 
         FrameData frame;
-        memset( &frame, 0, sizeof( frame ) );
+        //memset( &frame, 0u, sizeof( frame ) );
+        //frame.time = s_game.gameTime;
+        //frame.playerPos = s_game.player[ 0u ].position;
         renderer_drawFrame( &frame );
-
-        // render some stuff:
-
-        // first: draw some strokes on the paper
-
-        // second: draw the current paper(s) state:
-
-
+#else
+        game_render();
+#endif
         SDL_GL_SwapBuffers();
 
 #ifndef SYS_BUILD_MASTER
