@@ -1,9 +1,23 @@
 #include "rendertarget.h"
 #include "debug.h"
 #include "platform.h"
+#include "opengl.h"
 
-int rendertarget_create( RenderTarget* pTarget, int width, int height, int format )
+int rendertarget_create( RenderTarget* pTarget, int width, int height, PixelFormat format )
 {
+    GLint glFormat;
+
+    switch( format )
+    {
+    case PixelFormat_R8G8B8A8:
+        glFormat = GL_RGBA8;
+        break;
+
+    default:
+        SYS_TRACE_ERROR( "Unsupported format %i\n", format );
+        return 0;
+    }
+
     pTarget->width = width;
     pTarget->height = height;
     pTarget->format = format;
@@ -15,7 +29,7 @@ int rendertarget_create( RenderTarget* pTarget, int width, int height, int forma
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
     glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );
-    glTexImage2D( GL_TEXTURE_2D, 0, format, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL );
+    glTexImage2D( GL_TEXTURE_2D, 0, glFormat, width, height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL );
     glBindTexture( GL_TEXTURE_2D, 0 );
                                         
     // todo: optional depth buffer..
