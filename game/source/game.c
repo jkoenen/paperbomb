@@ -183,52 +183,29 @@ void game_render_bomb( const Bomb* pBomb )
 {
 	float2 worldOffset;
 	float2_set( &worldOffset, 32.0f, 18.0f );
-	float2 worldScale;
-	float2_set( &worldScale, 1.0f, 1.0f );
 
-	float2 bomb0Points[] =
+	float2 bombPoints0[] =
 	{ 
-		{ -1.0f,  1.0f },
-		{  1.0f,  1.0f },
-		{  1.0f, -1.0f },
-		{ -1.0f, -1.0f },
-		{ -1.0f,  1.0f }
+		{ -1.0f,  0.2f },
+		{  1.0f,  0.2f },
+		{  1.0f, -0.2f },
+		{ -1.0f, -0.2f },
+		{ -1.0f,  0.2f },
+        { -1.0f,  0.2f },
+		{ -0.2f,  1.0f },
+		{  0.2f,  1.0f },
+		{  0.2f, -1.0f },
+		{ -0.2f, -1.0f },
+		{ -0.2f,  1.0f }
 	};
 
-	for( uint i = 0u; i < SYS_COUNTOF( bomb0Points ); ++i )
-	{
-		float2 scale;
-		float2_set( &scale, 1.0f, 0.2f );
-		float2_scale2f( &bomb0Points[ i ], &scale );
-		float2_rotate( &bomb0Points[ i ], pBomb->direction );
-		float2_add( &bomb0Points[ i ], &bomb0Points[ i ], &pBomb->position );
-		float2_scale2f( &bomb0Points[ i ], &worldScale );
-		float2_add( &bomb0Points[ i ], &bomb0Points[ i ], &worldOffset );
-	}
+    float2x3 bombTransform;
+    float2x2_rotationY( &bombTransform.rot, pBomb->direction );
+    float2x2_scale2f( &bombTransform.rot, &bombTransform.rot, 1.0f, 1.0f );
+    float2_add( &bombTransform.pos, &pBomb->position, &worldOffset );
 
-	renderer_addStroke( bomb0Points, SYS_COUNTOF( bomb0Points ) );
-
-	float2 bomb1Points[] =
-	{ 
-		{ -1.0f,  1.0f },
-		{  1.0f,  1.0f },
-		{  1.0f, -1.0f },
-		{ -1.0f, -1.0f },
-		{ -1.0f,  1.0f }
-	};
-
-	for( uint i = 0u; i < SYS_COUNTOF( bomb1Points ); ++i )
-	{
-		float2 scale;
-		float2_set( &scale, 0.2f, 1.0f );
-		float2_scale2f( &bomb1Points[ i ], &scale );
-		float2_rotate( &bomb1Points[ i ], pBomb->direction );
-		float2_add( &bomb1Points[ i ], &bomb1Points[ i ], &pBomb->position );
-		float2_scale2f( &bomb1Points[ i ], &worldScale );
-		float2_add( &bomb1Points[ i ], &bomb1Points[ i ], &worldOffset );
-	}
-
-	renderer_addStroke( bomb1Points, SYS_COUNTOF( bomb1Points ) );
+    renderer_setTransform( &bombTransform );
+	renderer_addStroke( bombPoints0, SYS_COUNTOF( bombPoints0 ) );
 }
 
 void game_render_explosion( const Explosion* pExplosion )
@@ -294,6 +271,7 @@ void game_render()
 		//const float width = 2.0f;
 		const float variance = s_game.variance;
 
+        renderer_setPen( Pen_Font );
 		float2 position = { 1.0f, 1.0f };
 		font_drawText( &position, 0.8f, variance, "HALLO" );
 		position.y += 10.0f;
@@ -304,6 +282,8 @@ void game_render()
 		font_drawText( &position, 0.8f, 0.5f * variance, "HALLO" );
 
         renderer_setTransform( 0 );
+
+        renderer_setPen( Pen_Default );
 
 		for( uint i = 0u; i < s_game.gameState.playerCount; ++i )
 		{

@@ -83,7 +83,7 @@ typedef struct
 
 typedef struct
 {
-    RenderTarget    bgTarget;       // :TODO: share backgrounds?? we probably don't need that many
+    RenderTarget    bgTarget;
     RenderTarget    fgTarget;
 } Page;
 
@@ -156,7 +156,7 @@ static void page_create( Page* pPage, int width, int height )
     shader_activate( &s_renderer.paperShader );
     
     shader_setFp4f( &s_renderer.paperShader, 0u, float_rand(), float_rand(), 2.0f / width, 2.0f / height );
-    shader_setFp4f( &s_renderer.paperShader, 1u, 32.0f, 18.0f, 0.4f, 0.3f );
+    shader_setVp4f( &s_renderer.paperShader, 0u, 32.0f, 18.0f, 0.4f, 0.3f );
     
     glRectf( -1.0f, -1.0f, 1.0f, 1.0f );
     
@@ -215,8 +215,8 @@ void renderer_init()
     color.x = 0.8f;
     color.y = 0.2f;
     color.z = 0.2f;
-    createPen( &s_renderer.pens[ Pen_Default ], 4.0f, 1.0f, &color );
-    createPen( &s_renderer.pens[ Pen_Font ], 4.0f, 1.0f, &color );
+    createPen( &s_renderer.pens[ Pen_Default ], 2.0f, 1.0f, &color );
+    createPen( &s_renderer.pens[ Pen_Font ], 5.0f, 1.0f, &color );
     createPen( &s_renderer.pens[ Pen_Fat ], 20.0f, 1.0f, &color );
 
     // :TODO: create page flip mesh:
@@ -371,7 +371,6 @@ static int pushStrokeCommand( const StrokeCommand* pCommand )
     }
     if( pCommand->data.draw.pointCount < 2u ) 
     {
-        SYS_TRACE_DEBUG( "empty stroke!\n" );
         return 0;
     }
 
@@ -420,7 +419,7 @@ static void computeAverageNormal( float2* pAverageNormal, const float2* pNormal0
 }
 
 
-void renderer_addStroke( const float2* pStrokePoints, uint strokePointCount )
+static void renderer_addSingleStroke( const float2* pStrokePoints, uint strokePointCount )
 {
     SYS_ASSERT( s_renderer.pageState == PageState_BeforeDraw );
     if( !pStrokePoints || strokePointCount < 2u )
@@ -437,23 +436,11 @@ void renderer_addStroke( const float2* pStrokePoints, uint strokePointCount )
     const float variance = s_renderer.currentVariance;
     const float2x3* pTransform = &s_renderer.currentTransform;
 
-    float2 lastStrokePoint;
-
     // transform, randomize and copy positions
     for( uint i = 0u; i < strokePointCount; ++i )
     {
         const float2 strokePoint = pStrokePoints[ i ];
 
-        // check if we have to start a new stroke:
-        if( i > 0u && float2_isEqual( &lastStrokePoint, &strokePoint ) )
-        {
-            // yes: close the old one:
-            pushStrokeCommand( &command );
-            
-            // and create a  new one:
-            createDrawCommand( &command );
-        }
-        
         // reduced variance in the beginning
         const int isFirstVertexInStroke = command.data.draw.pointCount == 0u;
         const float pointVariance = isFirstVertexInStroke ? variance / 4.0f : variance;
@@ -495,6 +482,7 @@ void renderer_addStroke( const float2* pStrokePoints, uint strokePointCount )
     // compute averaged normals:
     const uint commandCount = s_renderer.strokeBuffer.commandCount - firstCommandIndex;
     //SYS_TRACE_DEBUG( "cc=%i pc=%i\n", commandCount, pointCount );
+
     for( uint commandIndex = 0u; commandIndex < commandCount; ++commandIndex )
     {
         const StrokeCommand* pCommand = &s_renderer.strokeBuffer.commands[ firstCommandIndex ];
@@ -536,6 +524,39 @@ void renderer_addStroke( const float2* pStrokePoints, uint strokePointCount )
     }*/
 
     //SYS_TRACE_DEBUG( "added stroke with %i points (pos=%i)\n", pointCount, s_renderer.strokeBuffer.commandCount - 1u );
+}
+
+void renderer_addStroke( const float2* pStrokePoints, uint strokePointCount )
+{
+    uint pointIndex = 0u;
+    uint pointCount = 0u;
+
+    float2 lastStrokePoint;
+    for( uint i = 0u; i < strokePointCount; ++i )
+    {
+        const float2 strokePoint = pStrokePoints[ i ];
+
+        // check if we have to start a new stroke:
+        if( i > 0u && float2_isEqual( &lastStrokePoint, &strokePoint ) )
+        {
+            if( pointCount >= 2u )
+            {
+                renderer_addSingleStroke( &pStrokePoints[ pointIndex ], pointCount );
+            }
+            pointIndex = i + 1u;
+            pointCount = 0u;
+        }
+        else
+        {
+            pointCount++;
+        }
+
+        lastStrokePoint = strokePoint;
+    }
+    if( pointCount >= 2u )
+    {
+        renderer_addSingleStroke( &pStrokePoints[ pointIndex ], pointCount );
+    }
 }
 
 static void startStroke( uint pointIndex, uint pointCount )
