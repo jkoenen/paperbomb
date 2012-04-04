@@ -148,80 +148,42 @@ static LRESULT CALLBACK WndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 
     return DefWindowProc( hWnd, uMsg, wParam, lParam );
 }
-// 
-// static void DrawTime( WININFO *info, float t )
-// {
-//     static int      frame=0;
-//     static float    to=0.0;
-//     static int      fps=0;
-//     char            str[64];
-//     int             s, m, c;
-// 
-//     if( t<0.0f) return;
-//     if( info->full ) return;
-// 
-//     frame++;
-//     if( (t-to)>1.0f )
-//     {
-//         fps = frame;
-//         to = t;
-//         frame = 0;
-//     }
-// 
-//     if( !(frame&3) )
-//     {
-//         m = msys_ifloorf( t/60.0f );
-//         s = msys_ifloorf( t-60.0f*(float)m );
-//         c = msys_ifloorf( t*100.0f ) % 100;
-//         sprintf( str, "%02d:%02d:%02d  [%d fps]", m, s, c, fps );
-//         SetWindowText( info->hWnd, str );
-//     }
-// }
-static float time = 0.0f;
 
-static void	__cdecl soundThreadFunction( void* pArg )
+static void	__cdecl soundThreadFunction( void* )
 {
 	SYS_TRACE_DEBUG( "start thread\n" );
 
 	const uint halfBufferSize = SoundBufferSampleHalfCount * SoundChannelCount * SoundSampleSize;
 
-	(void)pArg;
 	for(;;)
 	{
-		LPVOID lpvAudio1 = NULL, lpvAudio2 = NULL;
-		DWORD dwBytesAudio1 = 0, dwBytesAudio2 = 0;
+		LPVOID lpvAudio1 = NULL;
+		LPVOID lpvAudio2 = NULL;
+		DWORD dwBytesAudio1 = 0;
+		DWORD dwBytesAudio2 = 0;
 
-		DWORD hr = WaitForMultipleObjects(2, s_soundEvents, FALSE, INFINITE );
-		if(WAIT_OBJECT_0 == hr) {
+		const DWORD hr = WaitForMultipleObjects(2, s_soundEvents, FALSE, INFINITE );
+		uint bufferIndex;
 
-			HRESULT hr = s_pDxSoundBuffer->Lock( halfBufferSize, halfBufferSize, &lpvAudio1, &dwBytesAudio1, &lpvAudio2, &dwBytesAudio2, 0);
-			if( FAILED( hr ) ) 
-			{
-				SYS_TRACE_ERROR( "lock0 failed %08x\n", hr );
-				return;
-			}		
-			//SYS_TRACE_ERROR( "l0\n" );
+		if( WAIT_OBJECT_0 == hr ) 
+		{
+			bufferIndex = 1;
 		}
-		else if (WAIT_OBJECT_0 + 1 == hr) {		
-
-			HRESULT hr = s_pDxSoundBuffer->Lock( 0u, halfBufferSize, &lpvAudio1, &dwBytesAudio1, &lpvAudio2, &dwBytesAudio2, 0);
-			if( FAILED( hr ) ) 
-			{
-				SYS_TRACE_ERROR( "lock1 failed\n" );
-				return;
-			}		
-			//SYS_TRACE_ERROR( "l1\n" );
+		else if( WAIT_OBJECT_0 + 1 == hr ) 
+		{		
+			bufferIndex = 0;
 		}
-		else {
+		else 
+		{
 			SYS_TRACE_DEBUG( "exit thread\n" );
 			return;
 		}
 
-		//if( time >= 1.0f )
-		//{
-		//	SYS_TRACE_DEBUG("time\n");
-		//	time -= 1.0f;
-		//}
+		if( FAILED( s_pDxSoundBuffer->Lock( bufferIndex * halfBufferSize, halfBufferSize, &lpvAudio1, &dwBytesAudio1, &lpvAudio2, &dwBytesAudio2, 0 ) ) ) 
+		{
+			SYS_TRACE_ERROR( "lock %d failed\n", bufferIndex );
+			return;
+		}		
 
 		float fbuffer[ SoundBufferSampleHalfCount * SoundChannelCount ];
 		sound_fillBuffer( fbuffer, SoundBufferSampleHalfCount );
@@ -229,11 +191,12 @@ static void	__cdecl soundThreadFunction( void* pArg )
 		int16* pBuffer = (int16*)lpvAudio1;
 		for( uint i = 0u; i < SoundBufferSampleHalfCount * SoundChannelCount; ++i )
 		{
-			*pBuffer++ = (int16)( fbuffer[ i ] * 32768.0f ); 
+			*pBuffer++ = (int16)( fbuffer[ i ] * 32000.0f ); 
 		}
 
+		//static float time = 0.0f;
 		//int16* pBuffer = (int16*)lpvAudio1;
-		//const float freq = 200.0f;
+		//const float freq = 2000.0f;
 		//for( uint i = 0u; i < SoundBufferSampleHalfCount; ++i )
 		//{
 		//	*pBuffer++ = (int16)( cosf( time * freq * 2.0f * 3.14159265f ) * 32000.0f );
@@ -242,16 +205,9 @@ static void	__cdecl soundThreadFunction( void* pArg )
 		//	time += ( 1.0f / 44100.0f );
 		//}
 		
+		SYS_ASSERT( lpvAudio2 == NULL );
 
-		//if (NULL == lpvAudio2) {
-		//	memcpy(lpvAudio1, buffer, dwBytesAudio1);
-		//}
-		//else {
-		//	memcpy(lpvAudio1, buffer, dwBytesAudio1);
-		//	memcpy(lpvAudio2, buffer + dwBytesAudio1, dwBytesAudio2);
-		//}
-
-		s_pDxSoundBuffer->Unlock(lpvAudio1, dwBytesAudio1, lpvAudio2, dwBytesAudio2);
+		s_pDxSoundBuffer->Unlock( lpvAudio1, dwBytesAudio1, lpvAudio2, dwBytesAudio2 );
 	}
 }
 
@@ -311,7 +267,7 @@ static void dxsound_init()
 	}
 
 	LPDIRECTSOUNDNOTIFY lpDSBNotify;
-	if( FAILED( s_pDxSoundBuffer->QueryInterface( IID_IDirectSoundNotify, (LPVOID *)&lpDSBNotify ) ) ) 
+	if( FAILED( s_pDxSoundBuffer->QueryInterface( IID_IDirectSoundNotify, (LPVOID*)&lpDSBNotify ) ) ) 
 	{
 		SYS_TRACE_ERROR( "dxs buffer notify\n" );
 		sys_exit( 1 );
@@ -376,9 +332,9 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 	DWORD dwExStyle, dwStyle;
     if( fullscreen )
     {
-        memset( &devmode,0,sizeof(DEVMODE) );
-        devmode.dmSize       = sizeof(DEVMODE);
-        devmode.dmFields     = DM_BITSPERPEL|DM_PELSWIDTH|DM_PELSHEIGHT;
+        memset( &devmode, 0, sizeof( DEVMODE ) );
+        devmode.dmSize       = sizeof( DEVMODE );
+        devmode.dmFields     = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
         devmode.dmBitsPerPel = 32;
         devmode.dmPelsWidth  = s_width;
         devmode.dmPelsHeight = s_height;
@@ -388,7 +344,7 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 		dwExStyle = WS_EX_APPWINDOW;
         dwStyle   = WS_VISIBLE | WS_POPUP | WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
 
-		while( ShowCursor( 0 )>=0 );	// hide cursor
+		while( ShowCursor( 0 ) >=0 );	// hide cursor
     }
     else
     {

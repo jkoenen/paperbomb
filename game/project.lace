@@ -39,7 +39,6 @@ when :win32
     add_lib 'winmm.lib'
     add_lib 'dsound.lib'
 
-
 when :linux
     import 'platform/linux'
     
