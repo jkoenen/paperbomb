@@ -163,8 +163,6 @@ static void page_create( Page* pPage, int width, int height )
     graphics_setRenderTarget( &pPage->fgTarget );
     graphics_setShader( 0 );
     graphics_clear( 0.0f, 0.0f, 0.0f, 0.0f );
-
-    
 }
 
 static void clearStrokeBuffer( StrokeBuffer* pBuffer )
@@ -458,7 +456,7 @@ static void computeAverageNormal( float2* pAverageNormal, const float2* pNormal0
     *pAverageNormal = averageNormal;
 }
 
-static void renderer_addSingleStroke( const float2* pStrokePoints, uint strokePointCount )
+static void renderer_addSingleLinearStroke( const float2* pStrokePoints, uint strokePointCount )
 {
     SYS_ASSERT( s_renderer.pageState == PageState_BeforeDraw );
     if( !pStrokePoints || strokePointCount < 2u )
@@ -565,7 +563,7 @@ static void renderer_addSingleStroke( const float2* pStrokePoints, uint strokePo
     //SYS_TRACE_DEBUG( "added stroke with %i points (pos=%i)\n", pointCount, s_renderer.strokeBuffer.commandCount - 1u );
 }
 
-void renderer_addStroke( const float2* pStrokePoints, uint strokePointCount )
+void renderer_addLinearStroke( const float2* pStrokePoints, uint strokePointCount )
 {
     uint pointIndex = 0u;
     uint pointCount = 0u;
@@ -580,7 +578,7 @@ void renderer_addStroke( const float2* pStrokePoints, uint strokePointCount )
         {
             if( pointCount >= 2u )
             {
-                renderer_addSingleStroke( &pStrokePoints[ pointIndex ], pointCount );
+                renderer_addSingleLinearStroke( &pStrokePoints[ pointIndex ], pointCount );
             }
             pointIndex = i + 1u;
             pointCount = 0u;
@@ -594,8 +592,14 @@ void renderer_addStroke( const float2* pStrokePoints, uint strokePointCount )
     }
     if( pointCount >= 2u )
     {
-        renderer_addSingleStroke( &pStrokePoints[ pointIndex ], pointCount );
+        renderer_addSingleLinearStroke( &pStrokePoints[ pointIndex ], pointCount );
     }
+}
+
+void renderer_addQuadraticStroke( const float2* pPoints, uint pointCount )
+{
+    // :todo:
+    renderer_addLinearStroke( pPoints, pointCount );
 }
 
 static void startStroke( uint pointIndex, uint pointCount )

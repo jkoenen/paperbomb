@@ -1,5 +1,6 @@
 #include "font.h"
 #include "vector.h"
+#include "renderer.h"
 
 #include <string.h>
 
@@ -131,7 +132,7 @@ void font_drawText( const float2* pPosition, float size, float variance, const c
                     drawTransform.rot = transform.rot;
                     float2x3_transform( &drawTransform.pos, &transform, &basePos );
                     renderer_setTransform( &drawTransform );
-                    renderer_addStroke( pPoints, pointCount );
+                    renderer_addLinearStroke( pPoints, pointCount );
                 }
                 pointCount = 0u;
                 pPoints = &pGlyph->pPoints[ i + 1u ];
@@ -149,7 +150,7 @@ void font_drawText( const float2* pPosition, float size, float variance, const c
             drawTransform.rot = transform.rot;
             float2x3_transform( &drawTransform.pos, &transform, &basePos );
             renderer_setTransform( &drawTransform );
-            renderer_addStroke( pPoints, pointCount );
+            renderer_addLinearStroke( pPoints, pointCount );
         }
     
         basePos.x += pGlyph->advance + float_rand_normal( 0.0f, variance );

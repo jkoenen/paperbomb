@@ -212,19 +212,11 @@ int main()
             // new page:
             renderer_flipPage();
 
-            float2 bombPoints[] =
+            float2 points[] =
             { 
-                { -1.0f,  0.2f },
-                {  1.0f,  0.2f },
-                {  1.0f, -0.2f },
-                { -1.0f, -0.2f },
-                { -1.0f,  0.2f },
-                { -1.0f,  0.2f },
-                { -0.2f,  1.0f },
-                {  0.2f,  1.0f },
-                {  0.2f, -1.0f },
-                { -0.2f, -1.0f },
-                { -0.2f,  1.0f }
+                {  0.0f,  4.0f },
+                {  0.0f,  0.0f },
+                {  3.0f,  0.0f },
             };
 
             renderer_setPen( Pen_Default );
@@ -239,49 +231,7 @@ int main()
 
             renderer_setTransform( &bombTransform );
 
-        /*	for( uint i = 0u; i < SYS_COUNTOF( bomb0Points ); ++i )
-            {
-                float2 scale;
-                float2_set( &scale, 1.0f, 0.2f );
-                float2_scale2f( &bomb0Points[ i ], &scale );
-                float2_rotate( &bomb0Points[ i ], pBomb->direction );
-                float2_add( &bomb0Points[ i ], &bomb0Points[ i ], &pBomb->position );
-                float2_scale2f( &bomb0Points[ i ], &worldScale );
-                float2_add( &bomb0Points[ i ], &bomb0Points[ i ], &worldOffset );
-            }*/
-
-            renderer_addStroke( bombPoints, SYS_COUNTOF( bombPoints ) );
-/*
-            
-            const float2 points[] =
-            {
-                {  0.0f, 0.0f },
-                { 10.0f, 0.0f },
-                { 20.0f, 0.0f },
-                { 20.0f, 10.0f }
-            };
-
-            float2x3 transform;
-            float2x2_identity( &transform.rot );
-            float2_set( &transform.pos, 40.0f, 10.0f );
-            renderer_setTransform( &transform );
-            renderer_setPen( Pen_Fat );
-            renderer_addStroke( points, SYS_COUNTOF( points ) );
-
-            renderer_setPen( Pen_Default );
-            float2_set( &transform.pos, 10.0f, 10.0f );
-            renderer_setTransform( &transform );
-            renderer_addStroke( points, SYS_COUNTOF( points ) );
-            
-            float2_set( &transform.pos, 10.0f, 20.0f );
-            renderer_setTransform( &transform );
-            renderer_addStroke( points, SYS_COUNTOF( points ) );
-
-            renderer_setPen( Pen_Fat );
-
-            float2 position;
-            float2_set( &position, 2.0f, 3.0f );
-            font_drawText( &position, 1.0f, 0.0f, "OO" );*/
+            renderer_addQuadraticStroke( points, SYS_COUNTOF( points ) );
         }
         renderer_updatePage( timeStep );
 

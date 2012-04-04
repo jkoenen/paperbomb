@@ -175,8 +175,8 @@ void game_render_car( const Player* pPlayer )
 	}
 
     renderer_setTransform( 0 );
-
-	renderer_addStroke( carPoints, SYS_COUNTOF( carPoints ) );
+    renderer_addLinearStroke( carPoints, SYS_COUNTOF( carPoints ) );
+	renderer_addLinearStroke( carPoints, SYS_COUNTOF( carPoints ) );
     //renderer_addStroke( steerPoints, SYS_COUNTOF( steerPoints ) );
 }
 
@@ -206,7 +206,7 @@ void game_render_bomb( const Bomb* pBomb )
     float2_add( &bombTransform.pos, &pBomb->position, &worldOffset );
 
     renderer_setTransform( &bombTransform );
-	renderer_addStroke( bombPoints0, SYS_COUNTOF( bombPoints0 ) );
+	renderer_addLinearStroke( bombPoints0, SYS_COUNTOF( bombPoints0 ) );
 }
 
 void game_render_explosion( const Explosion* pExplosion )
@@ -236,7 +236,7 @@ void game_render_explosion( const Explosion* pExplosion )
 		float2_add( &explosion0Points[ i ], &explosion0Points[ i ], &worldOffset );
 	}
 
-	renderer_addStroke( explosion0Points, SYS_COUNTOF( explosion0Points ) ); 
+	renderer_addLinearStroke( explosion0Points, SYS_COUNTOF( explosion0Points ) ); 
 
 	float2 explosion1Points[] =
 	{ 
@@ -258,7 +258,7 @@ void game_render_explosion( const Explosion* pExplosion )
 		float2_add( &explosion1Points[ i ], &explosion1Points[ i ], &worldOffset );
 	}
 
-	renderer_addStroke( explosion1Points, SYS_COUNTOF( explosion1Points ) );
+	renderer_addLinearStroke( explosion1Points, SYS_COUNTOF( explosion1Points ) );
 }
 
 void game_render()

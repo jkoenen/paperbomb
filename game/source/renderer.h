@@ -1,5 +1,5 @@
-#ifndef GRAPHICS_RENDERER_H_INCLUDED
-#define GRAPHICS_RENDERER_H_INCLUDED
+#ifndef RENDERER_H_INCLUDED
+#define RENDERER_H_INCLUDED
 
 #include "types.h"
 #include "matrix.h"
@@ -26,7 +26,8 @@ void renderer_setVariance( float variance );
 void renderer_setTransform( const float2x3* pTransform );
 
 void renderer_flipPage();
-void renderer_addStroke( const float2* pPoints, uint pointCount );
+void renderer_addLinearStroke( const float2* pPoints, uint pointCount );
+void renderer_addQuadraticStroke( const float2* pPoints, uint pointCount );
 
 void renderer_updatePage( float timeStep );
 int renderer_isPageDone();
