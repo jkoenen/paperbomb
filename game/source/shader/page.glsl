@@ -10,13 +10,13 @@ void main()
 }
 
 <FS>
-uniform sampler2D bgTexture;
-uniform sampler2D fgTexture;
+uniform sampler2D ft0;
+uniform sampler2D ft1;
 
 void main()
 {
-    vec4 bgColor = texture2D( bgTexture, texCoord );
-    vec4 fgColor = texture2D( fgTexture, texCoord );
+    vec4 bgColor = texture2D( ft0, texCoord );
+    vec4 fgColor = texture2D( ft1, texCoord );
 
     vec4 result = bgColor * (1.0-fgColor.w) + fgColor;
 //result=fgColor;

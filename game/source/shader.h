@@ -6,7 +6,8 @@
 enum
 {
     MaxVSUniformCount = 4,
-    MaxFSUniformCount = 4
+    MaxFSUniformCount = 4,
+    MaxFSTextureCount = 4
 };
 
 typedef struct
@@ -14,9 +15,10 @@ typedef struct
     uint    id;
     int     vp[ MaxVSUniformCount ];
     int     fp[ MaxFSUniformCount ];
+    int     ft[ MaxFSTextureCount ];
 } Shader;
 
-uint shader_create( Shader* pShader, const GlslShaderDefinition* pDefinition, uint vsUniformCount, uint fsUniformCount );
+uint shader_create( Shader* pShader, const GlslShaderDefinition* pDefinition, uint vsUniformCount, uint fsUniformCount, uint fsTextureCount );
 void shader_activate( const Shader* pShader );
 
 void shader_setVp4f( const Shader* pShader, uint index, float x, float y, float z, float w );

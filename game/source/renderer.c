@@ -2,10 +2,10 @@
 #include "types.h"
 #include "platform.h"
 #include "debug.h"
-#include "opengl.h"
 #include "vector.h"
 
 #include "shader.h"
+#include "graphics.h"
 #include "rendertarget.h"
 
 #include "paper_glsl.h"
@@ -142,34 +142,23 @@ static void setPageState( PageState newState )
 
 static void page_create( Page* pPage, int width, int height )
 {
-    SYS_VERIFY( rendertarget_create( &pPage->bgTarget, width, height, GL_RGBA8 ) );
-    SYS_VERIFY( rendertarget_create( &pPage->fgTarget, width, height, GL_RGBA8 ) );
+    SYS_VERIFY( rendertarget_create( &pPage->bgTarget, width, height, PixelFormat_R8G8B8A8 ) );
+    SYS_VERIFY( rendertarget_create( &pPage->fgTarget, width, height, PixelFormat_R8G8B8A8 ) );
 
     // render into render target:
-    rendertarget_activate( &pPage->bgTarget );
-    
-    glDisable( GL_DEPTH_TEST );
-    glDisable( GL_TEXTURE_2D );
-    glDisable( GL_BLEND );
+    graphics_setRenderTarget( &pPage->bgTarget );   
+    graphics_setBlendMode( BlendMode_Disabled );
 
     // render paper:
-    shader_activate( &s_renderer.paperShader );
-    
-    shader_setFp4f( &s_renderer.paperShader, 0u, float_rand(), float_rand(), 2.0f / width, 2.0f / height );
-    shader_setVp4f( &s_renderer.paperShader, 0u, 32.0f, 18.0f, 0.4f, 0.3f );
-    
-    glRectf( -1.0f, -1.0f, 1.0f, 1.0f );
-    
-    rendertarget_activate( &pPage->fgTarget );
-    shader_activate( 0 );
-    
-    glDisable( GL_DEPTH_TEST );
-    glDisable( GL_TEXTURE_2D );
-    glDisable( GL_BLEND );
-
-    // 
-    glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
-    glClear( GL_COLOR_BUFFER_BIT );
+    graphics_setShader( &s_renderer.paperShader );    
+    graphics_setFp4f( 0u, float_rand(), float_rand(), 2.0f / width, 2.0f / height );
+    graphics_setVp4f( 0u, 32.0f, 18.0f, 0.4f, 0.3f );    
+    graphics_drawFullscreenQuad();
+   
+    // clear fg:
+    graphics_setRenderTarget( &pPage->fgTarget );
+    graphics_setShader( 0 );
+    graphics_clear( 0.0f, 0.0f, 0.0f, 0.0f );
 }
 
 static void clearStrokeBuffer( StrokeBuffer* pBuffer )
@@ -187,9 +176,9 @@ static void createPen( PenDefinition* pPen, float width, float pressure, const f
 
 void renderer_init()
 {
-    SYS_VERIFY( shader_create( &s_renderer.paperShader, &s_shader_paper, 1u, 1u ) );
-    SYS_VERIFY( shader_create( &s_renderer.penShader, &s_shader_pen, 0u, 2u ) );
-    SYS_VERIFY( shader_create( &s_renderer.pageShader, &s_shader_page, 0u, 0u ) );
+    SYS_VERIFY( shader_create( &s_renderer.paperShader, &s_shader_paper, 1u, 1u, 0u ) );
+    SYS_VERIFY( shader_create( &s_renderer.penShader, &s_shader_pen, 0u, 2u, 0u ) );
+    SYS_VERIFY( shader_create( &s_renderer.pageShader, &s_shader_page, 0u, 0u, 2u ) );
 
     const int width = sys_getScreenWidth();
     const int height = sys_getScreenHeight();
@@ -341,15 +330,12 @@ void renderer_flipPage()
     Page* pPage = &s_renderer.pages[ s_renderer.currentPage ];
     
     // clear current page:
-    rendertarget_activate( &pPage->fgTarget );
+    graphics_setRenderTarget( &pPage->fgTarget );
+    graphics_setBlendMode( BlendMode_Disabled );
     
-    glDisable( GL_DEPTH_TEST );
-    glDisable( GL_TEXTURE_2D );
-    glDisable( GL_BLEND );
 
     // 
-    glClearColor( 0.0f, 0.0f, 0.0f, 0.0f );
-    glClear( GL_COLOR_BUFFER_BIT );    
+    graphics_clear( 0.0f, 0.0f, 0.0f, 0.0f );
 
     if( s_renderer.flipDuration > 0.0f )
     {
@@ -601,22 +587,16 @@ static int advanceStroke( float* pRemainingTime, float timeStep )
     
     const StrokeDrawCommandData* pDrawCommand = &pCommand->data.draw;
 
-    rendertarget_activate( &pPage->fgTarget );
-    shader_activate( &s_renderer.penShader );
+    graphics_setRenderTarget( &pPage->fgTarget );
+    graphics_setShader( &s_renderer.penShader );
+    graphics_setBlendMode( BlendMode_Over );
 
-    glEnable( GL_BLEND );
-    glBlendEquationSeparate( GL_MIN, GL_MAX );
-    glBlendFuncSeparate( GL_ONE, GL_ONE, GL_ONE, GL_ONE ); 
-    
-    glBlendEquationSeparate( GL_ADD, GL_ADD );
-    glBlendFuncSeparate( GL_ONE, GL_ONE_MINUS_SRC_ALPHA, GL_ONE, GL_ONE_MINUS_SRC_ALPHA ); 
-//glDisable( GL_BLEND );
     const PenDefinition* pPen = &s_renderer.pens[ pDrawCommand->penId ];
     const float variance = pDrawCommand->variance;
 
     // set constant shader parameters:
-    shader_setFp4f( &s_renderer.penShader, 0u, 0.5f * pPen->width, variance, 0.05f * variance, 0.0f );
-    shader_setFp4f( &s_renderer.penShader, 1u, pPen->color.x, pPen->color.y, pPen->color.z, 1.0f );
+    graphics_setFp4f( 0u, 0.5f * pPen->width, variance, 0.05f * variance, 0.0f );
+    graphics_setFp4f( 1u, pPen->color.x, pPen->color.y, pPen->color.z, 1.0f );
 
     float currentProgress = pStroke->progress;
     const float strokeLength = pStroke->length;
@@ -714,15 +694,7 @@ static int advanceStroke( float* pRemainingTime, float timeStep )
 
         //SYS_TRACE_DEBUG( "u0=%f u1=%f\n", u0, u1 );
 
-        glBegin( GL_TRIANGLES );
-            glTexCoord2f( u0, 0.0 );   glVertex2f( vertices[ 0u ].x, vertices[ 0u ].y );
-            glTexCoord2f( u0, 1.0 );   glVertex2f( vertices[ 1u ].x, vertices[ 1u ].y );
-            glTexCoord2f( u1, 1.0 );   glVertex2f( vertices[ 2u ].x, vertices[ 2u ].y );
-
-            glTexCoord2f( u0, 0.0 );   glVertex2f( vertices[ 0u ].x, vertices[ 0u ].y );
-            glTexCoord2f( u1, 1.0 );   glVertex2f( vertices[ 2u ].x, vertices[ 2u ].y );
-            glTexCoord2f( u1, 0.0 );   glVertex2f( vertices[ 3u ].x, vertices[ 3u ].y );
-        glEnd();
+        graphics_drawQuad( vertices, u0, 0.0f, u1, 1.0f );
         
         pStroke->segmentProgress += segmentAdvance;
         remainingLength -= segmentAdvance;
@@ -868,56 +840,35 @@ void renderer_drawFrame( const FrameData* pFrame )
     SYS_USE_ARGUMENT( pFrame );
 
     // now render the final screen 
-    rendertarget_activate( 0 );
+    graphics_setRenderTarget( 0 );
 
-    glDisable( GL_DEPTH_TEST );
-    glDisable( GL_TEXTURE_2D );
-    glDisable( GL_BLEND );
+    graphics_setBlendMode( BlendMode_Disabled );
 
     // render paper:
-    shader_activate( &s_renderer.pageShader );
+    graphics_setShader( &s_renderer.pageShader );
 
-    int bgTextureId = glGetUniformLocationARB( s_renderer.pageShader.id, "bgTexture" );
-    int fgTextureId = glGetUniformLocationARB( s_renderer.pageShader.id, "fgTexture" );
-
-    glUniform1i( bgTextureId, 0 );
-    glUniform1i( fgTextureId, 1 );
-
-    glEnable( GL_TEXTURE_2D );    
-    glActiveTexture( GL_TEXTURE0 );
-    glBindTexture( GL_TEXTURE_2D, s_renderer.pages[ s_renderer.currentPage ].bgTarget.id );
-
-    glActiveTexture( GL_TEXTURE0 + 1u );
-    glBindTexture( GL_TEXTURE_2D, s_renderer.pages[ s_renderer.currentPage ].fgTarget.id );
-
-    glBegin( GL_QUADS );
-        glTexCoord2f( 0.0, 0.0 );   glVertex2i( -1,  1 );
-        glTexCoord2f( 1.0, 0.0 );   glVertex2i(  1,  1 );
-        glTexCoord2f( 1.0, 1.0 );   glVertex2i(  1, -1 );
-        glTexCoord2f( 0.0, 1.0 );   glVertex2i( -1, -1 );
-    glEnd();
+    graphics_setFsTexture( 0, s_renderer.pages[ s_renderer.currentPage ].bgTarget.id );
+    graphics_setFsTexture( 1, s_renderer.pages[ s_renderer.currentPage ].fgTarget.id );
+    
+    graphics_drawFullscreenQuad();
 
     // render the flipped page on top:
     if( s_renderer.flipTime >= 0.0f )
     {
-        const float flipProgress = float_saturate( s_renderer.flipTime / s_renderer.flipDuration );
+        //const float flipProgress = float_saturate( s_renderer.flipTime / s_renderer.flipDuration );
 
-        glEnable( GL_TEXTURE_2D );    
-        glActiveTexture( GL_TEXTURE0 );
-        glBindTexture( GL_TEXTURE_2D, s_renderer.pages[ s_renderer.lastPage ].bgTarget.id );
+        graphics_setFsTexture( 0, s_renderer.pages[ s_renderer.lastPage ].bgTarget.id );
+        graphics_setFsTexture( 1, s_renderer.pages[ s_renderer.lastPage ].fgTarget.id );
 
-        glActiveTexture( GL_TEXTURE0 + 1u );
-        glBindTexture( GL_TEXTURE_2D, s_renderer.pages[ s_renderer.lastPage ].fgTarget.id );
-    
         // :TODO: nicer flip effect please:
-        const float offset = 2.0f * flipProgress;
+        /*const float offset = 2.0f * flipProgress;
 
         glBegin( GL_QUADS );
             glTexCoord2f( 0.0, 0.0 );   glVertex2f( -1.0f,  1.0f + offset );
             glTexCoord2f( 1.0, 0.0 );   glVertex2f(  1.0f,  1.0f + offset );
             glTexCoord2f( 1.0, 1.0 );   glVertex2f(  1.0f, -1.0f + offset );
             glTexCoord2f( 0.0, 1.0 );   glVertex2f( -1.0f, -1.0f + offset );
-        glEnd();
+        glEnd();*/
     }
 }
 

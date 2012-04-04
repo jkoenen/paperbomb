@@ -9,15 +9,22 @@ static const char* s_pVSUniformNames[ MaxVSUniformCount ] =
     "vp0", "vp1", "vp2", "vp3"
 };
 
-static const char* s_pFSUniformNames[ MaxVSUniformCount ] =
+static const char* s_pFSUniformNames[ MaxFSUniformCount ] =
 {
     "fp0", "fp1", "fp2", "fp3"
 };
 
-uint shader_create( Shader* pShader, const GlslShaderDefinition* pDefinition, uint vsUniformCount, uint fsUniformCount )
+static const char* s_pFSTextureNames[ MaxFSTextureCount ] =
+{
+    "ft0", "ft1", "ft2", "ft3"
+};
+
+uint shader_create( Shader* pShader, const GlslShaderDefinition* pDefinition, uint vsUniformCount, uint fsUniformCount, uint fsTextureCount )
 {
     SYS_ASSERT( vsUniformCount <= MaxVSUniformCount );
     SYS_ASSERT( fsUniformCount <= MaxFSUniformCount );
+    SYS_ASSERT( fsTextureCount <= MaxFSTextureCount );
+
     const uint shaderId = glCreateProgram();                           
     const uint vsId = glCreateShader( GL_VERTEX_SHADER );
     const uint fsId = glCreateShader( GL_FRAGMENT_SHADER );
@@ -77,6 +84,16 @@ uint shader_create( Shader* pShader, const GlslShaderDefinition* pDefinition, ui
         {
             SYS_TRACE_DEBUG( "Could not find fs uniform parameter %s\n", s_pFSUniformNames[ i ] );
         }
+    }
+    
+    for( uint i = 0u; i < fsTextureCount; ++i )
+    {
+        pShader->ft[ i ] = glGetUniformLocationARB( shaderId, s_pFSTextureNames[ i ] );
+        if( pShader->ft[ i ] < 0 )
+        {
+            SYS_TRACE_DEBUG( "Could not find fs texture parameter %s\n", s_pFSTextureNames[ i ] );
+        }
+        glUniform1i( pShader->ft[ i ], ( int )i );
     }
 
     return shaderId;
