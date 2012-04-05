@@ -1,34 +1,37 @@
 #include "networkprotocol.h"
 
 #include "debug.h"
+#include "string.h"
 
-uint network_writeInput( void* pPacket, uint capacity, uint32 buttonMask )
+void packet_write_input( Packet* pPacket, uint32 buttonMask )
 {
-	(void)capacity;
-	SYS_ASSERT( capacity >= 2u );
+	pPacket->id		= PacketId_Input;
+	pPacket->size	= 1u;
 
-	uint8* pBytes = (uint8*)pPacket;
-
-	*pBytes++ = (uint8)PacketId_Input;
-	*pBytes++ = (uint8)( buttonMask & 0xffu );
-
-	return 2u;
+	pPacket->data[ 0u ]	= (uint8)( buttonMask & 0xffu );
 }
 
-int network_readInput( uint32* pButtonMask, const void* pPacket, uint packetSize )
+void packet_read_input( uint32* pButtonMask, const Packet* pPacket )
 {
-	const uint8* pBytes = (uint8*)pPacket;
-	if( *pBytes++ != PacketId_Input )
-	{
-		return FALSE;
-	}
+	SYS_ASSERT( pPacket->id == PacketId_Input );
 
-	if( packetSize < 2u )
-	{
-		return FALSE;
-	}
+	*pButtonMask = (uint32)pPacket->data[ 0u ];
+}
 
-	*pButtonMask = (uint32)*pBytes;
+void packet_write_hello( Packet* pPacket, const char* pName )
+{
+	pPacket->id	= PacketId_Hello;
 
-	return TRUE;
+	char* pPacketName = (char*)pPacket->data;
+
+	const uint size = copyString( pPacketName, sizeof( pPacket->data ), pName ) + 1u;
+
+	pPacket->size = (uint8)( ( size + 3u ) / 4u );
+}
+
+void packet_read_hello( char* pName, uint capacity, const Packet* pPacket )
+{
+	SYS_ASSERT( pPacket->id == PacketId_Hello );
+
+	copyString( pName, capacity, (char*)pPacket->data );
 }
