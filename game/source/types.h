@@ -2,6 +2,7 @@
 #define TYPES_H_INCLUDED
 
 #include <stdlib.h>
+#include <memory.h>
 #include <math.h>
 
 #ifdef _MSC_VER

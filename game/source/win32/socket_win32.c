@@ -1,9 +1,10 @@
 #include "socket.h"
 #include "debug.h"
 
-#include <memory.h>
+#include "win32_pre.h"
 #include <winsock2.h>
 #include <mswsock.h>
+#include "win32_post.h"
 
 static uint s_libCount = 0;
 

@@ -1,3 +1,13 @@
+#include "win32_pre.h"
+
+#include <mmsystem.h>
+#include <GL/glew.h>
+#include <initguid.h>
+#define DIRECTINPUT_VERSION 0x0800
+#include <dsound.h>
+
+#include "win32_post.h"
+
 #include "types.h"
 #include "debug.h"
 #include "game.h"
@@ -7,16 +17,6 @@
 #include <stdio.h>
 #include <stdarg.h>
 #include <process.h> 
-
-#define WIN32_LEAN_AND_MEAN
-#define WIN32_EXTRA_LEAN
-#include <Windows.h>
-#include <mmsystem.h>
-#include <GL/glew.h>
-
-#include <initguid.h>
-#define DIRECTINPUT_VERSION 0x0800
-#include <dsound.h>
 
 static uint		s_width = 800;
 static uint		s_height = 450;
