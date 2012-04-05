@@ -54,16 +54,35 @@ static const float2 s_points_o[] =
     { 4.0f, 10.0f }
 };
 
+static const float2 s_points_0[] =
+{ 
+    { 0.0f, 2.0f },
+    { 0.0f, 0.0f },
+    { 2.0f, 0.0f },
+    { 4.0f, 0.0f },
+    { 4.0f, 2.0f },
+    { 4.0f, 4.0f },
+    { 2.0f, 0.0f },
+    { 0.0f, 4.0f },
+    { 0.0f, 2.0f }
+};
+
+static const float2 s_points_1[] =
+{
+    { 0.0f, 2.0f },
+    { 0.0f, 0.0f }
+};
+
 static const FontGlyph s_glyphs[] =
 {
     { 0, 0.0f, 0, 0 },
-    { 'A', 9.0f, s_points_a, SYS_COUNTOF( s_points_a ) },
+    /*{ 'A', 9.0f, s_points_a, SYS_COUNTOF( s_points_a ) },
     { 'H', 8.0f, s_points_h, SYS_COUNTOF( s_points_h ) },
     { 'L', 7.0f, s_points_l, SYS_COUNTOF( s_points_l ) },
-    { 'O', 9.0f, s_points_o, SYS_COUNTOF( s_points_o ) },
-/*    { 'O', 9.0f, s_points_0, SYS_COUNTOF( s_points_0 ) },
-    { '1', 9.0f, s_points_1, SYS_COUNTOF( s_points_1 ) },
-    { '2', 9.0f, s_points_2, SYS_COUNTOF( s_points_2 ) },
+    { 'O', 9.0f, s_points_o, SYS_COUNTOF( s_points_o ) },*/
+    { 'O', 5.0f, s_points_0, SYS_COUNTOF( s_points_0 ) },
+    { '1', 2.0f, s_points_1, SYS_COUNTOF( s_points_1 ) },
+/*    { '2', 9.0f, s_points_2, SYS_COUNTOF( s_points_2 ) },
     { '3', 9.0f, s_points_3, SYS_COUNTOF( s_points_3 ) },
     { '4', 9.0f, s_points_4, SYS_COUNTOF( s_points_4 ) },
     { '5', 9.0f, s_points_5, SYS_COUNTOF( s_points_5 ) },
