@@ -417,16 +417,16 @@ static int pushStrokeCommand( const StrokeCommand* pCommand )
     if( s_renderer.strokeBuffer.commandCount >= MaxCommandCount )
     {
         SYS_TRACE_DEBUG( "stroke command buffer is full!\n" );
-        return 0;
+        return FALSE;
     }
     if( pCommand->data.draw.pointCount < 2u ) 
     {
-        return 0;
+        return FALSE;
     }
 
     s_renderer.strokeBuffer.commands[ s_renderer.strokeBuffer.commandCount ] = *pCommand;
     s_renderer.strokeBuffer.commandCount++;
-    return 1u;
+    return TRUE;
 }
 
 static int pushStrokePoint( const float2* pPoint )
@@ -434,12 +434,12 @@ static int pushStrokePoint( const float2* pPoint )
     if( s_renderer.strokeBuffer.pointCount >= MaxPointCount )
     {
         SYS_TRACE_WARNING( "stroke point buffer is full!\n" );
-        return 0;
+        return FALSE;
     }
     s_renderer.strokeBuffer.points[ s_renderer.strokeBuffer.pointCount ] = *pPoint;
     float2_set( &s_renderer.strokeBuffer.pointNormals[ s_renderer.strokeBuffer.pointCount ], 1.0f, 0.0f );
     s_renderer.strokeBuffer.pointCount++;
-    return 1u;
+    return TRUE;
 }
 
 static void createDrawCommand( StrokeCommand* pCommand )
@@ -791,6 +791,8 @@ static void startStroke( uint pointIndex, uint pointCount )
     }
     pStroke->length = strokeLength;
 
+	SYS_ASSERT( strokeLength < 100000.0f );
+
     //SYS_TRACE_DEBUG( "Starting new stroke (length=%.2f #segments=%i)\n", strokeLength, pointCount - 1u );
 }
 
@@ -804,7 +806,7 @@ static int advanceStroke( float* pRemainingTime, float timeStep )
     if( !pCommand || pCommand->type != StrokeCommandType_Draw )
     {
         SYS_TRACE_ERROR( "no active stroke!\n" );
-        return 0;
+        return FALSE;
     }
     
     const StrokeDrawCommandData* pDrawCommand = &pCommand->data.draw;
@@ -846,7 +848,7 @@ static int advanceStroke( float* pRemainingTime, float timeStep )
 
     if( newProgress <= currentProgress )
     {
-        return 1;
+        return TRUE;
     }
 
     const uint segmentCount = pDrawCommand->pointCount - 1u;
@@ -933,10 +935,10 @@ static int advanceStroke( float* pRemainingTime, float timeStep )
     if( newProgress < strokeLength )
     {
         pStroke->progress = newProgress;  
-        return 1u;
+        return TRUE;
     }
 
-    return 0u;
+    return FALSE;
 }
 
 static void startDrawCommand()

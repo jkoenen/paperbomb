@@ -50,7 +50,7 @@ uint shader_create( Shader* pShader, const GlslShaderDefinition* pDefinition, ui
         glGetInfoLogARB( vsId, 1024, NULL, (char *)info ); 
         SYS_TRACE_ERROR( "Could not build vertex shader! info:\n%s\n", info );
         SYS_TRACE_ERROR( "shader code = \n%s\n", pVsCode );
-        return 0;
+        return FALSE;
     }
     glGetObjectParameterivARB( fsId, GL_OBJECT_COMPILE_STATUS_ARB, &result ); 
     if( !result ) 
@@ -58,14 +58,14 @@ uint shader_create( Shader* pShader, const GlslShaderDefinition* pDefinition, ui
         glGetInfoLogARB( fsId, 1024, NULL, (char *)info ); 
         SYS_TRACE_ERROR( "Could not build fragment shader! info:\n%s\n", info );
         SYS_TRACE_ERROR( "shader code = \n%s\n", pFsCode );
-        return 0;
+        return FALSE;
     }
     glGetObjectParameterivARB( shaderId, GL_OBJECT_LINK_STATUS_ARB, &result ); 
     if( !result ) 
     {
         glGetInfoLogARB( shaderId, 1024, NULL, (char *)info ); 
         SYS_TRACE_ERROR( "Could not link shader! info:\n%s\n", info );
-        return 0;
+        return FALSE;
     }
 #endif
 

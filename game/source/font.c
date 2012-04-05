@@ -3,6 +3,7 @@
 #include "renderer.h"
 
 #include <string.h>
+#include <memory.h>
 
 enum
 {
@@ -69,8 +70,11 @@ static const float2 s_points_0[] =
 
 static const float2 s_points_1[] =
 {
-    { 0.0f, 2.0f },
-    { 0.0f, 0.0f }
+    { 0.0f, 1.9f },
+    { 0.0f, 1.9f },
+    { 1.1f, 3.0f },
+    { 1.1f, 2.0f },
+    { 1.1f, 0.0f }
 };
 
 static const FontGlyph s_glyphs[] =

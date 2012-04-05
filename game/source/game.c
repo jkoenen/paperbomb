@@ -9,8 +9,14 @@
 #include "vector.h"
 #include "gamestate.h"
 #include "world.h"
-
+#include "server.h"
 #include <string.h>
+#include <memory.h>
+
+enum
+{
+	NetworkPort = 2357u
+};
 
 typedef struct
 {
@@ -23,6 +29,9 @@ typedef struct
 
 	GameState	gameState;
     uint32      debugLastButtonMask;
+
+	Server		server;
+
 } Game;
 
 static Game s_game;
@@ -62,7 +71,6 @@ static void debug_update( uint buttonMask, uint lastButtonMask )
 		SYS_TRACE_DEBUG( "variance=%f\n", s_game.variance );
         renderer_setVariance( s_game.variance );
 	}
-
 }
 
 void game_init()
@@ -84,10 +92,14 @@ void game_init()
     }
 
 	gamestate_init( &s_game.gameState, 2u );
+
+	server_create( &s_game.server, NetworkPort );
 }
 
 void game_done()
 {
+	server_destroy( &s_game.server );
+
     renderer_done();
 	font_done();
 }
@@ -113,6 +125,7 @@ void game_update( const GameInput* pInput )
 		playerInputs[ 1u ].buttonMask = ( buttonMask >> Button_PlayerShift ) & Button_PlayerMask;
         playerInputs[ 1u ].buttonDownMask = playerInputs[ 1u ].buttonMask & ~s_game.lastButtonMask[ 1u ];
         s_game.lastButtonMask[ 1u ] = playerInputs[ 1u ].buttonMask;
+
 
 		World world;
 		gamestate_update( &s_game.gameState, &world, playerInputs );

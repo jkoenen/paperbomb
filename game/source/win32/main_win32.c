@@ -1,22 +1,34 @@
+#include "win32_pre.h"
+
+#include <mmsystem.h>
+#include <GL/glew.h>
+#include <initguid.h>
+#define DIRECTINPUT_VERSION 0x0800
+#include <dsound.h>
+
+#include "win32_post.h"
 
 #include "types.h"
 #include "debug.h"
 #include "game.h"
 #include "input.h"
+#include "sound.h"
 
 #include <stdio.h>
 #include <stdarg.h>
+#include <process.h> 
 
-#define WIN32_LEAN_AND_MEAN
-#define WIN32_EXTRA_LEAN
-#include <Windows.h>
-#include <mmsystem.h>
-#include <GL/glew.h>
+static uint		s_width = 800;
+static uint		s_height = 450;
+static uint32	s_currentButtonMask = 0u;
 
-static uint s_width = 800;
-static uint s_height = 450;
-
-static uint32 s_currentButtonMask = 0u;
+static HWND					s_hWnd = NULL;
+static WAVEFORMATEX			s_waveFormat;
+static LPDIRECTSOUND		s_pDxSound = NULL;
+static LPDIRECTSOUNDBUFFER	s_pDxSoundBuffer = NULL;
+static HANDLE				s_soundEvents[ 2u ];
+static HANDLE				s_soundThreadHandle = NULL;
+static float				s_soundBuffer[ SoundChannelCount * SoundBufferSampleCount ];
 
 int sys_getScreenWidth()
 {
@@ -135,36 +147,158 @@ static LRESULT CALLBACK WndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 
     return DefWindowProc( hWnd, uMsg, wParam, lParam );
 }
-// 
-// static void DrawTime( WININFO *info, float t )
-// {
-//     static int      frame=0;
-//     static float    to=0.0;
-//     static int      fps=0;
-//     char            str[64];
-//     int             s, m, c;
-// 
-//     if( t<0.0f) return;
-//     if( info->full ) return;
-// 
-//     frame++;
-//     if( (t-to)>1.0f )
-//     {
-//         fps = frame;
-//         to = t;
-//         frame = 0;
-//     }
-// 
-//     if( !(frame&3) )
-//     {
-//         m = msys_ifloorf( t/60.0f );
-//         s = msys_ifloorf( t-60.0f*(float)m );
-//         c = msys_ifloorf( t*100.0f ) % 100;
-//         sprintf( str, "%02d:%02d:%02d  [%d fps]", m, s, c, fps );
-//         SetWindowText( info->hWnd, str );
-//     }
-// }
 
+static void	__cdecl soundThreadFunction( void* )
+{
+	SYS_TRACE_DEBUG( "start thread\n" );
+
+	const uint halfBufferSize = SoundBufferSampleHalfCount * SoundChannelCount * SoundSampleSize;
+
+	for(;;)
+	{
+		LPVOID lpvAudio1 = NULL;
+		LPVOID lpvAudio2 = NULL;
+		DWORD dwBytesAudio1 = 0;
+		DWORD dwBytesAudio2 = 0;
+
+		const DWORD hr = WaitForMultipleObjects(2, s_soundEvents, FALSE, INFINITE );
+		uint bufferIndex;
+
+		if( WAIT_OBJECT_0 == hr ) 
+		{
+			bufferIndex = 1;
+		}
+		else if( WAIT_OBJECT_0 + 1 == hr ) 
+		{		
+			bufferIndex = 0;
+		}
+		else 
+		{
+			SYS_TRACE_DEBUG( "exit thread\n" );
+			return;
+		}
+
+		if( FAILED( s_pDxSoundBuffer->Lock( bufferIndex * halfBufferSize, halfBufferSize, &lpvAudio1, &dwBytesAudio1, &lpvAudio2, &dwBytesAudio2, 0 ) ) ) 
+		{
+			SYS_TRACE_ERROR( "lock %d failed\n", bufferIndex );
+			return;
+		}		
+
+		float fbuffer[ SoundBufferSampleHalfCount * SoundChannelCount ];
+		sound_fillBuffer( fbuffer, SoundBufferSampleHalfCount );
+
+		int16* pBuffer = (int16*)lpvAudio1;
+		for( uint i = 0u; i < SoundBufferSampleHalfCount * SoundChannelCount; ++i )
+		{
+			*pBuffer++ = (int16)( fbuffer[ i ] * 32000.0f ); 
+		}
+
+		//static float time = 0.0f;
+		//int16* pBuffer = (int16*)lpvAudio1;
+		//const float freq = 2000.0f;
+		//for( uint i = 0u; i < SoundBufferSampleHalfCount; ++i )
+		//{
+		//	*pBuffer++ = (int16)( cosf( time * freq * 2.0f * 3.14159265f ) * 32000.0f );
+		//	*pBuffer++ = (int16)( cosf( time * freq * 2.0f * 3.14159265f ) * 32000.0f );
+
+		//	time += ( 1.0f / 44100.0f );
+		//}
+		
+		SYS_ASSERT( lpvAudio2 == NULL );
+
+		s_pDxSoundBuffer->Unlock( lpvAudio1, dwBytesAudio1, lpvAudio2, dwBytesAudio2 );
+	}
+}
+
+static void dxsound_init()
+{
+	s_soundEvents[ 0u ] = CreateEvent( NULL, FALSE, FALSE, "NOTIFY0" );
+	s_soundEvents[ 1u ] = CreateEvent( NULL, FALSE, FALSE, "NOTIFY1" );
+
+	if( FAILED( DirectSoundCreate( NULL, &s_pDxSound, NULL ) ) ) 
+	{
+		SYS_TRACE_ERROR( "dxs create\n" );
+		sys_exit( 1 );
+	}
+
+	if( FAILED( s_pDxSound->SetCooperativeLevel( s_hWnd, DSSCL_PRIORITY ) ) ) 
+	{
+		SYS_TRACE_ERROR( "dxs coop\n" );
+		sys_exit( 1 );
+	}
+
+	DSBUFFERDESC dsbd;
+	ZeroMemory( &dsbd, sizeof( dsbd ) );
+	dsbd.dwSize = sizeof( DSBUFFERDESC );
+	dsbd.dwFlags = DSBCAPS_PRIMARYBUFFER;
+	dsbd.dwBufferBytes = 0;
+	dsbd.lpwfxFormat = NULL;
+
+	LPDIRECTSOUNDBUFFER primaryBuffer = NULL;
+	if( FAILED( s_pDxSound->CreateSoundBuffer( &dsbd, &primaryBuffer, NULL ) ) ) 
+	{
+		SYS_TRACE_ERROR( "dxs buffer\n" );
+		sys_exit( 1 );
+	}
+	
+	s_waveFormat.wFormatTag			= WAVE_FORMAT_PCM; 
+	s_waveFormat.nChannels			= SoundChannelCount; 
+	s_waveFormat.nSamplesPerSec		= SoundSampleRate; 
+	s_waveFormat.nAvgBytesPerSec	= SoundSampleRate * SoundChannelCount * SoundSampleSize;
+	s_waveFormat.nBlockAlign		= SoundChannelCount * SoundSampleSize;
+	s_waveFormat.wBitsPerSample		= SoundSampleSize * 8u;
+	s_waveFormat.cbSize				= 0u; 
+
+	if( FAILED( primaryBuffer->SetFormat( &s_waveFormat ) ) ) 
+	{
+		SYS_TRACE_ERROR( "dxs format\n" );
+		sys_exit( 1 );
+	}
+	
+	dsbd.dwFlags		= DSBCAPS_CTRLPOSITIONNOTIFY | DSBCAPS_GLOBALFOCUS;
+	dsbd.dwBufferBytes	= SoundBufferSampleCount * SoundChannelCount * SoundSampleSize;
+	dsbd.lpwfxFormat	= &s_waveFormat;
+
+	if( FAILED( s_pDxSound->CreateSoundBuffer( &dsbd, &s_pDxSoundBuffer, NULL ) ) ) 
+	{
+		SYS_TRACE_ERROR( "dxs buffer2\n" );
+		sys_exit( 1 );
+	}
+
+	LPDIRECTSOUNDNOTIFY lpDSBNotify;
+	if( FAILED( s_pDxSoundBuffer->QueryInterface( IID_IDirectSoundNotify, (LPVOID*)&lpDSBNotify ) ) ) 
+	{
+		SYS_TRACE_ERROR( "dxs buffer notify\n" );
+		sys_exit( 1 );
+	}
+
+	s_pDxSoundBuffer->SetVolume( DSBVOLUME_MAX );
+
+	const uint soundBufferSize = SoundBufferSampleCount * SoundChannelCount * SoundSampleSize;
+
+	DSBPOSITIONNOTIFY pPosNotify[ 2u ];
+	pPosNotify[ 0u ].dwOffset = ( soundBufferSize / 4u );
+	pPosNotify[ 1u ].dwOffset = ( soundBufferSize / 4u ) * 3u;	
+	pPosNotify[ 0u ].hEventNotify = s_soundEvents[ 0u ];
+	pPosNotify[ 1u ].hEventNotify = s_soundEvents[ 1u ];	
+
+	const int result = lpDSBNotify->SetNotificationPositions( 2u, pPosNotify );
+	if( FAILED( result ) ) 
+	{ 
+		SYS_TRACE_ERROR( "dxs buffer notify pos\n" );
+		sys_exit( 1 );
+	}
+
+	s_soundThreadHandle = (void*)_beginthread( &soundThreadFunction, 1000000u, NULL );
+	SetThreadPriority( s_soundThreadHandle, THREAD_PRIORITY_HIGHEST );
+
+	s_pDxSoundBuffer->Play( 0, 0, DSBPLAY_LOOPING );
+}
+
+static void dxsound_done()
+{
+	s_pDxSoundBuffer->Stop();
+}
 
 int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nCmdShow )
 {
@@ -197,9 +331,9 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 	DWORD dwExStyle, dwStyle;
     if( fullscreen )
     {
-        memset( &devmode,0,sizeof(DEVMODE) );
-        devmode.dmSize       = sizeof(DEVMODE);
-        devmode.dmFields     = DM_BITSPERPEL|DM_PELSWIDTH|DM_PELSHEIGHT;
+        memset( &devmode, 0, sizeof( DEVMODE ) );
+        devmode.dmSize       = sizeof( DEVMODE );
+        devmode.dmFields     = DM_BITSPERPEL | DM_PELSWIDTH | DM_PELSHEIGHT;
         devmode.dmBitsPerPel = 32;
         devmode.dmPelsWidth  = s_width;
         devmode.dmPelsHeight = s_height;
@@ -209,7 +343,7 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 		dwExStyle = WS_EX_APPWINDOW;
         dwStyle   = WS_VISIBLE | WS_POPUP | WS_CLIPSIBLINGS | WS_CLIPCHILDREN;
 
-		while( ShowCursor( 0 )>=0 );	// hide cursor
+		while( ShowCursor( 0 ) >=0 );	// hide cursor
     }
     else
     {
@@ -227,14 +361,14 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 
     AdjustWindowRect( &rect, dwStyle, 0 );
 
-    HWND hWnd = CreateWindowEx( dwExStyle, wc.lpszClassName, wc.lpszClassName, dwStyle,
+    s_hWnd = CreateWindowEx( dwExStyle, wc.lpszClassName, wc.lpszClassName, dwStyle,
                                (GetSystemMetrics(SM_CXSCREEN)-rect.right+rect.left)>>1,
                                (GetSystemMetrics(SM_CYSCREEN)-rect.bottom+rect.top)>>1,
                                rect.right-rect.left, rect.bottom-rect.top, 0, 0, hInstance, 0 );
 
-    SYS_VERIFY( hWnd );
+    SYS_VERIFY( s_hWnd );
 
-	HDC hDC = GetDC( hWnd );
+	HDC hDC = GetDC( s_hWnd );
 	SYS_VERIFY( hDC );
 
 	static const PIXELFORMATDESCRIPTOR pfd =
@@ -264,7 +398,8 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 
 	SYS_VERIFY( glewInit() == GLEW_OK );
 
-    game_init();
+	dxsound_init();
+	game_init();
    
     uint32 lastTime = timeGetTime();
 
@@ -291,7 +426,7 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 
             char windowTitle[ 100u ];
             sprintf_s( windowTitle, sizeof( windowTitle ), "fps=%f", currentFps );
-			SetWindowText( hWnd, windowTitle );            
+			SetWindowText( s_hWnd, windowTitle );            
     
             lastTimingTime = currentTime;
             timingFrameCount = 0u;
@@ -324,7 +459,9 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
 #endif
     }
     while( !quit );
+
     game_done();
+	dxsound_done();
 
     return( 0 );
 }

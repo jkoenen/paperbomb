@@ -2,6 +2,7 @@
 #define TYPES_H_INCLUDED
 
 #include <stdlib.h>
+#include <memory.h>
 #include <math.h>
 
 #ifdef _MSC_VER
@@ -54,6 +55,9 @@ typedef int32_t int32;
 typedef int64_t int64;
 
 typedef unsigned int uint;
+
+#define TRUE	1
+#define FALSE	0
 
 typedef struct
 {
@@ -137,8 +141,8 @@ static inline float float_rand_range( float min, float max )
 
 static inline float float_rand_normal( float mean, float sd )
 {
-	const float x0 = float_rand();
-	const float x1 = float_rand();
+	const float x0 = float_max( 0.0001f, float_rand() );
+	const float x1 = float_max( 0.0001f, float_rand() );
 
 	const float y = sqrtf( -2.0f * logf( x0 ) ) * sinf( 2.0f * (float)PI * x1 );
 	return mean + y * sd;

@@ -168,14 +168,15 @@ void graphics_setBlendMode( BlendMode mode )
 
 void graphics_createMesh2d( Mesh2d* pMesh, uint vertexCount, uint indexCount )
 {
+	
     SYS_ASSERT( pMesh );
     glGenBuffersARB( 1, &pMesh->vertexBufferId );
     glBindBufferARB( GL_ARRAY_BUFFER_ARB, pMesh->vertexBufferId );
-    glBufferDataARB( GL_ARRAY_BUFFER_ARB, sizeof( Vertex2d ) * vertexCount, 0, GL_STATIC_DRAW_ARB );
+    glBufferDataARB( GL_ARRAY_BUFFER_ARB, (GLsizeiptrARB)( sizeof( Vertex2d ) * vertexCount ), 0, GL_STATIC_DRAW_ARB );
 
     glGenBuffersARB( 1, &pMesh->indexBufferId );
     glBindBufferARB( GL_ELEMENT_ARRAY_BUFFER_ARB, pMesh->indexBufferId );
-    glBufferDataARB( GL_ELEMENT_ARRAY_BUFFER_ARB, sizeof( Index ) * indexCount, 0, GL_STATIC_DRAW_ARB );
+    glBufferDataARB( GL_ELEMENT_ARRAY_BUFFER_ARB, (GLsizeiptrARB)( sizeof( Index ) * indexCount ), 0, GL_STATIC_DRAW_ARB );
 
     pMesh->vertexCount = vertexCount;
     pMesh->indexCount = indexCount;
@@ -195,11 +196,11 @@ int graphics_lockMesh2d( Mesh2dLock* pLock, Mesh2d* pMesh )
 
     if( !pVertexData || !pIndexData )
     {
-        return 0;
+        return FALSE;
     }
     pLock->pVertexData = ( Vertex2d* )pVertexData;
     pLock->pIndexData = ( Index* )pIndexData;
-    return 1;
+    return TRUE;
 }
 
 void graphics_unlockMesh2d( Mesh2d* pMesh )

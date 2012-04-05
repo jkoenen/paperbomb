@@ -5,9 +5,11 @@
 
 enum 
 {
-    SoundBufferSampleCount = 512,
+    SoundBufferSampleCount = 16384,
+	SoundBufferSampleHalfCount = SoundBufferSampleCount / 2u,
     SoundSampleRate = 44100,
-    SoundChannelCount = 2
+    SoundChannelCount = 2,
+	SoundSampleSize = 2
 };
 
 void sound_init();
