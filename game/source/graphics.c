@@ -196,11 +196,11 @@ int graphics_lockMesh2d( Mesh2dLock* pLock, Mesh2d* pMesh )
 
     if( !pVertexData || !pIndexData )
     {
-        return 0;
+        return FALSE;
     }
     pLock->pVertexData = ( Vertex2d* )pVertexData;
     pLock->pIndexData = ( Index* )pIndexData;
-    return 1;
+    return TRUE;
 }
 
 void graphics_unlockMesh2d( Mesh2d* pMesh )

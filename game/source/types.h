@@ -55,6 +55,9 @@ typedef int64_t int64;
 
 typedef unsigned int uint;
 
+#define TRUE	1
+#define FALSE	0
+
 typedef struct
 {
     float   x, y;

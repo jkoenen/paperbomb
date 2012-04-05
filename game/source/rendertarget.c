@@ -15,7 +15,7 @@ int rendertarget_create( RenderTarget* pTarget, int width, int height, PixelForm
 
     default:
         SYS_TRACE_ERROR( "Unsupported format %i\n", format );
-        return 0;
+        return FALSE;
     }
 
     pTarget->width = width;
@@ -44,13 +44,13 @@ int rendertarget_create( RenderTarget* pTarget, int width, int height, PixelForm
     if( glCheckFramebufferStatus( GL_FRAMEBUFFER ) != GL_FRAMEBUFFER_COMPLETE )
     {
         SYS_TRACE_ERROR( "Could not create framebuffer!\n" );
-        return 0;
+        return FALSE;
     }
                                                                                                 
     glBindFramebuffer( GL_FRAMEBUFFER, 0 );
     glBindTexture( GL_TEXTURE_2D, 0 );
 
-    return 1;
+    return TRUE;
 }
 
 void rendertarget_activate( const RenderTarget* pTarget )

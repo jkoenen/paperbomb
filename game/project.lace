@@ -38,6 +38,7 @@ when :win32
     add_lib 'User32.lib'
     add_lib 'winmm.lib'
     add_lib 'dsound.lib'
+	add_lib 'ws2_32.lib'
 
 when :linux
     import 'platform/linux'

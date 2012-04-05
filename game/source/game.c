@@ -9,8 +9,14 @@
 #include "vector.h"
 #include "gamestate.h"
 #include "world.h"
+#include "server.h"
 
 #include <string.h>
+
+enum
+{
+	NetworkPort = 2357u
+};
 
 typedef struct
 {
@@ -23,6 +29,9 @@ typedef struct
 
 	GameState	gameState;
     uint32      debugLastButtonMask;
+
+	Server		server;
+
 } Game;
 
 static Game s_game;
@@ -85,10 +94,14 @@ void game_init()
     }
 
 	gamestate_init( &s_game.gameState, 2u );
+
+	server_create( &s_game.server, NetworkPort );
 }
 
 void game_done()
 {
+	server_destroy( &s_game.server );
+
     renderer_done();
 	font_done();
 }
