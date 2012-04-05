@@ -7,6 +7,8 @@
 #include <arpa/inet.h>
 #include <netinet/udp.h>
 #include <errno.h>
+#include <fcntl.h>
+#include <unistd.h>
 
 void socket_init()
 {
@@ -18,13 +20,13 @@ void socket_done()
 
 uint32 socket_gethostIP()
 {
-	hostent* pHostInfo = gethostbyname( "localhost" );
+	struct hostent* pHostInfo = gethostbyname( "localhost" );
 	if( pHostInfo == NULL )
 	{
 		return InvalidIP;
 	}
 
-	in_addr** ppAddr = (in_addr**)pHostInfo->h_addr_list;
+	struct in_addr** ppAddr = (struct in_addr**)pHostInfo->h_addr_list;
 	return ppAddr[ 0u ]->s_addr;		
 }
 
@@ -35,30 +37,30 @@ uint32 socket_parseIP( const char* pAddress )
 
 Socket socket_create()
 {
-	Socket socket = (int)::socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP );
+	Socket s = socket( AF_INET, SOCK_DGRAM, IPPROTO_UDP );
 
-	const int flags = fcntl( socket, F_GETFL, 0 );
-	fcntl( pSocket->socket, F_SETFL, flags | O_NONBLOCK );
+	const int flags = fcntl( s, F_GETFL, 0 );
+	fcntl( s, F_SETFL, flags | O_NONBLOCK );
 
-	return socket;
+	return s;
 }
 
-void socket_destroy( Socket socket )
+void socket_destroy( Socket s )
 {
-	::shutdown( (uint)socket, SHUT_RDWR );
-	::close( (uint)socket );
+	shutdown( s, SHUT_RDWR );
+	close( s );
 }
 
-int	socket_bind( Socket socket, const IP4Address* pAddress )
+int	socket_bind( Socket s, const IP4Address* pAddress )
 {
-	sockaddr_in addr;
+	struct sockaddr_in addr;
 	memset( &addr, 0, sizeof( addr ) );
 
 	addr.sin_family			= AF_INET;
 	addr.sin_addr.s_addr	= /*htonl*/( pAddress->address );
 	addr.sin_port			= htons( pAddress->port );
 
-	if( ::bind( (uint)socket, ( sockaddr* )&addr, sizeof( addr ) ) == -1 )
+	if( bind( s, ( struct sockaddr* )&addr, sizeof( addr ) ) == -1 )
 	{
 		return FALSE;
 	}
@@ -66,21 +68,21 @@ int	socket_bind( Socket socket, const IP4Address* pAddress )
 	return TRUE;
 }
 
-int	socket_send( Socket socket, const IP4Address* pTo, const void* pData, uint size )
+int	socket_send( Socket s, const IP4Address* pTo, const void* pData, uint size )
 {
 	if( size == 0u )
 	{
 		return 0;
 	}
 
-	sockaddr_in addr;
+	struct sockaddr_in addr;
 	memset( &addr, 0, sizeof( addr ) );
 
 	addr.sin_family			= AF_INET;
 	addr.sin_addr.s_addr	= /*htonl*/( pTo->address );
 	addr.sin_port			= htons( pTo->port );
 
-	const int bytesSent = ::sendto( (uint)socket, (const char*)pData, (int)size, 0, (sockaddr*)&addr, sizeof( addr ) );
+	const ssize_t bytesSent = sendto( s, (const char*)pData, size, 0, (struct sockaddr*)&addr, sizeof( addr ) );
 	if( bytesSent < 0 )
 	{
 		if( errno == EWOULDBLOCK || errno == EAGAIN )
@@ -93,26 +95,26 @@ int	socket_send( Socket socket, const IP4Address* pTo, const void* pData, uint s
 		}
 	}
 
-	return bytesSent;
+	return (int)bytesSent;
 }
 
-int	socket_receive( Socket socket, void* pData, uint size, IP4Address* pFrom )
+int	socket_receive( Socket s, void* pData, uint size, IP4Address* pFrom )
 {
-	sockaddr_storage addr;
-	int addrLength = sizeof( addr );
+	struct sockaddr_storage addr;
+	socklen_t addrLength = sizeof( addr );
 	memset( &addr, 0, sizeof( addr ) );
 
-	const int bytesReceived = ::recvfrom( (uint)socket, (char*)pData, (int)size, 0, (sockaddr*)&addr, &addrLength );
+	const ssize_t bytesReceived = recvfrom( s, (char*)pData, size, 0, (struct sockaddr*)&addr, &addrLength );
 	if( ( bytesReceived >= 0 ) && ( addrLength > 0 ) )	
 	{
-		if( addrLength == sizeof( sockaddr_in ) )
+		if( addrLength == sizeof( struct sockaddr_in ) )
 		{
-			sockaddr_in* pAddr = (sockaddr_in*)&addr;
+			struct sockaddr_in* pAddr = (struct sockaddr_in*)&addr;
 			pFrom->address	= /*ntohl*/( pAddr->sin_addr.s_addr );
 			pFrom->port		= ntohs( pAddr->sin_port );
 		}
 
-		return bytesReceived;
+		return (int)bytesReceived;
 	}
 	else
 	{
@@ -126,3 +128,4 @@ int	socket_receive( Socket socket, void* pData, uint size, IP4Address* pFrom )
 		}
 	}
 }
+
