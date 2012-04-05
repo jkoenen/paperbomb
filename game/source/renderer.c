@@ -402,6 +402,18 @@ void renderer_flipPage()
     }
 }
 
+static void transformPoint( float2* pTarget, const float2* pSource, float variance )
+{
+    const float2x3* pTransform = &s_renderer.currentTransform;
+
+    float2 offset;
+    float2_rand_normal( &offset, 0.0f, variance ); 
+
+    float2 point;
+    float2x3_transform( &point, pTransform, pSource );
+    float2_add( pTarget, &point, &offset );    
+}
+
 static int pushStrokeCommand( const StrokeCommand* pCommand )
 {
     if( s_renderer.strokeBuffer.commandCount >= MaxCommandCount )
@@ -458,50 +470,12 @@ static void computeAverageNormal( float2* pAverageNormal, const float2* pNormal0
     *pAverageNormal = averageNormal;
 }
 
-static void renderer_addSingleStroke( const float2* pStrokePoints, uint strokePointCount )
+static void computeStrokeNormals( StrokeCommand* pCommand, int isCycle )
 {
-    SYS_ASSERT( s_renderer.pageState == PageState_BeforeDraw );
-    if( !pStrokePoints || strokePointCount < 2u )
-    {
-        return;
-    }
+    SYS_ASSERT( pCommand && pCommand->type == StrokeCommandType_Draw );
+    const uint pointCount = pCommand->data.draw.pointCount;
 
-    const uint firstCommandIndex = s_renderer.strokeBuffer.commandCount;
-    const uint firstPointIndex = s_renderer.strokeBuffer.pointCount;
-    
-    StrokeCommand command;
-    createDrawCommand( &command );
-
-    const float variance = s_renderer.currentVariance;
-    const float2x3* pTransform = &s_renderer.currentTransform;
-
-    // transform, randomize and copy positions
-    for( uint i = 0u; i < strokePointCount; ++i )
-    {
-        const float2 strokePoint = pStrokePoints[ i ];
-
-        // reduced variance in the beginning
-        const int isFirstVertexInStroke = command.data.draw.pointCount == 0u;
-        const float pointVariance = isFirstVertexInStroke ? variance / 4.0f : variance;
-
-        float2 offset;
-        float2_rand_normal( &offset, 0.0f, pointVariance ); 
-
-        float2 point;
-        float2x3_transform( &point, pTransform, &strokePoint );
-        float2_add( &point, &point, &offset );
-
-        if( pushStrokePoint( &point ) )
-        {
-            command.data.draw.pointCount++;
-        }
-    }
-    
-    // push the last command:
-    pushStrokeCommand( &command );
-   
-    const uint pointCount = s_renderer.strokeBuffer.pointCount - firstPointIndex;
-
+    const uint firstPointIndex = pCommand->data.draw.pointIndex;
     const float2* pPoints = &s_renderer.strokeBuffer.points[ firstPointIndex ];
     float2* pPointNormals = &s_renderer.strokeBuffer.pointNormals[ firstPointIndex ];
 
@@ -518,51 +492,67 @@ static void renderer_addSingleStroke( const float2* pStrokePoints, uint strokePo
     }
     pPointNormals[ 0u ] = pPointNormals[ 1u ];
 
-    // compute averaged normals:
-    const uint commandCount = s_renderer.strokeBuffer.commandCount - firstCommandIndex;
-    //SYS_TRACE_DEBUG( "cc=%i pc=%i\n", commandCount, pointCount );
-
-    for( uint commandIndex = 0u; commandIndex < commandCount; ++commandIndex )
+    for( uint i = 1u; i < pCommand->data.draw.pointCount - 1u; ++i )
     {
-        const StrokeCommand* pCommand = &s_renderer.strokeBuffer.commands[ firstCommandIndex ];
-        if( pCommand->type != StrokeCommandType_Draw )
-        {
-            continue;
-        }
-
-        for( uint i = 1u; i < pCommand->data.draw.pointCount - 1u; ++i )
-        {
-            SYS_ASSERT( pCommand->data.draw.pointIndex + i >= firstPointIndex )
-            const uint pointIndex = pCommand->data.draw.pointIndex + i - firstPointIndex;
-            const float2 lastNormal = pPointNormals[ pointIndex ];
-            const float2 nextNormal = pPointNormals[ pointIndex + 1 ];
-            computeAverageNormal( &pPointNormals[ pointIndex ], &lastNormal, &nextNormal );
-        }
+        const float2 lastNormal = pPointNormals[ i ];
+        const float2 nextNormal = pPointNormals[ i + 1 ];
+        computeAverageNormal( &pPointNormals[ i ], &lastNormal, &nextNormal );
+    }
+    
+    // check if this stroke is a cycle:
+    const uint pointIndex0 = 0u;
+    const uint pointIndexN = pointIndex0 + pCommand->data.draw.pointCount - 1u;
+    
+    if( isCycle )
+    {
+        const float2 normal0 = pPointNormals[ pointIndex0 ];
+        const float2 normalN = pPointNormals[ pointIndexN ];
         
-        // check if this stroke is a cycle:
-        SYS_ASSERT( pCommand->data.draw.pointIndex >= firstPointIndex );
-        const uint pointIndex0 = pCommand->data.draw.pointIndex - firstPointIndex;
-        const uint pointIndexN = pointIndex0 + pCommand->data.draw.pointCount - 1u;
-        
-        if( float2_isEqual( &pStrokePoints[ pointIndex0 ], &pStrokePoints[ pointIndexN ] ) )
-        {
-            const float2 normal0 = pPointNormals[ pointIndex0 ];
-            const float2 normalN = pPointNormals[ pointIndexN ];
-            
-            float2 averageNormal;
-            computeAverageNormal( &averageNormal, &normal0, &normalN );
-            pPointNormals[ pointIndex0 ] = averageNormal;
-            pPointNormals[ pointIndexN ] = averageNormal;
-        }
+        float2 averageNormal;
+        computeAverageNormal( &averageNormal, &normal0, &normalN );
+        pPointNormals[ pointIndex0 ] = averageNormal;
+        pPointNormals[ pointIndexN ] = averageNormal;
     }
 
 /*    for( uint i = 0u; i < pointCount; ++i )
     {
         const float2 normal = pPointNormals[ i ];
         SYS_TRACE_DEBUG( "normal[%i]=(%f,%f)\n", i, normal.x, normal.y );
-    }*/
+    }*/    
+}
 
-    //SYS_TRACE_DEBUG( "added stroke with %i points (pos=%i)\n", pointCount, s_renderer.strokeBuffer.commandCount - 1u );
+static void renderer_addSingleStroke( const float2* pStrokePoints, uint strokePointCount )
+{
+    SYS_ASSERT( s_renderer.pageState == PageState_BeforeDraw );
+    if( !pStrokePoints || strokePointCount < 2u )
+    {
+        return;
+    }
+    
+    const int isCycle=float2_isEqual(&pStrokePoints[0u],&pStrokePoints[strokePointCount-1u]);
+    StrokeCommand command;
+    createDrawCommand( &command );
+
+    const float variance = s_renderer.currentVariance;
+
+    // transform, randomize and copy positions
+    for( uint i = 0u; i < strokePointCount; ++i )
+    {
+        const float2 strokePoint = pStrokePoints[ i ];
+
+        // reduced variance in the beginning
+        const int isFirstVertexInStroke = command.data.draw.pointCount == 0u;
+
+        float2 point;
+        transformPoint( &point, &strokePoint, isFirstVertexInStroke ? variance / 4.0f : variance );
+        if( pushStrokePoint( &point ) )
+        {
+            command.data.draw.pointCount++;
+        }
+    }
+   
+    computeStrokeNormals( &command, isCycle );
+    pushStrokeCommand( &command );
 }
 
 void renderer_addStroke( const float2* pStrokePoints, uint strokePointCount )
@@ -597,6 +587,101 @@ void renderer_addStroke( const float2* pStrokePoints, uint strokePointCount )
         renderer_addSingleStroke( &pStrokePoints[ pointIndex ], pointCount );
     }
 }
+
+static inline float b1( float x )
+{
+    return x*x;
+}
+
+static inline float b2( float x )
+{
+    return 2.0f*x*(1.0f-x);
+}
+
+static inline float b3(float x)
+{
+    return ((1.0f-x)*(1.0f-x));
+}
+
+void renderer_addQuadraticStroke( const float2* p0, const float2* p1, const float2* p2 )
+{
+    const float variance = s_renderer.currentVariance;
+    float2 cp0, cp1, cp2;
+    transformPoint(&cp0, p0, variance/4.0f);
+    transformPoint(&cp1, p1, variance);
+    transformPoint(&cp2, p2, variance);
+
+    StrokeCommand command;
+    createDrawCommand( &command );
+
+    float x = 0.0f;
+    const uint stepCount = 10u; // :TODO: adaptive detail 
+    float dx = 1.0f / (float)(stepCount-1u);
+    
+    float2 point;
+    for( uint i = 0u; i < stepCount; ++i )
+    {
+        const float w0=b1(x);
+        const float w1=b2(x);
+        const float w2=b3(x);
+
+        point.x = w0*cp0.x + w1*cp1.x + w2*cp2.x;
+        point.y = w0*cp0.y + w1*cp1.y + w2*cp2.y;
+
+        if( pushStrokePoint( &point ) )
+        {
+            command.data.draw.pointCount++;
+        }
+
+        x += dx;
+    }
+//    int isCycle = float2_isEqual( &pStrokePoints[ pointIndex0 ], &pStrokePoints[ pointIndexN ] );
+    computeStrokeNormals( &command, 0 );
+    pushStrokeCommand( &command );
+}
+
+/*static void renderer_addSingleQuadraticStroke( const float2* pPoints, uint pointCount )
+{
+    SYS_ASSERT( pPoints );
+    SYS_ASSERT( pointCount >= 3 );
+
+    
+}*/
+
+/*void renderer_addQuadraticStroke( const float2* pPoints, uint pointCount )
+{
+    SYS_ASSERT( pPoints );
+    SYS_ASSERT( pointCount >= 3 );
+    uint pointIndex = 0u;
+    uint pointCount = 0u;
+
+    float2 lastStrokePoint;
+    for( uint i = 0u; i < strokePointCount; ++i )
+    {
+        const float2 strokePoint = pStrokePoints[ i ];
+
+        // check if we have to start a new stroke:
+        if( i > 0u && float2_isEqual( &lastStrokePoint, &strokePoint ) )
+        {
+            if( pointCount >= 3u )
+            {
+                renderer_addSingleQuadraticStroke( &pStrokePoints[ pointIndex ], pointCount );
+            }
+            pointIndex = i + 1u;
+            pointCount = 0u;
+        }
+        else
+        {
+            pointCount++;
+        }
+
+        lastStrokePoint = strokePoint;
+    }
+    if( pointCount >= 3u )
+    {
+        renderer_addSingleQuadraticStroke( &pStrokePoints[ pointIndex ], pointCount );
+    }
+}*/
 
 static void startStroke( uint pointIndex, uint pointCount )
 {
