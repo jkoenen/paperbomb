@@ -37,30 +37,32 @@ static inline float2* float2_rand_normal( float2* pValue, float mean, float sd )
 	return pValue;
 }
 
-static inline float2* float2_scale1f( float2* pValue, float factor )
+static inline float2* float2_scale1f( float2* pTarget, const float2* pSource, float factor )
 {
-	const float x = pValue->x;
-	const float y = pValue->y;
+	const float x = pSource->x;
+	const float y = pSource->y;
 
 	const float rx = x * factor;
 	const float ry = y * factor;
 
-	pValue->x = rx;
-	pValue->y = ry;
-	return pValue;
+	pTarget->x = rx;
+	pTarget->y = ry;
+	return pTarget;
 }
 
-static inline float2* float2_scale2f( float2* pValue, float2* pFactor )
+static inline float2* float2_scale2f( float2* pTarget, const float2* pSource, float2* pFactor )
 {
-	const float x = pValue->x;
-	const float y = pValue->y;
+	const float x = pSource->x;
+	const float y = pSource->y;
+    const float sx = pFactor->x;
+    const float sy = pFactor->y;
 
-	const float rx = x * pFactor->x;
-	const float ry = y * pFactor->y;
+	const float rx = x * sx;
+	const float ry = y * sy;
 
-	pValue->x = rx;
-	pValue->y = ry;
-	return pValue;
+	pTarget->x = rx;
+	pTarget->y = ry;
+	return pTarget;
 }
 
 static inline float2* float2_add( float2* pResult, const float2* pA, const float2* pB )
@@ -143,7 +145,7 @@ static inline float float2_distance( const float2* pA, const float2* pB )
 static inline float2* float2_normalize( float2* pValue )
 {
 	const float invLength = 1.0f / float2_length(pValue);
-	float2_scale1f( pValue, invLength );
+	float2_scale1f( pValue, pValue, invLength );
 	return pValue;
 }
 
@@ -169,7 +171,7 @@ static inline float2* float2_normalize0( float2* pValue )
 	else
 	{
 		const float invLength = 1.0f / length;
-		float2_scale1f( pValue, invLength );
+		float2_scale1f( pValue, pValue, invLength );
 	}
 	return pValue;
 }

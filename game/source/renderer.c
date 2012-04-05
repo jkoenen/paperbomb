@@ -464,7 +464,7 @@ static void computeAverageNormal( float2* pAverageNormal, const float2* pNormal0
     if( disc > 0.1f )
     {
         const float scale = 1.0f / sqrtf( disc );
-        float2_scale1f( &averageNormal, scale );
+        float2_scale1f( &averageNormal, &averageNormal, scale );
     }
 
     *pAverageNormal = averageNormal;
@@ -704,9 +704,26 @@ void renderer_addQuadraticSplineStroke( const float2* pPoints, uint pointCount )
         else
         {
             // copy the last point over:
+            float2 lastDir;
+            float2_sub(&lastDir,&cps[2u],&cps[1u]);
+            
             cps[0u]=cps[2u];
             transformPoint(&cps[1u], &pSegmentPoints[0u], variance);
             transformPoint(&cps[2u], &pSegmentPoints[1u], variance);
+            
+            // make sure that the cp1 is colinear with the last curve segment:
+            float2 newDir;
+            float2_sub(&newDir,&cps[1u],&cps[0u]);
+            if(float2_squareLength(&lastDir)>0.0001f&&float2_squareLength(&newDir)>0.0001f)
+            {
+                float2_normalize(&lastDir);
+                
+                float2 newCp1;
+                float2_scale1f(&newDir,&lastDir,float2_dot(&lastDir,&newDir));
+                float2_add(&newCp1, &cps[0u], &newDir);
+                cps[1u]=newCp1;
+            }
+
             pSegmentPoints += 2u;
         }
         const uint stepCount = 10u; // :TODO: adaptive detail 
