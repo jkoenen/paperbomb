@@ -26,7 +26,9 @@ void renderer_setVariance( float variance );
 void renderer_setTransform( const float2x3* pTransform );
 
 void renderer_flipPage();
+
 void renderer_addLinearStroke( const float2* pPoints, uint pointCount );
+
 void renderer_addQuadraticStroke( const float2* pPoints, uint pointCount );
 
 void renderer_updatePage( float timeStep );

@@ -91,7 +91,7 @@ void player_update_input( Player* pPlayer, uint32 buttonMask, uint32 buttonDownM
 	dirVecDot = float2_dot( &directionVector, &velocityNormalized );
 
 	float2 velocityForward = pPlayer->velocity;
-	float2_scale1f( &velocityForward, float_abs( dirVecDot ) );
+	float2_scale1f( &velocityForward, &velocityForward, float_abs( dirVecDot ) );
 
 	float2 velocitySide;
 	float2_sub( &velocitySide, &pPlayer->velocity, &velocityForward );
@@ -109,7 +109,7 @@ void player_update_input( Player* pPlayer, uint32 buttonMask, uint32 buttonDownM
 	const float speed = float_abs( float2_length( &pPlayer->velocity ) );
 	if( speed > maxSpeed )
 	{
-		float2_scale1f( &pPlayer->velocity, maxSpeed / speed );
+		float2_scale1f( &pPlayer->velocity, &pPlayer->velocity, maxSpeed / speed );
 	}
 
 //	SYS_TRACE_DEBUG( "speed %.4f\n", speed );

@@ -14,7 +14,7 @@
 #include <math.h>
 #include <stdarg.h>
 
-//#define TEST_RENDERER
+#define TEST_RENDERER
 
 #ifdef TEST_RENDERER
 #   include "font.h"
@@ -214,24 +214,46 @@ int main()
 
             float2 points[] =
             { 
+                { -4.0f,  0.0f },
+                { -4.0f, -4.0f },
+                {  0.0f, -4.0f },
+                {  4.0f, -4.0f },
+                {  4.0f,  0.0f },
+                {  4.0f,  4.0f },
                 {  0.0f,  4.0f },
-                {  0.0f,  0.0f },
-                {  3.0f,  0.0f },
+                { -4.0f,  4.0f },
+                { -4.0f,  0.0f }
+                /*{ -1.0f,  0.2f },
+                {  1.0f,  0.2f },
+                {  1.0f, -0.2f },
+                { -1.0f, -0.2f },
+                { -1.0f,  0.2f },
+                { -1.0f,  0.2f },
+                { -0.2f,  1.0f },
+                {  0.2f,  1.0f },
+                {  0.2f, -1.0f },
+                { -0.2f, -1.0f },
+                { -0.2f,  1.0f }*/
             };
 
             renderer_setPen( Pen_Default );
 
             const float2 worldOffset = { 32.0f, 16.0f };
-            const float2 position = { 5.0f, 0.0f };
+            const float2 position = { 0.0f, 0.0f };
 
             float2x3 bombTransform;
             float2x2_rotationY( &bombTransform.rot, 0.0f );
-            float2x2_scale1f( &bombTransform.rot, &bombTransform.rot, 5.0f );
+            float2x2_scale1f( &bombTransform.rot, &bombTransform.rot, 1.0f );
             float2_add( &bombTransform.pos, &position, &worldOffset );
 
             renderer_setTransform( &bombTransform );
 
-            renderer_addQuadraticStroke( points, SYS_COUNTOF( points ) );
+            //renderer_addQuadraticStroke(&points[0u],&points[1u],&points[2u]);
+            renderer_addQuadraticStroke(points,SYS_COUNTOF(points));
+
+            float2 textPos;
+            float2_set(&textPos,5.0f,4.0f);
+            font_drawText(&textPos,1.0f,0.0f,"0123456789A" );
         }
         renderer_updatePage( timeStep );
 

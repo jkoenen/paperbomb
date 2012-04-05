@@ -158,7 +158,7 @@ void game_render_car( const Player* pPlayer )
 	{
 		float2_rotate( &carPoints[ i ], pPlayer->direction );
 		float2_add( &carPoints[ i ], &carPoints[ i ], &pPlayer->position );
-		float2_scale2f( &carPoints[ i ], &worldScale );
+		float2_scale2f( &carPoints[ i ], &carPoints[i], &worldScale );
 		float2_add( &carPoints[ i ], &carPoints[ i ], &worldOffset );
 	}
 
@@ -170,7 +170,7 @@ void game_render_car( const Player* pPlayer )
 		float2_add( &steerPoints[ i ], &steerPoints[ i ], &steerOffset );
 		float2_rotate( &steerPoints[ i ], pPlayer->direction );
 		float2_add( &steerPoints[ i ], &steerPoints[ i ], &pPlayer->position );
-		float2_scale2f( &steerPoints[ i ], &worldScale );
+		float2_scale2f( &steerPoints[ i ], &steerPoints[i], &worldScale );
 		float2_add( &steerPoints[ i ], &steerPoints[ i ], &worldOffset );
 	}
 
@@ -229,10 +229,10 @@ void game_render_explosion( const Explosion* pExplosion )
 	{
 		float2 scale;
 		float2_set( &scale, pExplosion->length, 1.0f );
-		float2_scale2f( &explosion0Points[ i ], &scale );
+		float2_scale2f( &explosion0Points[ i ], &explosion0Points[i], &scale );
 		float2_rotate( &explosion0Points[ i ], pExplosion->direction );
 		float2_add( &explosion0Points[ i ], &explosion0Points[ i ], &pExplosion->position );
-		float2_scale2f( &explosion0Points[ i ], &worldScale );
+		float2_scale2f( &explosion0Points[ i ], &explosion0Points[i], &worldScale );
 		float2_add( &explosion0Points[ i ], &explosion0Points[ i ], &worldOffset );
 	}
 
@@ -251,10 +251,10 @@ void game_render_explosion( const Explosion* pExplosion )
 	{
 		float2 scale;
 		float2_set( &scale, 1.0f, pExplosion->length );
-		float2_scale2f( &explosion1Points[ i ], &scale );
+		float2_scale2f( &explosion1Points[ i ], &explosion1Points[i], &scale );
 		float2_rotate( &explosion1Points[ i ], pExplosion->direction );
 		float2_add( &explosion1Points[ i ], &explosion1Points[ i ], &pExplosion->position );
-		float2_scale2f( &explosion1Points[ i ], &worldScale );
+		float2_scale2f( &explosion1Points[ i ], &explosion1Points[i], &worldScale );
 		float2_add( &explosion1Points[ i ], &explosion1Points[ i ], &worldOffset );
 	}
 
