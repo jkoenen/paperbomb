@@ -22,14 +22,6 @@
 #ifdef max
 #	undef max
 #endif
-#ifndef KEEN_KEEP_WINDOWS_FAR_NEAR_DEFINITIONS
-#ifdef near
-#	undef near
-#endif
-#ifdef far
-#	undef far
-#endif
-#endif
 
 #else
 
@@ -38,4 +30,4 @@
 
 #endif
 
-#endif // KEEN__OPENGL_H__INCLUDED
+#endif

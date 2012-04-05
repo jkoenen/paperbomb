@@ -60,6 +60,7 @@ static const FontGlyph s_glyphs[] =
     { 'A', 9.0f, s_points_a, SYS_COUNTOF( s_points_a ) },
     { 'H', 8.0f, s_points_h, SYS_COUNTOF( s_points_h ) },
     { 'L', 7.0f, s_points_l, SYS_COUNTOF( s_points_l ) },
+    { 'O', 9.0f, s_points_o, SYS_COUNTOF( s_points_o ) },
 /*    { 'O', 9.0f, s_points_0, SYS_COUNTOF( s_points_0 ) },
     { '1', 9.0f, s_points_1, SYS_COUNTOF( s_points_1 ) },
     { '2', 9.0f, s_points_2, SYS_COUNTOF( s_points_2 ) },
@@ -98,16 +99,9 @@ void font_done()
 void font_drawText( const float2* pPosition, float size, float variance, const char* pText )
 {
     float2x3 transform;
-
-    //float2x2_identity( &tansform.rot );
     float2x2_rotationY( &transform.rot, float_rand_normal( 0.0f, DEG2RADF( variance * 10.0f ) ) );
     float2x2_scale1f( &transform.rot, &transform.rot, size );
     transform.pos = *pPosition;
-
-    //float2_add( &transform.pos, pPosition, &positionOffset );
-
-    float2 basePos;
-    float2_rand_normal( &basePos, 0.0f, variance );
 
     while( *pText )
     {
@@ -119,51 +113,16 @@ void font_drawText( const float2* pPosition, float size, float variance, const c
         }
 
         const FontGlyph* pGlyph = &s_glyphs[ glyphIndex ];
-        if( pGlyph->pointCount <= 0 )
+        if( pGlyph->pointCount < 3 )
         {
             continue;
         }
+        
+        renderer_setTransform( &transform );
+        renderer_addLinearStroke( pGlyph->pPoints, pGlyph->pointCount );
 
-        // search for     
-        const float2* pPoints = pGlyph->pPoints;
-        uint pointCount = 1u;
-
-        float2 lastPoint = pPoints[ 0u ];
-        for( uint i = 1u; i < pGlyph->pointCount; ++i )
-        {
-            const float2 currentPoint = pGlyph->pPoints[ i ];
-
-            if( currentPoint.x == lastPoint.x && currentPoint.y == lastPoint.y )
-            {
-                if( pointCount >= 2u )
-                {
-                    float2x3 drawTransform;
-                    drawTransform.rot = transform.rot;
-                    float2x3_transform( &drawTransform.pos, &transform, &basePos );
-                    renderer_setTransform( &drawTransform );
-                    renderer_addLinearStroke( pPoints, pointCount );
-                }
-                pointCount = 0u;
-                pPoints = &pGlyph->pPoints[ i + 1u ];
-            }
-            else
-            {
-                pointCount++;
-            }
-            lastPoint = currentPoint;
-        }
-
-        if( pointCount >= 2u )
-        {
-            float2x3 drawTransform;
-            drawTransform.rot = transform.rot;
-            float2x3_transform( &drawTransform.pos, &transform, &basePos );
-            renderer_setTransform( &drawTransform );
-            renderer_addLinearStroke( pPoints, pointCount );
-        }
-    
-        basePos.x += pGlyph->advance + float_rand_normal( 0.0f, variance );
-        basePos.y = float_rand_normal( 0.0f, variance );
+        const float advance = float_rand_normal( pGlyph->advance, variance );
+        float2_addScaled1f( &transform.pos, &transform.pos, &transform.rot.x, advance );
     }
 }
 

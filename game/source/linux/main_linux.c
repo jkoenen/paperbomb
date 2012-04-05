@@ -14,7 +14,7 @@
 #include <math.h>
 #include <stdarg.h>
 
-#define TEST_RENDERER
+//#define TEST_RENDERER
 
 #ifdef TEST_RENDERER
 #   include "font.h"
