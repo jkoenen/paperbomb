@@ -153,5 +153,21 @@ static inline int float_isEqual( float a, float b )
     return a == b;
 }
 
+static inline uint copyString( char* pDest, uint capacity, const char* pSource )
+{
+	uint size = 0u;
+	while( *pSource != '\0' )
+	{
+		if( size + 1u < capacity )
+		{
+			*pDest++ = *pSource;
+		}
+		pSource++;
+		size++;
+	}
+	*pDest = '\0';
+	return size;
+}
+
 #endif
 
