@@ -25,13 +25,13 @@ TODO:
 - gameplay
     - proper collision
     - obstacles
-    - 
 - sound
-    - sound code for win32
+    + sound code for win32
     - stroke sound
     - better engine sounde
     - explosion sound
     - bomb sound
+    - background music
 - graphics
     - nicer graphics for cars, bombs and explosions
 - fx

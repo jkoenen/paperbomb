@@ -35,7 +35,7 @@ static inline void pan( float* pLeft, float* pRight, float sample, float panning
     *pRight = sample * sqrtf( panning );
 }
 
-void sound_fillBuffer( float* pBuffer, uint count )
+void sound_fillBuffer( float2* pBuffer, uint count )
 {
     const double sampleRateFactor = 2 * PI / (double)SoundSampleRate;
 
@@ -55,8 +55,8 @@ void sound_fillBuffer( float* pBuffer, uint count )
         const double x = samplePos * sampleRateFactor;
 
         // very crude engine sound:
-        const double sample0 = cos( 4.0f * x ) * sin( 120.0f * x );
-        const double sample1 = cos( 23.0f * x ) * sin( 80.0f * x );
+        const double sample0 = cos( 40.0f * x ) * sin( 120.0f * x );
+        const double sample1 = cos( 10.0f * x ) * sin( 200.0f * x );
 
         const double sample = double_lerp( sample0, sample1, engineFrequency );
         
@@ -66,10 +66,11 @@ void sound_fillBuffer( float* pBuffer, uint count )
         pan( &left, &right, (float)sample, panning );
 
         // left:
-        *pBuffer++ = left;
+        pBuffer->x = left;
         // right:
-        *pBuffer++ = right;
+        pBuffer->y = right;
 
+        pBuffer++;
         samplePos += 1.0;
         s_sound.samplePos++;
     }

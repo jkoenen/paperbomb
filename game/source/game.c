@@ -12,6 +12,7 @@
 #include "server.h"
 
 #include <string.h>
+#include <memory.h>
 
 enum
 {
@@ -71,8 +72,6 @@ static void debug_update( uint buttonMask, uint lastButtonMask )
 		SYS_TRACE_DEBUG( "variance=%f\n", s_game.variance );
         renderer_setVariance( s_game.variance );
 	}
-
-	sound_setEngineFrequency( ( buttonMask & ButtonMask_Up ) ? 1.0f : 0.0f );
 }
 
 void game_init()
@@ -131,6 +130,8 @@ void game_update( const GameInput* pInput )
 
 		World world;
 		gamestate_update( &s_game.gameState, &world, playerInputs );
+	
+        sound_setEngineFrequency( ( buttonMask & ButtonMask_Up ) ? 1.0f : 0.0f );
 
 		s_game.updateTime -= GAMETIMESTEP;
 	}
@@ -171,7 +172,7 @@ void game_render_car( const Player* pPlayer )
 	{
 		float2_rotate( &carPoints[ i ], pPlayer->direction );
 		float2_add( &carPoints[ i ], &carPoints[ i ], &pPlayer->position );
-		float2_scale2f( &carPoints[ i ], &worldScale );
+		float2_scale2f( &carPoints[ i ], &carPoints[i], &worldScale );
 		float2_add( &carPoints[ i ], &carPoints[ i ], &worldOffset );
 	}
 
@@ -183,13 +184,13 @@ void game_render_car( const Player* pPlayer )
 		float2_add( &steerPoints[ i ], &steerPoints[ i ], &steerOffset );
 		float2_rotate( &steerPoints[ i ], pPlayer->direction );
 		float2_add( &steerPoints[ i ], &steerPoints[ i ], &pPlayer->position );
-		float2_scale2f( &steerPoints[ i ], &worldScale );
+		float2_scale2f( &steerPoints[ i ], &steerPoints[i], &worldScale );
 		float2_add( &steerPoints[ i ], &steerPoints[ i ], &worldOffset );
 	}
 
     renderer_setTransform( 0 );
-
-	renderer_addStroke( carPoints, SYS_COUNTOF( carPoints ) );
+    renderer_addLinearStroke( carPoints, SYS_COUNTOF( carPoints ) );
+	renderer_addLinearStroke( carPoints, SYS_COUNTOF( carPoints ) );
     //renderer_addStroke( steerPoints, SYS_COUNTOF( steerPoints ) );
 }
 
@@ -219,7 +220,7 @@ void game_render_bomb( const Bomb* pBomb )
     float2_add( &bombTransform.pos, &pBomb->position, &worldOffset );
 
     renderer_setTransform( &bombTransform );
-	renderer_addStroke( bombPoints0, SYS_COUNTOF( bombPoints0 ) );
+	renderer_addLinearStroke( bombPoints0, SYS_COUNTOF( bombPoints0 ) );
 }
 
 void game_render_explosion( const Explosion* pExplosion )
@@ -242,14 +243,14 @@ void game_render_explosion( const Explosion* pExplosion )
 	{
 		float2 scale;
 		float2_set( &scale, pExplosion->length, 1.0f );
-		float2_scale2f( &explosion0Points[ i ], &scale );
+		float2_scale2f( &explosion0Points[ i ], &explosion0Points[i], &scale );
 		float2_rotate( &explosion0Points[ i ], pExplosion->direction );
 		float2_add( &explosion0Points[ i ], &explosion0Points[ i ], &pExplosion->position );
-		float2_scale2f( &explosion0Points[ i ], &worldScale );
+		float2_scale2f( &explosion0Points[ i ], &explosion0Points[i], &worldScale );
 		float2_add( &explosion0Points[ i ], &explosion0Points[ i ], &worldOffset );
 	}
 
-	renderer_addStroke( explosion0Points, SYS_COUNTOF( explosion0Points ) ); 
+	renderer_addLinearStroke( explosion0Points, SYS_COUNTOF( explosion0Points ) ); 
 
 	float2 explosion1Points[] =
 	{ 
@@ -264,14 +265,14 @@ void game_render_explosion( const Explosion* pExplosion )
 	{
 		float2 scale;
 		float2_set( &scale, 1.0f, pExplosion->length );
-		float2_scale2f( &explosion1Points[ i ], &scale );
+		float2_scale2f( &explosion1Points[ i ], &explosion1Points[i], &scale );
 		float2_rotate( &explosion1Points[ i ], pExplosion->direction );
 		float2_add( &explosion1Points[ i ], &explosion1Points[ i ], &pExplosion->position );
-		float2_scale2f( &explosion1Points[ i ], &worldScale );
+		float2_scale2f( &explosion1Points[ i ], &explosion1Points[i], &worldScale );
 		float2_add( &explosion1Points[ i ], &explosion1Points[ i ], &worldOffset );
 	}
 
-	renderer_addStroke( explosion1Points, SYS_COUNTOF( explosion1Points ) );
+	renderer_addLinearStroke( explosion1Points, SYS_COUNTOF( explosion1Points ) );
 }
 
 void game_render()

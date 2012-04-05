@@ -1,4 +1,3 @@
-
 #include "types.h"
 #include "debug.h"
 #include "game.h"

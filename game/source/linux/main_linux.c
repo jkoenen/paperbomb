@@ -14,7 +14,7 @@
 #include <math.h>
 #include <stdarg.h>
 
-//#define TEST_RENDERER
+#define TEST_RENDERER
 
 #ifdef TEST_RENDERER
 #   include "font.h"
@@ -28,7 +28,7 @@ enum
     //ScreenHeight = 360
 };
 
-static float s_soundBuffer[ SoundChannelCount * SoundBufferSampleCount ];
+static float2 s_soundBuffer[ SoundChannelCount * SoundBufferSampleCount ];
 
 static uint s_callbackCount = 0u;
 
@@ -45,12 +45,13 @@ s_callbackCount++;
     sound_fillBuffer( s_soundBuffer, ( uint )sampleCount );
 
     int16* pTarget = ( int16* )(void*)pStream;
-    const float* pSource = &s_soundBuffer[ 0u ];
+    const float2* pSource = &s_soundBuffer[ 0u ];
 
     for( size_t i = 0u; i < sampleCount; ++i )
     {
-        *pTarget++ = ( int16 )( 32767.0f * *pSource++ );
-        *pTarget++ = ( int16 )( 32767.0f * *pSource++ );
+        *pTarget++ = ( int16 )( 32767.0f * pSource->x );
+        *pTarget++ = ( int16 )( 32767.0f * pSource->y );
+        pSource++;
     }
 }
 
@@ -116,7 +117,7 @@ int main()
 
     game_init();
 
-//    SDL_PauseAudio( 0 );
+    SDL_PauseAudio( 0 );
 
     uint32 lastTime = SDL_GetTicks();
     uint32 buttonMask = 0u;
@@ -211,9 +212,18 @@ int main()
             // new page:
             renderer_flipPage();
 
-            float2 bombPoints[] =
+            float2 points[] =
             { 
-                { -1.0f,  0.2f },
+                { -4.0f,  0.0f },
+                { -4.0f, -4.0f },
+                {  0.0f, -4.0f },
+                {  4.0f, -4.0f },
+                {  4.0f,  0.0f },
+                {  4.0f,  4.0f },
+                {  0.0f,  4.0f },
+                { -4.0f,  4.0f },
+                { -4.0f,  0.0f }
+                /*{ -1.0f,  0.2f },
                 {  1.0f,  0.2f },
                 {  1.0f, -0.2f },
                 { -1.0f, -0.2f },
@@ -223,64 +233,27 @@ int main()
                 {  0.2f,  1.0f },
                 {  0.2f, -1.0f },
                 { -0.2f, -1.0f },
-                { -0.2f,  1.0f }
+                { -0.2f,  1.0f }*/
             };
 
             renderer_setPen( Pen_Default );
 
             const float2 worldOffset = { 32.0f, 16.0f };
-            const float2 position = { 5.0f, 0.0f };
+            const float2 position = { 0.0f, 0.0f };
 
             float2x3 bombTransform;
             float2x2_rotationY( &bombTransform.rot, 0.0f );
-            float2x2_scale1f( &bombTransform.rot, &bombTransform.rot, 5.0f );
+            float2x2_scale1f( &bombTransform.rot, &bombTransform.rot, 1.0f );
             float2_add( &bombTransform.pos, &position, &worldOffset );
 
             renderer_setTransform( &bombTransform );
 
-        /*	for( uint i = 0u; i < SYS_COUNTOF( bomb0Points ); ++i )
-            {
-                float2 scale;
-                float2_set( &scale, 1.0f, 0.2f );
-                float2_scale2f( &bomb0Points[ i ], &scale );
-                float2_rotate( &bomb0Points[ i ], pBomb->direction );
-                float2_add( &bomb0Points[ i ], &bomb0Points[ i ], &pBomb->position );
-                float2_scale2f( &bomb0Points[ i ], &worldScale );
-                float2_add( &bomb0Points[ i ], &bomb0Points[ i ], &worldOffset );
-            }*/
+            //renderer_addQuadraticStroke(&points[0u],&points[1u],&points[2u]);
+            renderer_addQuadraticStroke(points,SYS_COUNTOF(points));
 
-            renderer_addStroke( bombPoints, SYS_COUNTOF( bombPoints ) );
-/*
-            
-            const float2 points[] =
-            {
-                {  0.0f, 0.0f },
-                { 10.0f, 0.0f },
-                { 20.0f, 0.0f },
-                { 20.0f, 10.0f }
-            };
-
-            float2x3 transform;
-            float2x2_identity( &transform.rot );
-            float2_set( &transform.pos, 40.0f, 10.0f );
-            renderer_setTransform( &transform );
-            renderer_setPen( Pen_Fat );
-            renderer_addStroke( points, SYS_COUNTOF( points ) );
-
-            renderer_setPen( Pen_Default );
-            float2_set( &transform.pos, 10.0f, 10.0f );
-            renderer_setTransform( &transform );
-            renderer_addStroke( points, SYS_COUNTOF( points ) );
-            
-            float2_set( &transform.pos, 10.0f, 20.0f );
-            renderer_setTransform( &transform );
-            renderer_addStroke( points, SYS_COUNTOF( points ) );
-
-            renderer_setPen( Pen_Fat );
-
-            float2 position;
-            float2_set( &position, 2.0f, 3.0f );
-            font_drawText( &position, 1.0f, 0.0f, "OO" );*/
+            float2 textPos;
+            float2_set(&textPos,5.0f,4.0f);
+            font_drawText(&textPos,1.0f,0.0f,"0123456789A" );
         }
         renderer_updatePage( timeStep );
 

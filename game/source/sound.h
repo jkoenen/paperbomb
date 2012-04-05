@@ -15,7 +15,7 @@ enum
 void sound_init();
 void sound_done();
 
-void sound_fillBuffer( float* pBuffer, uint count );
+void sound_fillBuffer( float2* pBuffer, uint count );
 
 void sound_setEngineFrequency( float frequency );
 
