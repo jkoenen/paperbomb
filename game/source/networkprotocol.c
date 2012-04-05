@@ -1,7 +1,6 @@
 #include "networkprotocol.h"
 
 #include "debug.h"
-#include "string.h"
 
 void packet_write_input( Packet* pPacket, uint32 buttonMask )
 {

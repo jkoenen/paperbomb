@@ -184,13 +184,14 @@ static void	__cdecl soundThreadFunction( void* )
 			return;
 		}		
 
-		float fbuffer[ SoundBufferSampleHalfCount * SoundChannelCount ];
+		float2 fbuffer[ SoundBufferSampleHalfCount ];
 		sound_fillBuffer( fbuffer, SoundBufferSampleHalfCount );
 
 		int16* pBuffer = (int16*)lpvAudio1;
-		for( uint i = 0u; i < SoundBufferSampleHalfCount * SoundChannelCount; ++i )
+		for( uint i = 0u; i < SoundBufferSampleHalfCount; ++i )
 		{
-			*pBuffer++ = (int16)( fbuffer[ i ] * 32000.0f ); 
+			*pBuffer++ = (int16)( fbuffer[ i ].x * 32768.0f ); 
+			*pBuffer++ = (int16)( fbuffer[ i ].y * 32768.0f ); 
 		}
 
 		//static float time = 0.0f;
