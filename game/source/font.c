@@ -59,7 +59,16 @@ static const FontGlyph s_glyphs[] =
     { 'A', 9.0f, s_points_a, SYS_COUNTOF( s_points_a ) },
     { 'H', 8.0f, s_points_h, SYS_COUNTOF( s_points_h ) },
     { 'L', 7.0f, s_points_l, SYS_COUNTOF( s_points_l ) },
-    { 'O', 9.0f, s_points_o, SYS_COUNTOF( s_points_o ) },
+/*    { 'O', 9.0f, s_points_0, SYS_COUNTOF( s_points_0 ) },
+    { '1', 9.0f, s_points_1, SYS_COUNTOF( s_points_1 ) },
+    { '2', 9.0f, s_points_2, SYS_COUNTOF( s_points_2 ) },
+    { '3', 9.0f, s_points_3, SYS_COUNTOF( s_points_3 ) },
+    { '4', 9.0f, s_points_4, SYS_COUNTOF( s_points_4 ) },
+    { '5', 9.0f, s_points_5, SYS_COUNTOF( s_points_5 ) },
+    { '6', 9.0f, s_points_6, SYS_COUNTOF( s_points_6 ) },
+    { '7', 9.0f, s_points_7, SYS_COUNTOF( s_points_7 ) },
+    { '8', 9.0f, s_points_8, SYS_COUNTOF( s_points_8 ) },
+    { '9', 9.0f, s_points_9, SYS_COUNTOF( s_points_9 ) },*/
 };
 
 typedef struct

@@ -29,6 +29,7 @@ void renderer_flipPage();
 void renderer_addStroke( const float2* pPoints, uint pointCount );
 
 void renderer_addQuadraticStroke( const float2* p0, const float2* p1, const float2* p2 );
+void renderer_addQuadraticSplineStroke( const float2* pPoints, uint pointCount );
 
 void renderer_updatePage( float timeStep );
 int renderer_isPageDone();

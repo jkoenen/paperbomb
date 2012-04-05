@@ -295,7 +295,7 @@ void renderer_setDrawSpeed( float speed )
     const float maxStrokeDrawSpeed = 10000.0f;    // units per second..
     const float maxDelayAfterFlip = 1.0f; 
     const float maxDelayAfterDraw = 3.0f;
-    const float maxFlipDuration = 2.5f;
+    const float maxFlipDuration = 0.0f; //2.5f;
 
     const float2 afterFlipDelayKeys = { 0.2f, 0.8f };
     const float2 afterDrawDelayKeys = { 0.4f, 0.9f };
@@ -530,6 +530,7 @@ static void renderer_addSingleStroke( const float2* pStrokePoints, uint strokePo
     }
     
     const int isCycle=float2_isEqual(&pStrokePoints[0u],&pStrokePoints[strokePointCount-1u]);
+    
     StrokeCommand command;
     createDrawCommand( &command );
 
@@ -588,7 +589,7 @@ void renderer_addStroke( const float2* pStrokePoints, uint strokePointCount )
     }
 }
 
-static inline float b1( float x )
+/*static inline float b1( float x )
 {
     return x*x;
 }
@@ -601,52 +602,120 @@ static inline float b2( float x )
 static inline float b3(float x)
 {
     return ((1.0f-x)*(1.0f-x));
+}*/
+
+static inline void evaluateQuadraticCurve( float2* pResult, const float2* pPoints, float x )
+{
+    const float x0=pPoints[0u].x;
+    const float y0=pPoints[0u].y;
+    const float x1=pPoints[1u].x;
+    const float y1=pPoints[1u].y;
+    const float x2=pPoints[2u].x;
+    const float y2=pPoints[2u].y;
+    
+    const float w0=((1.0f-x)*(1.0f-x));
+    const float w1=2.0f*x*(1.0f-x);
+    const float w2=x*x;
+
+    pResult->x = w0*x0 + w1*x1 + w2*x2;
+    pResult->y = w0*y0 + w1*y1 + w2*y2;
+
+//SYS_TRACE_DEBUG("qp=(%f,%f) (%f,%f) (%f,%f) (%f)=%f,%f\n",pPoints[0u].x,pPoints[0u].y,pPoints[1u].x,pPoints[1u].y,pPoints[2u].x,pPoints[2u].y,x,pResult->x,pResult->y);
+}
+
+static uint addQuadraticCurvePoints(const float2* pPoints,uint stepCount,int addLastPoint)
+{
+    float x = 0.0f;
+    float dx = 1.0f / (float)(stepCount-1u);
+
+    uint addedPointCount = 0u;
+    
+    float2 point;
+    if( !addLastPoint )
+    {
+        stepCount--;
+    }
+    for( uint i = 0u; i < stepCount; ++i )
+    {
+        evaluateQuadraticCurve(&point,pPoints,x);
+        if( pushStrokePoint( &point ) )
+        {
+            addedPointCount++;
+        }
+
+        x += dx;
+    }
+    return addedPointCount;
 }
 
 void renderer_addQuadraticStroke( const float2* p0, const float2* p1, const float2* p2 )
 {
     const float variance = s_renderer.currentVariance;
-    float2 cp0, cp1, cp2;
-    transformPoint(&cp0, p0, variance/4.0f);
-    transformPoint(&cp1, p1, variance);
-    transformPoint(&cp2, p2, variance);
+    float2 cps[3u];
+    transformPoint(&cps[0u], p0, variance/4.0f);
+    transformPoint(&cps[1u], p1, variance);
+    transformPoint(&cps[2u], p2, variance);
+
+    const uint stepCount = 10u; // :TODO: adaptive detail 
+    const int isCycle = 0;
 
     StrokeCommand command;
     createDrawCommand( &command );
-
-    float x = 0.0f;
-    const uint stepCount = 10u; // :TODO: adaptive detail 
-    float dx = 1.0f / (float)(stepCount-1u);
-    
-    float2 point;
-    for( uint i = 0u; i < stepCount; ++i )
-    {
-        const float w0=b1(x);
-        const float w1=b2(x);
-        const float w2=b3(x);
-
-        point.x = w0*cp0.x + w1*cp1.x + w2*cp2.x;
-        point.y = w0*cp0.y + w1*cp1.y + w2*cp2.y;
-
-        if( pushStrokePoint( &point ) )
-        {
-            command.data.draw.pointCount++;
-        }
-
-        x += dx;
-    }
-//    int isCycle = float2_isEqual( &pStrokePoints[ pointIndex0 ], &pStrokePoints[ pointIndexN ] );
-    computeStrokeNormals( &command, 0 );
+    command.data.draw.pointCount += addQuadraticCurvePoints(cps,stepCount,1);
+    computeStrokeNormals( &command, isCycle );
     pushStrokeCommand( &command );
 }
 
 /*static void renderer_addSingleQuadraticStroke( const float2* pPoints, uint pointCount )
 {
     SYS_ASSERT( pPoints );
-    SYS_ASSERT( pointCount >= 3 );
+    SYS_ASSERT( pointCount >= 3u );
 
+    // 
+
+//    const uint 
     
 }*/
+
+void renderer_addQuadraticSplineStroke( const float2* pPoints, uint pointCount )
+{
+    SYS_ASSERT( pPoints );
+    SYS_ASSERT( pointCount > 3u );
+
+    const int isCycle=float2_isEqual(&pPoints[0u],&pPoints[pointCount-1u]);
+    
+    const uint segmentCount = ( pointCount - 3u ) / 2u + 1u;
+
+    const float variance = s_renderer.currentVariance;
+    float2 cps[3u];
+
+    StrokeCommand command;
+    createDrawCommand( &command );
+    const float2* pSegmentPoints = pPoints;
+    for(uint i=0u;i<segmentCount;++i)
+    {
+        if(i==0u)
+        {
+            transformPoint(&cps[0u], &pSegmentPoints[0u], variance/4.0f);
+            transformPoint(&cps[1u], &pSegmentPoints[1u], variance);
+            transformPoint(&cps[2u], &pSegmentPoints[2u], variance);
+            pSegmentPoints += 3u;
+        }
+        else
+        {
+            // copy the last point over:
+            cps[0u]=cps[2u];
+            transformPoint(&cps[1u], &pSegmentPoints[0u], variance);
+            transformPoint(&cps[2u], &pSegmentPoints[1u], variance);
+            pSegmentPoints += 2u;
+        }
+        const uint stepCount = 10u; // :TODO: adaptive detail 
+        command.data.draw.pointCount += addQuadraticCurvePoints(cps,stepCount,i==segmentCount-1u);
+    }
+
+    computeStrokeNormals( &command, isCycle );
+    pushStrokeCommand( &command );
+}
 
 /*void renderer_addQuadraticStroke( const float2* pPoints, uint pointCount )
 {

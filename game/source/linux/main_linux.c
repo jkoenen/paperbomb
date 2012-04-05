@@ -14,7 +14,7 @@
 #include <math.h>
 #include <stdarg.h>
 
-//#define TEST_RENDERER
+#define TEST_RENDERER
 
 #ifdef TEST_RENDERER
 #   include "font.h"
@@ -213,10 +213,15 @@ int main()
 
             float2 points[] =
             {
-                { 0.0f, 4.0f },
-                { 0.0f, 0.0f },
-                { 4.0f, 0.0f },
-
+                { -4.0f,  0.0f },
+                { -4.0f, -4.0f },
+                {  0.0f, -4.0f },
+                {  4.0f, -4.0f },
+                {  4.0f,  0.0f },
+                {  4.0f,  4.0f },
+                {  0.0f,  4.0f },
+                { -4.0f,  4.0f },
+                { -4.0f,  0.0f }
                 /*{ -1.0f,  0.2f },
                 {  1.0f,  0.2f },
                 {  1.0f, -0.2f },
@@ -242,7 +247,12 @@ int main()
 
             renderer_setTransform( &bombTransform );
 
-            renderer_addQuadraticStroke(&points[0u],&points[1u],&points[2u]);
+            //renderer_addQuadraticStroke(&points[0u],&points[1u],&points[2u]);
+            renderer_addQuadraticSplineStroke(points,SYS_COUNTOF(points));
+
+            float2 textPos;
+            float2_set(&textPos,5.0f,4.0f);
+            font_drawText(&textPos,1.0f,0.0f,"0123456789A" );
         }
         renderer_updatePage( timeStep );
 
