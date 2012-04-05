@@ -1,5 +1,4 @@
 #include "game.h"
-#include "player.h"
 #include "renderer.h"
 #include "debug.h"
 #include "types.h"
@@ -7,17 +6,12 @@
 #include "font.h"
 #include "input.h"
 #include "vector.h"
-#include "gamestate.h"
 #include "world.h"
 #include "server.h"
+#include "client.h"
 
 #include <string.h>
 #include <memory.h>
-
-enum
-{
-	NetworkPort = 2357u
-};
 
 typedef struct
 {
@@ -28,9 +22,9 @@ typedef struct
 	float       drawSpeed;
 	float       variance;
 
-	GameState	gameState;
     uint32      debugLastButtonMask;
 
+	Client		client;
 	Server		server;
 
 } Game;
@@ -92,14 +86,19 @@ void game_init()
     	s_game.lastButtonMask[ i ] = 0u;
     }
 
-	gamestate_init( &s_game.gameState, 2u );
-
 	server_create( &s_game.server, NetworkPort );
+
+	IP4Address address;
+	address.address = socket_gethostIP();
+	address.port = NetworkPort;
+
+	client_create( &s_game.client, NetworkPort, &address, "Hossa" );
 }
 
 void game_done()
 {
 	server_destroy( &s_game.server );
+	client_destroy( &s_game.client );
 
     renderer_done();
 	font_done();
@@ -118,31 +117,31 @@ void game_update( const GameInput* pInput )
 		debug_update(buttonMask, s_game.debugLastButtonMask );
         s_game.debugLastButtonMask = buttonMask;
 
-		PlayerInput playerInputs[ MaxPlayer ];
-		memset( playerInputs, 0u, sizeof( playerInputs ) );
-		playerInputs[ 0u ].buttonMask = buttonMask & Button_PlayerMask;
-        playerInputs[ 0u ].buttonDownMask = playerInputs[ 0u ].buttonMask & ~s_game.lastButtonMask[ 0u ];
-        s_game.lastButtonMask[ 0u ] = playerInputs[ 0u ].buttonMask;
-		playerInputs[ 1u ].buttonMask = ( buttonMask >> Button_PlayerShift ) & Button_PlayerMask;
-        playerInputs[ 1u ].buttonDownMask = playerInputs[ 1u ].buttonMask & ~s_game.lastButtonMask[ 1u ];
-        s_game.lastButtonMask[ 1u ] = playerInputs[ 1u ].buttonMask;
-
+		//PlayerInput playerInputs[ MaxPlayer ];
+		//memset( playerInputs, 0u, sizeof( playerInputs ) );
+		//playerInputs[ 0u ].buttonMask = buttonMask & Button_PlayerMask;
+  //      playerInputs[ 0u ].buttonDownMask = playerInputs[ 0u ].buttonMask & ~s_game.lastButtonMask[ 0u ];
+  //      s_game.lastButtonMask[ 0u ] = playerInputs[ 0u ].buttonMask;
+		//playerInputs[ 1u ].buttonMask = ( buttonMask >> Button_PlayerShift ) & Button_PlayerMask;
+  //      playerInputs[ 1u ].buttonDownMask = playerInputs[ 1u ].buttonMask & ~s_game.lastButtonMask[ 1u ];
+  //      s_game.lastButtonMask[ 1u ] = playerInputs[ 1u ].buttonMask;
 
 		World world;
-		gamestate_update( &s_game.gameState, &world, playerInputs );
-	
+
+		client_update( &s_game.client, buttonMask & Button_PlayerMask );
+		server_update( &s_game.server, &world );
+
         sound_setEngineFrequency( ( buttonMask & ButtonMask_Up ) ? 1.0f : 0.0f );
 
 		s_game.updateTime -= GAMETIMESTEP;
 	}
 }
 
-void game_render_car( const Player* pPlayer )
+static void game_render_car( const ClientPlayer* pPlayer )
 {
-	if( pPlayer->age <= s_playerBulletProofAge )
+	if( pPlayer->age <= time_quantize( 1.0f ) )
 	{
-		const int frames = (int)( pPlayer->age * 15.0f );
-		if( frames & 1 )
+		if( ( pPlayer->age / 4u ) & 1 )
 		{
 			return;
 		}
@@ -168,10 +167,18 @@ void game_render_car( const Player* pPlayer )
 	float2 worldScale;
 	float2_set( &worldScale, 1.0f, 1.0f );
 
+	float2 position;
+	position.x = float_unquantize( pPlayer->posX );
+	position.y = float_unquantize( pPlayer->posY );
+
+	const float direction = angle_unquantize( pPlayer->direction );
+
+	const float steer = angle_unquantize( pPlayer->steer );
+
 	for( uint i = 0u; i < SYS_COUNTOF( carPoints ); ++i )
 	{
-		float2_rotate( &carPoints[ i ], pPlayer->direction );
-		float2_add( &carPoints[ i ], &carPoints[ i ], &pPlayer->position );
+		float2_rotate( &carPoints[ i ], direction );
+		float2_add( &carPoints[ i ], &carPoints[ i ], &position );
 		float2_scale2f( &carPoints[ i ], &carPoints[i], &worldScale );
 		float2_add( &carPoints[ i ], &carPoints[ i ], &worldOffset );
 	}
@@ -180,10 +187,10 @@ void game_render_car( const Player* pPlayer )
 	float2_set( &steerOffset, 1.0f, 0.6f );
 	for( uint i = 0u; i < SYS_COUNTOF( steerPoints ); ++i )
 	{
-		float2_rotate( &steerPoints[ i ], pPlayer->steer );
+		float2_rotate( &steerPoints[ i ], steer );
 		float2_add( &steerPoints[ i ], &steerPoints[ i ], &steerOffset );
-		float2_rotate( &steerPoints[ i ], pPlayer->direction );
-		float2_add( &steerPoints[ i ], &steerPoints[ i ], &pPlayer->position );
+		float2_rotate( &steerPoints[ i ], direction );
+		float2_add( &steerPoints[ i ], &steerPoints[ i ], &position );
 		float2_scale2f( &steerPoints[ i ], &steerPoints[i], &worldScale );
 		float2_add( &steerPoints[ i ], &steerPoints[ i ], &worldOffset );
 	}
@@ -194,7 +201,7 @@ void game_render_car( const Player* pPlayer )
     //renderer_addStroke( steerPoints, SYS_COUNTOF( steerPoints ) );
 }
 
-void game_render_bomb( const Bomb* pBomb )
+static void game_render_bomb( const ClientBomb* pBomb )
 {
 	float2 worldOffset;
 	float2_set( &worldOffset, 32.0f, 18.0f );
@@ -214,16 +221,22 @@ void game_render_bomb( const Bomb* pBomb )
 		{ -0.2f,  1.0f }
 	};
 
+	float2 position;
+	position.x = float_unquantize( pBomb->posX );
+	position.y = float_unquantize( pBomb->posY );
+
+	const float direction = angle_unquantize( pBomb->direction );
+
     float2x3 bombTransform;
-    float2x2_rotationY( &bombTransform.rot, pBomb->direction );
+    float2x2_rotationY( &bombTransform.rot, direction );
     float2x2_scale2f( &bombTransform.rot, &bombTransform.rot, 1.0f, 1.0f );
-    float2_add( &bombTransform.pos, &pBomb->position, &worldOffset );
+    float2_add( &bombTransform.pos, &position, &worldOffset );
 
     renderer_setTransform( &bombTransform );
 	renderer_addLinearStroke( bombPoints0, SYS_COUNTOF( bombPoints0 ) );
 }
 
-void game_render_explosion( const Explosion* pExplosion )
+static void game_render_explosion( const ClientExplosion* pExplosion )
 {
 	float2 worldOffset;
 	float2_set( &worldOffset, 32.0f, 18.0f );
@@ -239,13 +252,20 @@ void game_render_explosion( const Explosion* pExplosion )
 		{ -1.0f,  1.0f }
 	};
 
+	float2 position;
+	position.x = float_unquantize( pExplosion->posX );
+	position.y = float_unquantize( pExplosion->posY );
+
+	const float direction = angle_unquantize( pExplosion->direction );
+	const float length = (float)pExplosion->length;
+
 	for( uint i = 0u; i < SYS_COUNTOF( explosion0Points ); ++i )
 	{
 		float2 scale;
-		float2_set( &scale, pExplosion->length, 1.0f );
+		float2_set( &scale, length, 1.0f );
 		float2_scale2f( &explosion0Points[ i ], &explosion0Points[i], &scale );
-		float2_rotate( &explosion0Points[ i ], pExplosion->direction );
-		float2_add( &explosion0Points[ i ], &explosion0Points[ i ], &pExplosion->position );
+		float2_rotate( &explosion0Points[ i ], direction );
+		float2_add( &explosion0Points[ i ], &explosion0Points[ i ], &position );
 		float2_scale2f( &explosion0Points[ i ], &explosion0Points[i], &worldScale );
 		float2_add( &explosion0Points[ i ], &explosion0Points[ i ], &worldOffset );
 	}
@@ -264,10 +284,10 @@ void game_render_explosion( const Explosion* pExplosion )
 	for( uint i = 0u; i < SYS_COUNTOF( explosion1Points ); ++i )
 	{
 		float2 scale;
-		float2_set( &scale, 1.0f, pExplosion->length );
+		float2_set( &scale, 1.0f, length );
 		float2_scale2f( &explosion1Points[ i ], &explosion1Points[i], &scale );
-		float2_rotate( &explosion1Points[ i ], pExplosion->direction );
-		float2_add( &explosion1Points[ i ], &explosion1Points[ i ], &pExplosion->position );
+		float2_rotate( &explosion1Points[ i ], direction );
+		float2_add( &explosion1Points[ i ], &explosion1Points[ i ], &position );
 		float2_scale2f( &explosion1Points[ i ], &explosion1Points[i], &worldScale );
 		float2_add( &explosion1Points[ i ], &explosion1Points[ i ], &worldOffset );
 	}
@@ -300,25 +320,22 @@ void game_render()
 
         renderer_setPen( Pen_Default );
 
-		for( uint i = 0u; i < s_game.gameState.playerCount; ++i )
+		ClientGameState* pGameState = &s_game.client.gameState;
+		for( uint i = 0u; i < (uint)pGameState->playerCount; ++i )
 		{
-			const Player* pPlayer = &s_game.gameState.player[ i ];
-
+			const ClientPlayer* pPlayer = &pGameState->player[ i ];
 			game_render_car( pPlayer );
-			for( uint j = 0u; j < SYS_COUNTOF( pPlayer->bombs ); ++j )
-			{
-				const Bomb* pBomb = &pPlayer->bombs[ j ];
-
-				if( pBomb->active )
-				{
-					game_render_bomb( pBomb );
-				}
-			}
 		}
 
-		for( uint i = 0u; i < s_game.gameState.explosionCount; ++i )
+		for( uint i = 0u; i < (uint)pGameState->bombCount; ++i )
 		{
-			const Explosion* pExplosion = &s_game.gameState.explosions[ i ];
+			const ClientBomb* pBomb = &pGameState->bombs[ i ];
+			game_render_bomb( pBomb );
+		}
+
+		for( uint i = 0u; i < (uint)pGameState->explosionCount; ++i )
+		{
+			const ClientExplosion* pExplosion = &pGameState->explosions[ i ];
 			game_render_explosion( pExplosion );
 		}
 	}

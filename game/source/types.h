@@ -33,7 +33,8 @@ typedef unsigned __int64     uint64_t;
 #define SYS_COUNTOF(x) ((sizeof(x))/sizeof(x[0]))
 #define SYS_MEMBEROFFSET(s,m)   (size_t)(&(((s*)0)->m))
 
-#define PI 3.14159265
+#define PI 3.14159265f
+#define TWOPI (2.0f*3.14159265f)
 #define GAMETIMESTEP ( 1.0f / 60.0f )
 
 #define DEG2RADF(deg)    ((deg)*(float)PI/180.0f)
@@ -99,6 +100,21 @@ static inline float float_clamp( float x, float min, float max )
     return float_min( float_max( x, min ), max );
 }
 
+static inline int int_min( int x, int y )
+{
+	return x < y ? x : y;
+}
+
+static inline int int_max( int x, int y )
+{
+	return x > y ? x : y;
+}
+
+static inline int int_clamp( int x, int min, int max )
+{
+	return int_min( int_max( x, min ), max );
+}
+
 static inline double double_min( double x, double y )
 {
 	return x < y ? x : y;
@@ -151,6 +167,64 @@ static inline float float_rand_normal( float mean, float sd )
 static inline int float_isEqual( float a, float b )
 {
     return a == b;
+}
+
+static inline float angle_normalize( float angle )
+{
+	float result;
+	if( angle < 0.0f )
+	{
+		result = angle + TWOPI;
+	}
+	else if( angle >= TWOPI )
+	{
+		result = angle - TWOPI;
+	}
+	else
+	{
+		return angle;
+	}
+
+	if( result < 0.0f )
+	{
+		result = fmodf( result, TWOPI ) + TWOPI;
+	}
+	else if( result >= TWOPI )
+	{
+		result = fmodf( result, TWOPI );
+	}
+
+	return result;
+}
+
+static inline int16 float_quantize( float value )
+{
+	return (int16)( value * 1024.0f );
+}
+
+static inline float float_unquantize( int16 value )
+{
+	return (float)value / 1024.0f;
+}
+
+static inline uint8 angle_quantize( float angle )
+{
+	return (uint8)( angle_normalize( angle ) / TWOPI * 255.0f );
+}
+
+static inline float angle_unquantize( uint8 angle )
+{
+	return (float)angle / 255.0f * TWOPI;
+}
+
+static inline uint16 time_quantize( float time )
+{
+	return (uint16)( time / GAMETIMESTEP );
+}
+
+static inline float time_unquantize( uint16 time )
+{
+	return (float)time * GAMETIMESTEP;
 }
 
 static inline uint copyString( char* pDest, uint capacity, const char* pSource )

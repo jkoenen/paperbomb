@@ -30,7 +30,6 @@ when :win32
     
     add_c_define '_USE_MATH_DEFINES'
     
-    add_attribute :msvc_disabled_warnings, 4206
     ! source/win32/*.c
     
     add_lib 'opengl32.lib'

@@ -30,4 +30,7 @@ int		socket_bind( Socket socket, const IP4Address* pAddress );
 int		socket_send( Socket socket, const IP4Address* pTo, const void* pData, uint size );
 int		socket_receive( Socket socket, void* pData, uint size, IP4Address* pFrom );
 
+void	socket_send_blocking( Socket socket, const IP4Address* pTo, const void* pData, uint size );
+int		socket_isAddressEqual( const IP4Address* pAddress1, const IP4Address* pAddress2 );
+
 #endif

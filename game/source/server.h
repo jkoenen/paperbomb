@@ -3,27 +3,70 @@
 
 #include "types.h"
 #include "socket.h"
-
-enum
-{
-	MaxClients = 8u
-};
+#include "settings.h"
+#include "client.h"
+#include "world.h"
 
 typedef struct 
 {
-	IP4Address	address;
+	uint	player;
+	float2	position;
+	float	direction;
+	float	length;
+	float	time;
 
-} ClientData;
+} ServerBomb;
+
+typedef struct 
+{
+	float2	position;
+	float	direction;
+	float	length;
+	float	time;
+
+} ServerExplosion;
+
+typedef struct 
+{
+	IP4Address		address;
+	ClientState		state;
+	uint			lastButtonMask;
+
+	char			name[ 12u ];
+	float			age;
+	float2			position;
+	float			direction;
+	float			steer;
+	float2			velocity;
+	uint			maxBombs;
+	float			bombLength;
+
+} ServerPlayer;
+
+typedef struct 
+{
+	uint				id;
+
+	ServerPlayer		player[ MaxPlayer ];
+	uint				playerCount;
+
+	ServerBomb			bombs[ MaxBombs ];
+	uint				bombCount;
+
+	ServerExplosion		explosions[ MaxExplosions ];
+	uint				explosionCount;
+
+} ServerGameState;
 
 typedef struct 
 {
 	Socket			socket;
-	ClientData		clients[ MaxClients ];
+	ServerGameState	gameState;
 
 } Server;
 
 void	server_create( Server* pServer, uint16 port );
 void	server_destroy( Server* pServer );
-void	server_update( Server* pServer );
+void	server_update( Server* pServer, const World* pWorld );
 
 #endif
