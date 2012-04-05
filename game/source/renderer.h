@@ -25,6 +25,8 @@ void renderer_setPen( Pen pen );
 void renderer_setVariance( float variance );
 void renderer_setTransform( const float2x3* pTransform );
 
+void renderer_addBurnHole( const float2* pStart, const float2* pEnd, float size );
+
 void renderer_flipPage();
 
 void renderer_addLinearStroke( const float2* pPoints, uint pointCount );

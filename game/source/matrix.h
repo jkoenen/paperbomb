@@ -22,6 +22,7 @@ float2x2* float2x2_scale1f( float2x2* pResult, const float2x2* pMatrix, float sc
 float2x2* float2x2_scale2f( float2x2* pResult, const float2x2* pMatrix, float scaleX, float scaleY );
 
 float2* float2x3_transform( float2* pResult, const float2x3* pMatrix, const float2* pPoint );
+float2* float2x2_transform( float2* pResult, const float2x2* pMatrix, const float2* pPoint );
 
 #endif
 

@@ -57,15 +57,15 @@ static const float2 s_points_o[] =
 
 static const float2 s_points_0[] =
 { 
-    { 0.0f, 2.0f },
-    { 0.0f, 0.0f },
+    { 1.0f, 3.0f },
+    { 0.1f, 3.0f },
+    { 0.1f, 1.5f },
+    { 0.1f, 0.0f },
+    { 1.0f, 0.0f },
     { 2.0f, 0.0f },
-    { 4.0f, 0.0f },
-    { 4.0f, 2.0f },
-    { 4.0f, 4.0f },
-    { 2.0f, 0.0f },
-    { 0.0f, 4.0f },
-    { 0.0f, 2.0f }
+    { 2.0f, 1.5f },
+    { 2.0f, 3.0f },
+    { 1.0f, 3.0f }
 };
 
 static const float2 s_points_1[] =
@@ -73,8 +73,110 @@ static const float2 s_points_1[] =
     { 0.0f, 1.9f },
     { 0.0f, 1.9f },
     { 1.1f, 3.0f },
-    { 1.1f, 2.0f },
+    { 1.1f, 3.0f },
     { 1.1f, 0.0f }
+};
+
+static const float2 s_points_2[] =
+{
+    { 0.2f, 2.7f },
+    { 1.0f, 3.5f },
+    { 1.9f, 2.2f },
+    { 1.2f, 0.8f },
+    { 0.0f, 0.0f },
+    { 0.0f, 0.0f },
+    { 1.9f, 0.0f }
+};
+
+static const float2 s_points_3[] =
+{
+    { 0.0f, 2.1f },
+    { 0.0f, 3.0f },
+    { 1.0f, 3.0f },
+    { 1.9f, 3.0f },
+    { 1.9f, 1.9f },
+    { 1.9f, 0.0f },
+    { 0.0f, 0.0f },
+    { 0.0f, 0.0f },
+    { 1.9f, 0.0f }
+};
+
+static const float2 s_points_4[] =
+{
+    { 0.0f, 2.1f },
+    { 0.0f, 3.0f },
+    { 1.0f, 3.0f },
+    { 1.9f, 3.0f },
+    { 1.9f, 1.9f },
+    { 1.9f, 0.0f },
+    { 0.0f, 0.0f },
+    { 0.0f, 0.0f },
+    { 1.9f, 0.0f }
+};
+
+static const float2 s_points_5[] =
+{
+    { 0.0f, 2.1f },
+    { 0.0f, 3.0f },
+    { 1.0f, 3.0f },
+    { 1.9f, 3.0f },
+    { 1.9f, 1.9f },
+    { 1.9f, 0.0f },
+    { 0.0f, 0.0f },
+    { 0.0f, 0.0f },
+    { 1.9f, 0.0f }
+};
+
+static const float2 s_points_6[] =
+{
+    { 0.0f, 2.1f },
+    { 0.0f, 3.0f },
+    { 1.0f, 3.0f },
+    { 1.9f, 3.0f },
+    { 1.9f, 1.9f },
+    { 1.9f, 0.0f },
+    { 0.0f, 0.0f },
+    { 0.0f, 0.0f },
+    { 1.9f, 0.0f }
+};
+
+static const float2 s_points_7[] =
+{
+    { 0.0f, 2.1f },
+    { 0.0f, 3.0f },
+    { 1.0f, 3.0f },
+    { 1.9f, 3.0f },
+    { 1.9f, 1.9f },
+    { 1.9f, 0.0f },
+    { 0.0f, 0.0f },
+    { 0.0f, 0.0f },
+    { 1.9f, 0.0f }
+};
+
+static const float2 s_points_8[] =
+{
+    { 0.0f, 2.1f },
+    { 0.0f, 3.0f },
+    { 1.0f, 3.0f },
+    { 1.9f, 3.0f },
+    { 1.9f, 1.9f },
+    { 1.9f, 0.0f },
+    { 0.0f, 0.0f },
+    { 0.0f, 0.0f },
+    { 1.9f, 0.0f }
+};
+
+static const float2 s_points_9[] =
+{
+    { 0.0f, 2.1f },
+    { 0.0f, 3.0f },
+    { 1.0f, 3.0f },
+    { 1.9f, 3.0f },
+    { 1.9f, 1.9f },
+    { 1.9f, 0.0f },
+    { 0.0f, 0.0f },
+    { 0.0f, 0.0f },
+    { 1.9f, 0.0f }
 };
 
 static const FontGlyph s_glyphs[] =
@@ -84,10 +186,10 @@ static const FontGlyph s_glyphs[] =
     { 'H', 8.0f, s_points_h, SYS_COUNTOF( s_points_h ) },
     { 'L', 7.0f, s_points_l, SYS_COUNTOF( s_points_l ) },
     { 'O', 9.0f, s_points_o, SYS_COUNTOF( s_points_o ) },*/
-    { 'O', 5.0f, s_points_0, SYS_COUNTOF( s_points_0 ) },
+    { '0', 5.0f, s_points_0, SYS_COUNTOF( s_points_0 ) },
     { '1', 2.0f, s_points_1, SYS_COUNTOF( s_points_1 ) },
-/*    { '2', 9.0f, s_points_2, SYS_COUNTOF( s_points_2 ) },
-    { '3', 9.0f, s_points_3, SYS_COUNTOF( s_points_3 ) },
+    { '2', 9.0f, s_points_2, SYS_COUNTOF( s_points_2 ) },
+    /*{ '3', 9.0f, s_points_3, SYS_COUNTOF( s_points_3 ) },
     { '4', 9.0f, s_points_4, SYS_COUNTOF( s_points_4 ) },
     { '5', 9.0f, s_points_5, SYS_COUNTOF( s_points_5 ) },
     { '6', 9.0f, s_points_6, SYS_COUNTOF( s_points_6 ) },
@@ -142,7 +244,8 @@ void font_drawText( const float2* pPosition, float size, float variance, const c
         }
         
         renderer_setTransform( &transform );
-        renderer_addLinearStroke( pGlyph->pPoints, pGlyph->pointCount );
+        //renderer_addLinearStroke( pGlyph->pPoints, pGlyph->pointCount );
+        renderer_addQuadraticStroke( pGlyph->pPoints, pGlyph->pointCount );
 
         const float advance = float_rand_normal( pGlyph->advance, variance );
         float2_addScaled1f( &transform.pos, &transform.pos, &transform.rot.x, advance );
