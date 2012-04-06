@@ -291,8 +291,6 @@ static void game_render_world( const World* pWorld )
 
 static void game_render_bomb( const ClientBomb* pBomb, const float2x3* pWorldTransform )
 {
-	(void)pWorldTransform;
-
 	float2 bombPoints0[] =
 	{ 
 		{ -1.0f,  0.2f },
@@ -314,24 +312,21 @@ static void game_render_bomb( const ClientBomb* pBomb, const float2x3* pWorldTra
 
 	const float direction = angle_unquantize( pBomb->direction );
 
-    float2x3 bombTransform;
-    float2x2_rotationY( &bombTransform.rot, direction );
-    float2x2_scale2f( &bombTransform.rot, &bombTransform.rot, 1.0f, 1.0f );
+	for( uint i = 0u; i < SYS_COUNTOF( bombPoints0 ); ++i )
+	{
+		float2_rotate( &bombPoints0[ i ], direction );
+		float2_add( &bombPoints0[ i ], &bombPoints0[ i ], &position );
+	}
 
 	renderer_setVariance( 0.0f );
 	renderer_setPen( Pen_DebugGreen );
 
-    renderer_setTransform( &bombTransform );
+    renderer_setTransform( pWorldTransform );
 	renderer_addLinearStroke( bombPoints0, SYS_COUNTOF( bombPoints0 ) );
 }
 
-static void game_render_explosion( const ClientExplosion* pExplosion )
+static void game_render_explosion( const ClientExplosion* pExplosion, const float2x3* pWorldTransform )
 {
-	float2 worldOffset;
-	float2_set( &worldOffset, 32.0f, 18.0f );
-	float2 worldScale;
-	float2_set( &worldScale, 1.0f, 1.0f );
-
 	float2 explosion0Points[] =
 	{ 
 		{ -1.0f,  1.0f },
@@ -357,12 +352,9 @@ static void game_render_explosion( const ClientExplosion* pExplosion )
 		float2_scale2f( &explosion0Points[ i ], &explosion0Points[i], &scale );
 		float2_rotate( &explosion0Points[ i ], direction );
 		float2_add( &explosion0Points[ i ], &explosion0Points[ i ], &position );
-		float2_scale2f( &explosion0Points[ i ], &explosion0Points[i], &worldScale );
-		float2_add( &explosion0Points[ i ], &explosion0Points[ i ], &worldOffset );
 	}
 
-	renderer_setTransform( 0 );
-
+	renderer_setTransform( pWorldTransform );
 	renderer_addLinearStroke( explosion0Points, SYS_COUNTOF( explosion0Points ) ); 
 
 	float2 explosion1Points[] =
@@ -381,20 +373,13 @@ static void game_render_explosion( const ClientExplosion* pExplosion )
 		float2_scale2f( &explosion1Points[ i ], &explosion1Points[i], &scale );
 		float2_rotate( &explosion1Points[ i ], direction );
 		float2_add( &explosion1Points[ i ], &explosion1Points[ i ], &position );
-		float2_scale2f( &explosion1Points[ i ], &explosion1Points[i], &worldScale );
-		float2_add( &explosion1Points[ i ], &explosion1Points[ i ], &worldOffset );
 	}
 
 	renderer_addLinearStroke( explosion1Points, SYS_COUNTOF( explosion1Points ) );
 }
 
-static void game_render_burnhole( const ClientExplosion* pExplosion )
+static void game_render_burnhole( const ClientExplosion* pExplosion, const float2x3* pWorldTransform )
 {
-	float2 worldOffset;
-	float2_set( &worldOffset, 32.0f, 18.0f );
-	float2 worldScale;
-	float2_set( &worldScale, 1.0f, 1.0f );
-
 	float2 explosion0Points[] =
 	{ 
 		{ -1.0f,  0.0f },
@@ -415,11 +400,9 @@ static void game_render_burnhole( const ClientExplosion* pExplosion )
 		float2_scale2f( &explosion0Points[ i ], &explosion0Points[i], &scale );
 		float2_rotate( &explosion0Points[ i ], direction );
 		float2_add( &explosion0Points[ i ], &explosion0Points[ i ], &position );
-		float2_scale2f( &explosion0Points[ i ], &explosion0Points[i], &worldScale );
-		float2_add( &explosion0Points[ i ], &explosion0Points[ i ], &worldOffset );
 	}
 
-	renderer_setTransform( 0 );
+	renderer_setTransform( pWorldTransform );
 	renderer_addBurnHole( &explosion0Points[ 0u ], &explosion0Points[ 1u ], 2.0f ); 
 
 	float2 explosion1Points[] =
@@ -435,8 +418,6 @@ static void game_render_burnhole( const ClientExplosion* pExplosion )
 		float2_scale2f( &explosion1Points[ i ], &explosion1Points[i], &scale );
 		float2_rotate( &explosion1Points[ i ], direction );
 		float2_add( &explosion1Points[ i ], &explosion1Points[ i ], &position );
-		float2_scale2f( &explosion1Points[ i ], &explosion1Points[i], &worldScale );
-		float2_add( &explosion1Points[ i ], &explosion1Points[ i ], &worldOffset );
 	}
 
 	renderer_addBurnHole( &explosion1Points[ 0u ], &explosion1Points[ 1u ], 2.0f ); 
@@ -494,11 +475,11 @@ void game_render()
 				const ClientExplosion* pExplosion = &pGameState->explosions[ i ];
 				if( pExplosion->time > 0u )
 				{
-					game_render_explosion( pExplosion );
+					game_render_explosion( pExplosion, &s_game.world.worldTransform );
 				}
 				if( s_game.client.explosionTriggered[ i ] )
 				{
-					game_render_burnhole( pExplosion );
+					game_render_burnhole( pExplosion, &s_game.world.worldTransform );
 					s_game.client.explosionTriggered[i] = 0;
 				}
 			}

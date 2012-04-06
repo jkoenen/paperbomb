@@ -110,12 +110,12 @@ float2x3* float2x3_multiply( float2x3* pResult, const float2x3* pMatrixA, const 
 	const float mc02 = mb00 * ma02 + mb10 * ma12 + mb02;
 	const float mc12 = mb01 * ma02 + mb11 * ma12 + mb12;
 
-	pResult->rot.x.x = mc00;
-	pResult->rot.x.y = mc10;
-	pResult->rot.y.x = mc01;
-	pResult->rot.y.y = mc11;
-	pResult->pos.x = mc02;
-	pResult->pos.y = mc12;
+	pResult->rot.x.x	= mc00;
+	pResult->rot.x.y	= mc10;
+	pResult->rot.y.x	= mc01;
+	pResult->rot.y.y	= mc11;
+	pResult->pos.x		= mc02;
+	pResult->pos.y		= mc12;
 
 	return pResult;
 }
