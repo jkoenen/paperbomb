@@ -66,16 +66,16 @@ static const FontGlyph s_glyphs[] =
     { 'H', 8.0f, s_points_h, SYS_COUNTOF( s_points_h ) },
     { 'L', 7.0f, s_points_l, SYS_COUNTOF( s_points_l ) },
     { 'O', 9.0f, s_points_o, SYS_COUNTOF( s_points_o ) },*/
-    { '0', 5.0f, s_points_48, SYS_COUNTOF( s_points_48 ) },
+    { '0', 3.0f, s_points_48, SYS_COUNTOF( s_points_48 ) },
     { '1', 2.0f, s_points_49, SYS_COUNTOF( s_points_49 ) },
-    { '2', 4.0f, s_points_50, SYS_COUNTOF( s_points_50 ) },
-    { '3', 4.0f, s_points_51, SYS_COUNTOF( s_points_51 ) },
-    { '4', 4.0f, s_points_52, SYS_COUNTOF( s_points_52 ) },
-    { '5', 4.0f, s_points_53, SYS_COUNTOF( s_points_53 ) },
-    { '6', 4.0f, s_points_54, SYS_COUNTOF( s_points_54 ) },
-    { '7', 4.0f, s_points_55, SYS_COUNTOF( s_points_55 ) },
-    { '8', 4.0f, s_points_56, SYS_COUNTOF( s_points_56 ) },
-    { '9', 4.0f, s_points_57, SYS_COUNTOF( s_points_57 ) },
+    { '2', 3.0f, s_points_50, SYS_COUNTOF( s_points_50 ) },
+    { '3', 3.0f, s_points_51, SYS_COUNTOF( s_points_51 ) },
+    { '4', 3.0f, s_points_52, SYS_COUNTOF( s_points_52 ) },
+    { '5', 3.0f, s_points_53, SYS_COUNTOF( s_points_53 ) },
+    { '6', 3.0f, s_points_54, SYS_COUNTOF( s_points_54 ) },
+    { '7', 2.5f, s_points_55, SYS_COUNTOF( s_points_55 ) },
+    { '8', 3.0f, s_points_56, SYS_COUNTOF( s_points_56 ) },
+    { '9', 3.0f, s_points_57, SYS_COUNTOF( s_points_57 ) },
 };
 
 typedef struct
