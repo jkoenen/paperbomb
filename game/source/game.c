@@ -321,22 +321,30 @@ void game_render()
         renderer_setPen( Pen_Default );
 
 		ClientGameState* pGameState = &s_game.client.gameState;
-		for( uint i = 0u; i < (uint)pGameState->playerCount; ++i )
+
+		for( uint i = 0u; i < SYS_COUNTOF( pGameState->player ); ++i )
 		{
 			const ClientPlayer* pPlayer = &pGameState->player[ i ];
-			game_render_car( pPlayer );
+			if( pPlayer->state != PlayerState_InActive )
+			{
+				game_render_car( pPlayer );
+			}
 		}
-
-		for( uint i = 0u; i < (uint)pGameState->bombCount; ++i )
+		for( uint i = 0u; i < SYS_COUNTOF( pGameState->bombs ); ++i )
 		{
 			const ClientBomb* pBomb = &pGameState->bombs[ i ];
-			game_render_bomb( pBomb );
+			if( pBomb->time > 0u )
+			{
+				game_render_bomb( pBomb );
+			}
 		}
-
-		for( uint i = 0u; i < (uint)pGameState->explosionCount; ++i )
+		for( uint i = 0u; i < SYS_COUNTOF( pGameState->explosions ); ++i )
 		{
 			const ClientExplosion* pExplosion = &pGameState->explosions[ i ];
-			game_render_explosion( pExplosion );
+			if( pExplosion->time > 0u )
+			{
+				game_render_explosion( pExplosion );
+			}
 		}
 	}
     renderer_updatePage( 1.0f / 60.0f );

@@ -20,7 +20,19 @@ void client_create( Client* pClient, uint16 port, const IP4Address* pServerAddre
 	pClient->state.flags	  = ClientStateFlag_Online;
 	copyString( pClient->state.name, sizeof( pClient->state.name ), pName );
 
-	pClient->gameStateId = 0u;
+	pClient->gameState.id = 0u;
+	for( uint i = 0u; i < SYS_COUNTOF( pClient->gameState.player ); ++i )
+	{
+		pClient->gameState.player[ i ].state = PlayerState_InActive;
+	}
+	for( uint i = 0u; i < SYS_COUNTOF( pClient->gameState.bombs ); ++i )
+	{
+		pClient->gameState.bombs[ i ].time = 0u;
+	}
+	for( uint i = 0u; i < SYS_COUNTOF( pClient->gameState.explosions ); ++i )
+	{
+		pClient->gameState.explosions[ i ].time = 0u;
+	}
 }
 
 void client_destroy( Client* pClient )
