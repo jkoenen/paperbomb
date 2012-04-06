@@ -918,8 +918,21 @@ void renderer_addQuadraticStroke( const float2* pPoints, uint pointCount )
 
             pSegmentPoints += 2u;
         }
-        const uint stepCount = 10u; // :TODO: adaptive detail 
-        command.data.draw.pointCount += addQuadraticCurvePoints(cps,stepCount,i==segmentCount-1u);
+        
+        // if all three points are equal: skip all points and restart:
+        const float d0=float2_squareDistance(&cps[0u],&cps[1u]);
+        const float d1=float2_squareDistance(&cps[1u],&cps[2u]);
+        const float minDistance=0.1f;
+        const float minSquareDistance=minDistance*minDistance;
+        if(d0<minSquareDistance&&d1<minSquareDistance)
+        {
+            SYS_TRACE_DEBUG("skip\n");
+        }
+        else
+        {
+            const uint stepCount = 10u; // :TODO: adaptive detail 
+            command.data.draw.pointCount += addQuadraticCurvePoints(cps,stepCount,i==segmentCount-1u);
+        }
     }
 
     SYS_USE_ARGUMENT(isCycle);
