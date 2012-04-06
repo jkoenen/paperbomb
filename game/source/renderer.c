@@ -787,6 +787,7 @@ static uint addQuadraticCurvePoints(const float2* pPoints,uint stepCount,int add
     }
     const float distanceThreshold=0.1f;
     float2 lastPoint;
+    float2 lastNormal;
     for( uint i = 0u; i < stepCount; ++i )
     {
         evaluateQuadraticCurve(&point,pPoints,x);
@@ -797,11 +798,18 @@ static uint addQuadraticCurvePoints(const float2* pPoints,uint stepCount,int add
             float2 normal;
             float2_perpendicular(&normal,&tangent);
             float2_normalize(&normal);
+
+            if( i > 0 && float2_dot( &normal, &lastNormal ) < 0.0f )
+            {
+                float2_scale1f( &normal, &normal, -1.0f );
+            }
+
             if( pushStrokePointWithNormal( &point, &normal ) )
             {
                 addedPointCount++;
             }
             lastPoint=point;
+            lastNormal=normal;
         }
 
         x += dx;
