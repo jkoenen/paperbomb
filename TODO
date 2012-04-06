@@ -9,7 +9,6 @@ TODO:
 - network
     + sockets
     + matchmaking
-    - matchmaking
     + client/server communication
 - font:
     + quadratic curve to stroke conversion
