@@ -12,13 +12,16 @@
 #include "pen_glsl.h"
 #include "page_glsl.h"
 #include "pageflip_glsl.h"
+#include "burnhole_glsl.h"
+#include "noise_glsl.h"
 
 #include <math.h>
 
 enum 
 {
     MaxPointCount = 1024u,
-    MaxCommandCount = 256u
+    MaxCommandCount = 256u,
+    MaxBurnHoleCount = 32u
 };
 
 typedef struct
@@ -40,6 +43,15 @@ typedef struct
     float           pressure;
     float3          color;
 } PenDefinition;
+
+typedef struct
+{
+    float2  start;
+    float2  end;
+    float   size;
+    float   initialSize;
+    float   rot;
+} BurnHole;
 
 typedef enum 
 {
@@ -86,6 +98,7 @@ typedef struct
 {
     RenderTarget    bgTarget;
     RenderTarget    fgTarget;
+    RenderTarget    burnTarget;
 } Page;
 
 typedef enum
@@ -103,6 +116,10 @@ typedef struct
     Shader          penShader;
     Shader          pageShader;
     Shader          pageFlipShader;
+    Shader          burnHoleShader;
+    Shader          noiseShader;
+
+    RenderTarget    noiseTarget;
     
     Page            pages[ 2u ];    
     uint            currentPage;
@@ -119,6 +136,7 @@ typedef struct
     StrokeBuffer    strokeBuffer;
 
     PenDefinition   pens[ Pen_Count ];
+    BurnHole        burnHoles[ MaxBurnHoleCount ];
 
     Mesh2d          pageFlipMesh;
 
@@ -148,6 +166,7 @@ static void page_create( Page* pPage, int width, int height )
 {
     SYS_VERIFY( rendertarget_create( &pPage->bgTarget, width, height, PixelFormat_R8G8B8A8 ) );
     SYS_VERIFY( rendertarget_create( &pPage->fgTarget, width, height, PixelFormat_R8G8B8A8 ) );
+    SYS_VERIFY( rendertarget_create( &pPage->burnTarget, width, height, PixelFormat_R8G8B8A8 ) );
 
     // render into render target:
     graphics_setRenderTarget( &pPage->bgTarget );   
@@ -157,11 +176,16 @@ static void page_create( Page* pPage, int width, int height )
     graphics_setShader( &s_renderer.paperShader );    
     graphics_setFp4f( 0u, float_rand(), float_rand(), 2.0f / width, 2.0f / height );
     graphics_setVp4f( 0u, 32.0f, 18.0f, 0.4f, 0.3f );    
+    graphics_setFsTexture(0,s_renderer.noiseTarget.id,SamplerState_MirrorU_MirrorV_Bilinear);
     graphics_drawFullscreenQuad();
    
-    // clear fg:
-    graphics_setRenderTarget( &pPage->fgTarget );
+    // clear fg+burn target:
     graphics_setShader( 0 );
+
+    graphics_setRenderTarget( &pPage->fgTarget );
+    graphics_clear( 0.0f, 0.0f, 0.0f, 0.0f );
+
+    graphics_setRenderTarget( &pPage->burnTarget );
     graphics_clear( 0.0f, 0.0f, 0.0f, 0.0f );
 }
 
@@ -231,7 +255,18 @@ void renderer_init()
     SYS_VERIFY( shader_create( &s_renderer.penShader, &s_shader_pen, 0u, 2u, 0u ) );
     SYS_VERIFY( shader_create( &s_renderer.pageShader, &s_shader_page, 0u, 0u, 2u ) );
     SYS_VERIFY( shader_create( &s_renderer.pageFlipShader, &s_shader_pageflip, 1u, 0u, 2u ) );
+    SYS_VERIFY( shader_create( &s_renderer.burnHoleShader, &s_shader_burnhole, 0u, 2u, 1u ) );
+    SYS_VERIFY( shader_create( &s_renderer.noiseShader, &s_shader_noise, 0u, 0u, 0u ) );
 
+    SYS_VERIFY( rendertarget_create( &s_renderer.noiseTarget, 512u, 512u, PixelFormat_R8G8B8A8 ) );
+    
+    graphics_setBlendMode( BlendMode_Disabled );
+
+    // fill noise map:
+    graphics_setRenderTarget( &s_renderer.noiseTarget );
+    graphics_setShader( &s_renderer.noiseShader );
+    graphics_drawFullscreenQuad();
+    
     const int width = sys_getScreenWidth();
     const int height = sys_getScreenHeight();
 
@@ -263,6 +298,11 @@ void renderer_init()
     createPageFlipMesh( &s_renderer.pageFlipMesh, 64u, 36u );
 
     s_renderer.flipTime = -1.0f;
+
+    for( uint i = 0u; i < SYS_COUNTOF(s_renderer.burnHoles); ++i )
+    {
+        s_renderer.burnHoles[i].size = -1.0f;
+    }
 
     renderer_setDrawSpeed( 0.5f );
     renderer_setPen( Pen_Default );
@@ -346,6 +386,77 @@ void renderer_setTransform( const float2x3* pTransform )
     }
 }
 
+static void drawBurnHole( const BurnHole* pBurnHole )
+{
+    const float size=pBurnHole->size;
+    if( size <= 0.0f )
+    {
+        return;
+    }
+    
+    Page* pPage = &s_renderer.pages[ s_renderer.currentPage ];
+    graphics_setRenderTarget( &pPage->burnTarget );
+    graphics_setShader( &s_renderer.burnHoleShader );
+    graphics_setBlendMode( BlendMode_Over );
+    graphics_setFsTexture( 0, s_renderer.noiseTarget.id, SamplerState_MirrorU_MirrorV_Bilinear );
+
+    const float initialSize=pBurnHole->initialSize;
+    const float rot=pBurnHole->rot;
+    const float2 start=pBurnHole->start;
+    const float2 end=pBurnHole->end;
+
+    const float len=float2_distance(&start,&end);
+    const float s=initialSize;
+    const float us=(len+2.0f*s)/10.0f;
+    const float vs=2.0f*s/10.0f;
+    
+    graphics_setFp4f(0u,start.x,start.y,end.x,end.y);
+    graphics_setFp4f(1u,size,0.0f,0.0f,0.0f);
+
+    float2 dir;
+    float2_normalize(float2_sub(&dir, &end, &start));
+
+    float2 normal;
+    float2_perpendicular(&normal, &dir);
+    
+    float2 v[4u];
+    float2_addScaled1f(&v[0u], &start, &normal,  s);
+    float2_addScaled1f(&v[1u], &start, &normal, -s);
+    float2_addScaled1f(&v[2u], &end, &normal, -s);
+    float2_addScaled1f(&v[3u], &end, &normal,  s);
+
+    float2_addScaled1f(&v[0u], &v[0u], &dir, -s);
+    float2_addScaled1f(&v[1u], &v[1u], &dir, -s);
+    float2_addScaled1f(&v[2u], &v[2u], &dir, s);
+    float2_addScaled1f(&v[3u], &v[3u], &dir, s);
+
+    float2 uv0, uv1;
+    float2_set(&uv0,0.0f,0.0f);
+    float2_set(&uv1,us,vs);
+    float2x2 rotM;
+    float2x2_rotationY(&rotM,rot);
+/*    float2x2_transform(&uv0,&rotM,&uv0);
+    float2x2_transform(&uv1,&rotM,&uv1);*/
+    graphics_drawQuad(v,uv0.x,uv0.y,uv1.x,uv1.y);
+}
+
+void renderer_addBurnHole( const float2* pStart, const float2* pEnd, float size )
+{
+    for( uint i = 0u; i < SYS_COUNTOF(s_renderer.burnHoles); ++i )
+    {
+        if( s_renderer.burnHoles[i].size <= 0.0f )
+        {
+            s_renderer.burnHoles[i].size=size;
+            s_renderer.burnHoles[i].initialSize=size;
+            s_renderer.burnHoles[i].start=*pStart;
+            s_renderer.burnHoles[i].end=*pEnd;
+            s_renderer.burnHoles[i].rot=float_rand_range(0.0f, 2.0f*PI);
+            drawBurnHole( &s_renderer.burnHoles[i] );
+            break;
+        }
+    }
+}
+
 static void renderer_updatePageFlip( float timeStep )
 {
     if( s_renderer.flipTime < 0.0f || s_renderer.flipDuration <= 0.0f )
@@ -384,10 +495,22 @@ void renderer_flipPage()
     // clear current page:
     graphics_setRenderTarget( &pPage->fgTarget );
     graphics_setBlendMode( BlendMode_Disabled );
-    
+    graphics_setShader( 0 );
 
     // 
     graphics_clear( 0.0f, 0.0f, 0.0f, 0.0f );
+
+    graphics_setRenderTarget( &pPage->burnTarget );
+    graphics_clear( 0.0f, 0.0f, 0.0f, 0.0f );
+
+    for( uint i = 0u; i < SYS_COUNTOF(s_renderer.burnHoles); ++i )
+    {
+        if( s_renderer.burnHoles[i].size>0.0f)
+        {
+            s_renderer.burnHoles[i].size -= 0.6f;
+            drawBurnHole( &s_renderer.burnHoles[i] );
+        }
+    }
 
     if( s_renderer.flipDuration > 0.0f )
     {
@@ -678,7 +801,7 @@ static uint addQuadraticCurvePoints(const float2* pPoints,uint stepCount,int add
 void renderer_addQuadraticStroke( const float2* pPoints, uint pointCount )
 {
     SYS_ASSERT( pPoints );
-    SYS_ASSERT( pointCount > 3u );
+    SYS_ASSERT( pointCount >= 3u );
 
     const int isCycle=float2_isEqual(&pPoints[0u],&pPoints[pointCount-1u]);
     
@@ -1071,8 +1194,10 @@ void renderer_drawFrame( const FrameData* pFrame )
     // render paper:
     graphics_setShader( &s_renderer.pageShader );
 
-    graphics_setFsTexture( 0, s_renderer.pages[ s_renderer.currentPage ].bgTarget.id );
-    graphics_setFsTexture( 1, s_renderer.pages[ s_renderer.currentPage ].fgTarget.id );
+    const Page* pCurrentPage=&s_renderer.pages[s_renderer.currentPage];
+    graphics_setFsTexture(0,pCurrentPage->bgTarget.id,SamplerState_ClampU_ClampV_Nearest);
+    graphics_setFsTexture(1,pCurrentPage->fgTarget.id,SamplerState_ClampU_ClampV_Nearest);
+    graphics_setFsTexture(2,pCurrentPage->burnTarget.id,SamplerState_ClampU_ClampV_Nearest);
     
     graphics_drawFullscreenQuad();
 
@@ -1084,8 +1209,10 @@ void renderer_drawFrame( const FrameData* pFrame )
 
         graphics_setShader( &s_renderer.pageFlipShader );
 
-        graphics_setFsTexture( 0, s_renderer.pages[ s_renderer.lastPage ].bgTarget.id );
-        graphics_setFsTexture( 1, s_renderer.pages[ s_renderer.lastPage ].fgTarget.id );
+        const Page* pLastPage=&s_renderer.pages[s_renderer.lastPage];
+        graphics_setFsTexture(0,pLastPage->bgTarget.id,SamplerState_ClampU_ClampV_Nearest);
+        graphics_setFsTexture(1,pLastPage->fgTarget.id,SamplerState_ClampU_ClampV_Nearest);
+        graphics_setFsTexture(2,pLastPage->burnTarget.id,SamplerState_ClampU_ClampV_Nearest);
 
         graphics_setVp4f( 0u, flipProgress, 0.0f, 0.0f, 0.0f );
         graphics_drawMesh2d( &s_renderer.pageFlipMesh ); 

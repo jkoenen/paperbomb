@@ -71,4 +71,18 @@ float2* float2x3_transform( float2* pResult, const float2x3* pMatrix, const floa
     return float2_set( pResult, rx, ry );
 }
 
+float2* float2x2_transform( float2* pResult, const float2x2* pMatrix, const float2* pPoint )
+{
+    const float m00 = pMatrix->x.x;
+    const float m10 = pMatrix->x.y;
+    const float m01 = pMatrix->y.x;
+    const float m11 = pMatrix->y.y;
+    const float px = pPoint->x;
+    const float py = pPoint->y;
+
+    const float rx = m00 * px + m01 * py;
+    const float ry = m10 * px + m11 * py;
+
+    return float2_set( pResult, rx, ry );
+}
 

@@ -10,8 +10,8 @@ TODO:
     - sockets
     - matchmaking
     - client/server communication
-- font
-    - quadratic curve to stroke conversion
+- font:
+    + quadratic curve to stroke conversion
     - define font with quadratic curves
 - hatching
     - hatching area to stroke conversion
@@ -20,6 +20,7 @@ TODO:
     - main menu
     - multiplayer menu
     - single player? -> AI?
+    - menu point selection (erase)
 - ai
     - for single player
 - gameplay
@@ -33,9 +34,11 @@ TODO:
     - bomb sound
     - background music
 - graphics
+    - erase mode
+    - 
     - nicer graphics for cars, bombs and explosions
 - fx
-    - explosion hole
+    + explosion hole (first version)
     - spinning cube / some demo effect? (particles?)
 - name
     - demo 

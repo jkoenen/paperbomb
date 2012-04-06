@@ -185,6 +185,12 @@ int main()
 
 					case SDLK_SPACE:
 						updateButtonMask( &buttonMask, ButtonMask_PlaceBomb, event.type == SDL_KEYDOWN );
+    {
+        float2 p0,p1;
+        float2_set(&p0,float_rand_normal(10.0f,10.0f),float_rand_normal(10.0f,10.0f));
+        float2_set(&p1,float_rand_normal(10.0f,10.0f),float_rand_normal(10.0f,10.0f));
+        renderer_addBurnHole(&p0,&p1,10.0f);
+    }
 						break;
 
 					default:
@@ -212,7 +218,7 @@ int main()
             // new page:
             renderer_flipPage();
 
-            float2 points[] =
+            /*float2 points[] =
             { 
                 { -4.0f,  0.0f },
                 { -4.0f, -4.0f },
@@ -223,20 +229,10 @@ int main()
                 {  0.0f,  4.0f },
                 { -4.0f,  4.0f },
                 { -4.0f,  0.0f }
-                /*{ -1.0f,  0.2f },
-                {  1.0f,  0.2f },
-                {  1.0f, -0.2f },
-                { -1.0f, -0.2f },
-                { -1.0f,  0.2f },
-                { -1.0f,  0.2f },
-                { -0.2f,  1.0f },
-                {  0.2f,  1.0f },
-                {  0.2f, -1.0f },
-                { -0.2f, -1.0f },
-                { -0.2f,  1.0f }*/
-            };
+                { -0.2f,  1.0f }
+            };*/
 
-            renderer_setPen( Pen_Default );
+            renderer_setPen( Pen_Font );
 
             const float2 worldOffset = { 32.0f, 16.0f };
             const float2 position = { 0.0f, 0.0f };
@@ -249,11 +245,11 @@ int main()
             renderer_setTransform( &bombTransform );
 
             //renderer_addQuadraticStroke(&points[0u],&points[1u],&points[2u]);
-            renderer_addQuadraticStroke(points,SYS_COUNTOF(points));
+            //renderer_addQuadraticStroke(points,SYS_COUNTOF(points));
 
             float2 textPos;
             float2_set(&textPos,5.0f,4.0f);
-            font_drawText(&textPos,1.0f,0.0f,"0123456789A" );
+            font_drawText(&textPos,2.0f,0.0f,"0123456789A" );
         }
         renderer_updatePage( timeStep );
 

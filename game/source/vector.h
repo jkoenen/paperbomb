@@ -190,7 +190,7 @@ static inline float2* float2_perpendicular( float2* pResult, const float2* pA )
 }
 
 // r = a + b * c
-static inline float2* float2_addScaled2f( float2* pResult, const float2* pA, const float2* pB, const float2* pC )
+static inline float2* float2_addScaled( float2* pResult, const float2* pA, const float2* pB, const float2* pC )
 {
 	const float ax = pA->x;
 	const float ay = pA->y;

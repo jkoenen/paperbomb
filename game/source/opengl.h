@@ -14,4 +14,4 @@
 
 #endif
 
-#endif // KEEN__OPENGL_H__INCLUDED
+#endif

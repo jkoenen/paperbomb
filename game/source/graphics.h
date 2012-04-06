@@ -19,6 +19,13 @@ typedef enum
     VertexFormat_Count
 } VertexFormat;
 
+typedef enum
+{
+    SamplerState_ClampU_ClampV_Nearest,
+    SamplerState_MirrorU_MirrorV_Bilinear,
+    SamplerState_Count
+} SamplerState;
+
 typedef struct 
 {
     float2  pos;
@@ -56,7 +63,7 @@ void graphics_setShader( Shader* pShader );
 
 void graphics_setVp4f( uint index, float x, float y, float z, float w );
 void graphics_setFp4f( uint index, float x, float y, float z, float w );
-void graphics_setFsTexture( uint index, uint textureId );
+void graphics_setFsTexture( uint index, uint textureId, SamplerState sampler );
 
 void graphics_setVertexFormat( VertexFormat format );
 void graphics_setBlendMode( BlendMode mode );

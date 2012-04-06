@@ -66,13 +66,33 @@ void graphics_drawQuad( const float2* pVertices, float u0, float v0, float u1, f
     glEnd();
 }
 
-void graphics_setFsTexture( uint index, uint textureId )
+void graphics_setFsTexture( uint index, uint textureId, SamplerState sampler )
 {
     SYS_ASSERT( s_graphics.pShader );
 
     glUniform1i( s_graphics.pShader->ft[ index ], ( int )index );
     glActiveTexture( GL_TEXTURE0 + index );
     glBindTexture( GL_TEXTURE_2D, textureId );
+
+    switch( sampler )
+    {
+    case SamplerState_ClampU_ClampV_Nearest:
+        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE );
+        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE );
+        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST );
+        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST );        
+        break;
+
+    case SamplerState_MirrorU_MirrorV_Bilinear:
+        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_MIRRORED_REPEAT );
+        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_MIRRORED_REPEAT );
+        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+        glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );        
+        break;
+
+    default:
+        break;
+    }
 }
 
 void graphics_setRenderTarget( RenderTarget* pTarget )

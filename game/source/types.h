@@ -33,8 +33,8 @@ typedef unsigned __int64     uint64_t;
 #define SYS_COUNTOF(x) ((sizeof(x))/sizeof(x[0]))
 #define SYS_MEMBEROFFSET(s,m)   (size_t)(&(((s*)0)->m))
 
-#define PI 3.14159265f
-#define TWOPI (2.0f*3.14159265f)
+#define PI		3.14159265f
+#define TWOPI	6.28318531f
 #define GAMETIMESTEP ( 1.0f / 60.0f )
 
 #define DEG2RADF(deg)    ((deg)*(float)PI/180.0f)
