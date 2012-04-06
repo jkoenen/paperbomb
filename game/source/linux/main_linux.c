@@ -5,6 +5,7 @@
 #include "input.h"
 
 #include "renderer.h"
+#include "font.h"
 
 #include <GL/gl.h>
 #include <GL/glext.h>
@@ -14,10 +15,9 @@
 #include <math.h>
 #include <stdarg.h>
 
-//#define TEST_RENDERER
-
-#ifdef TEST_RENDERER
-#   include "font.h"
+#ifndef SYS_BUILD_MASTER
+//# define TEST_RENDERER
+#   define FONT_EDITOR
 #endif
 
 enum
@@ -29,8 +29,7 @@ enum
 };
 
 static float2 s_soundBuffer[ SoundChannelCount * SoundBufferSampleCount ];
-
-static uint s_callbackCount = 0u;
+static uint s_callbackCount=0u;
 
 static void soundCallback( void* pUserData, Uint8* pStream, int size )
 {
@@ -114,7 +113,9 @@ int main()
     }
 
     SDL_SetVideoMode( ScreenWidth, ScreenHeight, 0u, SDL_OPENGL /*| SDL_FULLSCREEN */ );
+#ifndef FONT_EDITOR
     SDL_ShowCursor( SDL_DISABLE );
+#endif
     SDL_GL_SetAttribute( SDL_GL_SWAP_CONTROL, 1 );
 
     SDL_AudioSpec audioSpec;
@@ -149,6 +150,12 @@ int main()
 
     int16 joystickAxis0 = 0;
     int16 joystickAxis1 = 0;
+
+    float2 mousePos;
+    float2_set(&mousePos, 0.0f, 0.0f);
+
+    int leftMouseDown=0;
+    int leftMousePressed=0;
 
     int quit = 0;
     do
@@ -201,6 +208,25 @@ int main()
                 if( event.jbutton.button == 0 )
                 {
                     updateButtonMask( &joystickButtonMask, ButtonMask_PlaceBomb, 0 );
+                }
+                break;
+
+            case SDL_MOUSEMOTION:
+                float2_set(&mousePos, (float)event.motion.x, (float)event.motion.y);
+                break;
+
+            case SDL_MOUSEBUTTONDOWN:
+                if( event.button.button == 1 )
+                {
+                    leftMouseDown = 1u;
+                    leftMousePressed = 1u;
+                }
+                break;
+
+            case SDL_MOUSEBUTTONUP:
+                if( event.button.button == 1 )
+                {
+                    leftMouseDown = 0u;
                 }
                 break;
 
@@ -264,14 +290,131 @@ int main()
         updateButtonMaskFromJoystick( &joystickButtonMask, ButtonMask_Down, joystickAxis1, 3200 );
         updateButtonMaskFromJoystick( &joystickButtonMask, ButtonMask_Up, -joystickAxis1, 3200 );
 
-        GameInput gameInput;
-        memset( &gameInput, 0u, sizeof( gameInput ) );
-        gameInput.timeStep = timeStep;
-        gameInput.buttonMask = buttonMask | joystickButtonMask;
+#ifdef FONT_EDITOR
+        static uint currentChar = '0';
+        static uint dataChar = '\0';
+        static float2 charPoints[ 128u ];
+        static uint charPointCount = 0u;
+        static uint32 lastButtonMask = 0u;
+        static int currentPointIndex = -1;
+        static float2 oldMousePagePos;
 
-        game_update( &gameInput );
+        const uint32 buttonPressMask = buttonMask & ~lastButtonMask;
+        lastButtonMask = buttonMask;
 
-#ifdef TEST_RENDERER
+        float2 mousePagePos;
+        mousePagePos.x=64.0f*mousePos.x/(float)ScreenWidth;
+        mousePagePos.y=36.0f+-36.0f*mousePos.y/(float)ScreenHeight;
+
+        if( buttonPressMask & ButtonMask_Right )
+        {
+            currentChar=font_getNextGlyphCharCode(currentChar,1);
+        }
+        if( buttonPressMask & ButtonMask_Left )
+        {
+            currentChar=font_getNextGlyphCharCode(currentChar,-1);
+        }
+
+        if( currentChar != dataChar )
+        {
+            const FontGlyph* pGlyph=font_getGlyph((uint)currentChar);
+            if(pGlyph)
+            {
+                charPointCount = uint_min(SYS_COUNTOF(charPoints),pGlyph->pointCount);
+                memcpy(charPoints,pGlyph->pPoints,charPointCount*sizeof(float2));
+                dataChar = currentChar;
+            }
+            else
+            {
+                charPointCount = 0u;
+            }
+            currentPointIndex = -1;
+        }
+
+        if( renderer_isPageDone() )
+        {
+            // new page:
+            renderer_flipPage();
+
+            renderer_setPen( Pen_Font );
+
+/*            const float2 worldOffset = { 32.0f, 16.0f };
+            const float2 position = { 0.0f, 0.0f };*/
+            
+            renderer_setVariance( 0.0f );
+            renderer_setTransform( 0 );
+
+            const float fontSize=3.0f;
+
+            float2 textPos;
+            float2_set(&textPos,32.0f,16.0f);
+
+            if( charPointCount > 0u )
+            {
+                float2x3 transform;
+                float2x2_identity(&transform.rot);
+                float2x2_scale1f(&transform.rot,&transform.rot,fontSize);
+                transform.pos=textPos;
+
+                renderer_setTransform( &transform );
+                renderer_addQuadraticStroke(charPoints,charPointCount);
+            }
+
+            // draw control points:
+            const float cpSize=0.5f;
+            for(uint i = 0u; i < charPointCount; ++i)
+            {
+                float2 pos;
+                float2_set(&pos,32.0f,16.0f);
+                float2_addScaled1f(&pos,&pos,&charPoints[i],fontSize);
+                
+                const int inRange = float2_distance(&mousePagePos,&pos)<cpSize;
+                if(currentPointIndex==-1&&inRange&&leftMousePressed)
+                {
+                    currentPointIndex=(int)i;
+                }
+                else if(currentPointIndex!=-1)
+                {
+                    if(!leftMouseDown)
+                    {
+                        currentPointIndex=-1;
+                    }
+                    else if( currentPointIndex==(int)i )
+                    {
+                        // move cp to be under the mouse cursor:
+                        float2 newCpPos;
+                        float2_sub(&newCpPos,&mousePagePos,&textPos);
+                        float2_scale1f(&charPoints[i],&newCpPos,1.0f/fontSize);
+                    }
+                }
+
+                float3 color;
+                if((int)i==currentPointIndex)
+                {
+                    float3_set(&color,0.2f,1.0f,0.2f);
+                }
+                else if(inRange)
+                {
+                    float3_set(&color,0.5f,0.5f,0.2f);
+                }
+                else
+                {
+                    float3_set(&color,0.8f,0.2f,0.2f);
+                }
+                renderer_drawCircle(&pos,cpSize,&color);
+            }
+            oldMousePagePos=mousePagePos;
+            leftMousePressed=0;
+        }
+        renderer_updatePage( timeStep );
+
+        FrameData frame;
+        //memset( &frame, 0u, sizeof( frame ) );
+        //frame.time = s_game.gameTime;
+        //frame.playerPos = s_game.player[ 0u ].position;
+        renderer_drawFrame( &frame );
+                
+#elif TEST_RENDERER
         if( renderer_isPageDone() )
         {
             // new page:
@@ -318,6 +461,13 @@ int main()
         //frame.playerPos = s_game.player[ 0u ].position;
         renderer_drawFrame( &frame );
 #else
+        GameInput gameInput;
+        memset( &gameInput, 0u, sizeof( gameInput ) );
+        gameInput.timeStep = timeStep;
+        gameInput.buttonMask = buttonMask | joystickButtonMask;
+
+        game_update( &gameInput );
+
         game_render();
 #endif
         SDL_GL_SwapBuffers();

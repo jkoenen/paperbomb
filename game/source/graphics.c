@@ -66,6 +66,23 @@ void graphics_drawQuad( const float2* pVertices, float u0, float v0, float u1, f
     glEnd();
 }
 
+void graphics_drawCircle( const float2* pPos, float radius )
+{
+    glBegin( GL_TRIANGLE_FAN );
+        glVertex2f( pPos->x, pPos->y );
+        
+        const uint stepCount = 20u;
+        float t = 0.0f;
+        float dt = 2.0F * PI / (float)(stepCount-1u);
+        for( uint i=0u; i < stepCount;++i)
+        {
+            glVertex2f(pPos->x+radius*cosf(t), pPos->y+radius*sinf(t));
+            t += dt;
+        }
+        glVertex2f(pPos->x+radius,pPos->y+0.0f);
+    glEnd();
+}
+
 void graphics_setFsTexture( uint index, uint textureId, SamplerState sampler )
 {
     SYS_ASSERT( s_graphics.pShader );

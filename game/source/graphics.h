@@ -57,6 +57,7 @@ void graphics_resetState();
 void graphics_clear( float r, float g, float b, float a );
 void graphics_drawFullscreenQuad();
 void graphics_drawQuad( const float2* pVertices, float u0, float v0, float u1, float v1 );
+void graphics_drawCircle( const float2* pPos, float radius );
 
 void graphics_setRenderTarget( RenderTarget* pTarget );
 void graphics_setShader( Shader* pShader );

@@ -15,6 +15,10 @@
 #include "burnhole_glsl.h"
 #include "noise_glsl.h"
 
+#ifndef SYS_BUILD_MASTER
+#   include "debugpen_glsl.h"
+#endif
+
 #include <math.h>
 
 enum 
@@ -118,6 +122,9 @@ typedef struct
     Shader          pageFlipShader;
     Shader          burnHoleShader;
     Shader          noiseShader;
+#ifndef SYS_BUILD_MASTER
+    Shader          debugPenShader;
+#endif
 
     RenderTarget    noiseTarget;
     
@@ -257,6 +264,9 @@ void renderer_init()
     SYS_VERIFY( shader_create( &s_renderer.pageFlipShader, &s_shader_pageflip, 1u, 0u, 2u ) );
     SYS_VERIFY( shader_create( &s_renderer.burnHoleShader, &s_shader_burnhole, 0u, 2u, 1u ) );
     SYS_VERIFY( shader_create( &s_renderer.noiseShader, &s_shader_noise, 0u, 0u, 0u ) );
+#ifndef SYS_BUILD_MASTER
+    SYS_VERIFY( shader_create( &s_renderer.debugPenShader, &s_shader_debugpen, 1u, 0u, 0u ) );
+#endif
 
     SYS_VERIFY( rendertarget_create( &s_renderer.noiseTarget, 512u, 512u, PixelFormat_R8G8B8A8 ) );
     
@@ -558,6 +568,19 @@ static int pushStrokeCommand( const StrokeCommand* pCommand )
     return TRUE;
 }
 
+static int pushStrokePointWithNormal( const float2* pPoint, const float2* pNormal )
+{
+    if( s_renderer.strokeBuffer.pointCount >= MaxPointCount )
+    {
+        SYS_TRACE_WARNING( "stroke point buffer is full!\n" );
+        return FALSE;
+    }
+    s_renderer.strokeBuffer.points[ s_renderer.strokeBuffer.pointCount ] = *pPoint;
+    s_renderer.strokeBuffer.pointNormals[ s_renderer.strokeBuffer.pointCount ] = *pNormal;
+    s_renderer.strokeBuffer.pointCount++;
+    return TRUE;
+}
+
 static int pushStrokePoint( const float2* pPoint )
 {
     if( s_renderer.strokeBuffer.pointCount >= MaxPointCount )
@@ -733,6 +756,24 @@ static inline void evaluateQuadraticCurve( float2* pResult, const float2* pPoint
     pResult->y = w0*y0 + w1*y1 + w2*y2;
 }
 
+static void evaluateQuadraticCurveTangent( float2* pResult, const float2* pPoints, float x )
+{
+    const float x0=pPoints[0u].x;
+    const float y0=pPoints[0u].y;
+    const float x1=pPoints[1u].x;
+    const float y1=pPoints[1u].y;
+    const float x2=pPoints[2u].x;
+    const float y2=pPoints[2u].y;
+    
+    const float t0x=x1-x0;
+    const float t0y=y1-y0;
+    const float t1x=x2-x1;
+    const float t1y=y2-y1;
+
+    pResult->x = 2.0f*(1.0f-x)*t0x + 2.0f*x*t1x;
+    pResult->y = 2.0f*(1.0f-x)*t0y + 2.0f*x*t1y;
+}
+
 static uint addQuadraticCurvePoints(const float2* pPoints,uint stepCount,int addLastPoint)
 {
     float x = 0.0f;
@@ -745,12 +786,23 @@ static uint addQuadraticCurvePoints(const float2* pPoints,uint stepCount,int add
     {
         stepCount--;
     }
+    const float distanceThreshold=0.1f;
+    float2 lastPoint;
     for( uint i = 0u; i < stepCount; ++i )
     {
         evaluateQuadraticCurve(&point,pPoints,x);
-        if( pushStrokePoint( &point ) )
+        if( i == 0 || i == stepCount - 1 || float2_distance(&point,&lastPoint)>distanceThreshold)
         {
-            addedPointCount++;
+            float2 tangent;
+            evaluateQuadraticCurveTangent(&tangent,pPoints,x);
+            float2 normal;
+            float2_perpendicular(&normal,&tangent);
+            float2_normalize(&normal);
+            if( pushStrokePointWithNormal( &point, &normal ) )
+            {
+                addedPointCount++;
+            }
+            lastPoint=point;
         }
 
         x += dx;
@@ -840,7 +892,9 @@ void renderer_addQuadraticStroke( const float2* pPoints, uint pointCount )
         command.data.draw.pointCount += addQuadraticCurvePoints(cps,stepCount,i==segmentCount-1u);
     }
 
-    computeStrokeNormals( &command, isCycle );
+    SYS_USE_ARGUMENT(isCycle);
+
+//    computeStrokeNormals( &command, isCycle );
     pushStrokeCommand( &command );
 }
 
@@ -1052,6 +1106,19 @@ static int advanceStroke( float* pRemainingTime, float timeStep )
 
     return FALSE;
 }
+
+#ifndef SYS_BUILD_MASTER
+void renderer_drawCircle(const float2* pPos, float radius,const float3* pColor)
+{
+    Page* pPage = &s_renderer.pages[ s_renderer.currentPage ];
+    graphics_setRenderTarget( &pPage->fgTarget );
+    graphics_setShader( &s_renderer.debugPenShader );
+    graphics_setBlendMode( BlendMode_Over );
+
+    graphics_setFp4f( 0u, pColor->x, pColor->y, pColor->z, 1.0f );
+    graphics_drawCircle(pPos,radius);
+}
+#endif
 
 static void startDrawCommand()
 {

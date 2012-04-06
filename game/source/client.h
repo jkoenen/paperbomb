@@ -57,7 +57,7 @@ typedef struct
 enum
 {
 	ClientStateFlag_Online = 1u,
-	ServerFlagOffline	   = 1u << 31u
+	ServerFlagOffline	   = 1u << 30u
 };
 
 typedef struct 

@@ -41,5 +41,6 @@ void main()
 
     vec4 color=penColor*intensity;
     gl_FragColor=color;
+//gl_FragColor=vec4(1,0,1,1);
 }
 

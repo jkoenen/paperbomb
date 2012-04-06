@@ -1,6 +1,7 @@
 #include "font.h"
 #include "vector.h"
 #include "renderer.h"
+#include "debug.h"
 
 #include <string.h>
 #include <memory.h>
@@ -10,14 +11,6 @@ enum
     Font_FirstGlyph = 33,
     Font_LastGlyph = 128
 };
-
-typedef struct
-{
-    uint                characterCode;
-    float               advance;
-    const float2*       pPoints;
-    uint                pointCount;
-} FontGlyph;
 
 static const float2 s_points_a[] =
 {
@@ -221,6 +214,22 @@ void font_done()
 {
 }
 
+const FontGlyph* font_getGlyph( uint charCode )
+{
+    if(charCode >= SYS_COUNTOF(s_font.glyphMap))
+    {
+        return 0;
+    }
+
+    const uint glyphIndex = s_font.glyphMap[ charCode ];
+    if( !glyphIndex )
+    {
+        return 0;
+    }
+
+    return &s_glyphs[ glyphIndex ];
+}
+
 void font_drawText( const float2* pPosition, float size, float variance, const char* pText )
 {
     float2x3 transform;
@@ -231,24 +240,41 @@ void font_drawText( const float2* pPosition, float size, float variance, const c
     while( *pText )
     {
         const uint charCode = (uint)*pText++;
-        const uint glyphIndex = s_font.glyphMap[ charCode ];
-        if( !glyphIndex )
-        {
-            continue;
-        }
-
-        const FontGlyph* pGlyph = &s_glyphs[ glyphIndex ];
-        if( pGlyph->pointCount < 3 )
+        const FontGlyph* pGlyph = font_getGlyph( charCode );
+        if(pGlyph->pointCount<3u)
         {
             continue;
         }
         
         renderer_setTransform( &transform );
-        //renderer_addLinearStroke( pGlyph->pPoints, pGlyph->pointCount );
         renderer_addQuadraticStroke( pGlyph->pPoints, pGlyph->pointCount );
 
         const float advance = float_rand_normal( pGlyph->advance, variance );
         float2_addScaled1f( &transform.pos, &transform.pos, &transform.rot.x, advance );
     }
+}
+
+uint font_getNextGlyphCharCode( uint charCode, int direction )
+{
+    const uint count=SYS_COUNTOF(s_font.glyphMap);
+    for(uint i=1u;i<count;++i)
+    {
+        uint index;
+        if(direction>0)
+        {
+            index=charCode+i;
+        }
+        else
+        {
+            index=charCode+count-i;
+        }
+        index=index%count;
+
+        if( s_font.glyphMap[index] )
+        {
+            return index;
+        }
+    }
+    return charCode;
 }
 
