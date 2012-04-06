@@ -7,6 +7,7 @@
 
 typedef struct 
 {
+	uint8	time;
 	int16	posX;
 	int16	posY;
 	uint8	direction;
@@ -16,6 +17,7 @@ typedef struct
 
 typedef struct 
 {
+	uint8	time;
 	int16	posX;
 	int16	posY;
 	uint8	direction;
@@ -23,8 +25,15 @@ typedef struct
 
 } ClientExplosion;
 
+enum
+{
+	PlayerState_InActive,
+	PlayerState_Active
+};
+
 typedef struct 
 {
+	uint8		state;
 	char		name[ 12u ];
 	int16		posX;
 	int16		posY;
@@ -41,10 +50,6 @@ typedef struct
 	ClientPlayer		player[ MaxPlayer ];
 	ClientBomb			bombs[ MaxBombs ];
 	ClientExplosion		explosions[ MaxExplosions ];
-
-	uint8				playerCount;
-	uint8				bombCount;
-	uint8				explosionCount;
 
 } ClientGameState;
 
@@ -67,7 +72,6 @@ typedef struct
 	Socket			socket;
 	IP4Address		serverAddress;
 
-	uint			gameStateId;
 	ClientGameState	gameState;
 
 	ClientState		state;

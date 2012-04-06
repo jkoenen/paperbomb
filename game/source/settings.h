@@ -9,4 +9,7 @@ enum
 	NetworkPort		= 2357u
 };	
 
+const float bombTime = 2.0f;
+const float explosionTime = 1.0f;
+
 #endif

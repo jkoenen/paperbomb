@@ -222,6 +222,11 @@ static inline uint16 time_quantize( float time )
 	return (uint16)( time / GAMETIMESTEP );
 }
 
+static inline uint8 time8_quantize( float time )
+{
+	return (uint8)int_min( (int)( time / GAMETIMESTEP ), 255 );
+}
+
 static inline float time_unquantize( uint16 time )
 {
 	return (float)time * GAMETIMESTEP;

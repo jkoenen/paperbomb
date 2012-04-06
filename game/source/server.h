@@ -32,6 +32,7 @@ typedef struct
 	ClientState		state;
 	uint			lastButtonMask;
 
+	uint			playerState;
 	char			name[ 12u ];
 	float			age;
 	float2			position;
@@ -48,13 +49,8 @@ typedef struct
 	uint				id;
 
 	ServerPlayer		player[ MaxPlayer ];
-	uint				playerCount;
-
 	ServerBomb			bombs[ MaxBombs ];
-	uint				bombCount;
-
 	ServerExplosion		explosions[ MaxExplosions ];
-	uint				explosionCount;
 
 } ServerGameState;
 

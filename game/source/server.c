@@ -24,42 +24,65 @@ static const float s_playerStartDirections[] =
 	(float)PI * 0.25f * 7.0f
 };
 
-void bomb_explode( ServerExplosion* pExplosion, const ServerBomb* pBomb )
+static void bomb_explode( ServerExplosion* pExplosion, const ServerBomb* pBomb )
 {
 	pExplosion->position	= pBomb->position;
 	pExplosion->direction	= pBomb->direction;
 	pExplosion->length		= pBomb->length;
-	pExplosion->time		= 0.0f;
+	pExplosion->time		= GAMETIMESTEP;
 }
 
-uint bomb_update( ServerBomb* pBomb, ServerExplosion* pExplosion )
+static void bomb_update( ServerBomb* pBomb, ServerExplosion* pExplosion )
 {
-	uint explosions = 0u;
-
-	pBomb->time -= GAMETIMESTEP;
-	if( pBomb->time <= 0.0f )
+	pBomb->time += GAMETIMESTEP;
+	if( pBomb->time >= bombTime )
 	{
 		if( pExplosion )
 		{
 			bomb_explode( pExplosion, pBomb );
-			explosions = 1u;
 		}
-	}
 
-	return explosions;
+		pBomb->time = 0.0f;
+	}
 }
 
-void bomb_place( ServerBomb* pBomb, uint player, const float2* pPosition, float direction, float length )
+static void bomb_place( ServerBomb* pBomb, uint player, const float2* pPosition, float direction, float length )
 {
 	pBomb->player		= player;
 	pBomb->position		= *pPosition;
 	pBomb->direction	= direction;
 	pBomb->length		= length;
-	pBomb->time			= 2.0f;
+	pBomb->time			= GAMETIMESTEP;
+}
+
+static ServerBomb* find_free_bomb( ServerBomb* pBombs, uint size )
+{
+	for( uint i = 0u; i < size; ++i )
+	{
+		if( pBombs[ i ].time == 0.0f )
+		{
+			return &pBombs[ i ];
+		}
+	}
+	return 0;
+}
+
+static ServerExplosion* find_free_explosion( ServerExplosion* pExplosions, uint size )
+{
+	for( uint i = 0u; i < size; ++i )
+	{
+		if( pExplosions[ i ].time == 0.0f )
+		{
+			return &pExplosions[ i ];
+		}
+	}
+	return 0;
 }
 
 static void player_init( ServerPlayer* pPlayer, const IP4Address* pAddress )
 {
+	pPlayer->playerState	= PlayerState_Active;
+
 	pPlayer->address		= *pAddress;
 	pPlayer->lastButtonMask	= 0u;
 	pPlayer->state.id		= 0u;
@@ -78,7 +101,7 @@ static void player_respawn( ServerPlayer* pPlayer, const float2* pPosition, floa
 	pPlayer->direction	= direction;
 }
 
-static uint player_update( ServerPlayer* pPlayer, uint index, ServerBomb* pBomb, uint activeBombs )
+static void player_update( ServerPlayer* pPlayer, uint index, ServerBomb* pBomb, uint activeBombs )
 {
 	const float steerSpeed		= 0.05f;
 	const float steerDamping	= 0.8f;
@@ -88,8 +111,6 @@ static uint player_update( ServerPlayer* pPlayer, uint index, ServerBomb* pBomb,
 	const uint buttonMask		= pPlayer->state.buttonMask;
 	const uint buttonDownMask	= buttonMask & ~pPlayer->lastButtonMask;
 	pPlayer->lastButtonMask		= buttonMask; 
-
-	uint bombs = 0u;
 
 	pPlayer->age += GAMETIMESTEP;
 
@@ -121,7 +142,6 @@ static uint player_update( ServerPlayer* pPlayer, uint index, ServerBomb* pBomb,
 		if( ( pPlayer->maxBombs > activeBombs ) && pBomb )
 		{
 			bomb_place( pBomb, index, &pPlayer->position, pPlayer->direction, pPlayer->bombLength );
-			bombs = 1u;
 		}
 	}
 
@@ -164,20 +184,18 @@ static uint player_update( ServerPlayer* pPlayer, uint index, ServerBomb* pBomb,
 
 	pPlayer->position.x = float_clamp( pPlayer->position.x, -32.0f, 32.0f );
 	pPlayer->position.y = float_clamp( pPlayer->position.y, -18.0f, 18.0f );
-
-	return bombs;
 }
 
 static void create_client_state( ClientGameState* pClientState, const ServerGameState* pServerState )
 {
 	pClientState->id = pServerState->id;
 
-	pClientState->playerCount = (uint8)pServerState->playerCount;
-	for( uint i = 0u; i < pServerState->playerCount; ++i )
+	for( uint i = 0u; i < SYS_COUNTOF( pServerState->player ); ++i )
 	{
 		ClientPlayer* pClient = &pClientState->player[ i ];
 		const ServerPlayer* pServer = &pServerState->player[ i ];
 
+		pClient->state		= (uint8)pServer->playerState;
 		copyString( pClient->name, sizeof( pClient->name ), pServer->name );
 		pClient->posX		= float_quantize( pServer->position.x );
 		pClient->posY		= float_quantize( pServer->position.y );
@@ -186,24 +204,24 @@ static void create_client_state( ClientGameState* pClientState, const ServerGame
 		pClient->steer		= angle_quantize( pServer->steer );
 	}
 
-	pClientState->bombCount = (uint8)pServerState->bombCount;
-	for( uint i = 0u; i < pServerState->bombCount; ++i )
+	for( uint i = 0u; i < SYS_COUNTOF( pServerState->bombs ); ++i )
 	{
 		ClientBomb* pClient = &pClientState->bombs[ i ];
 		const ServerBomb* pServer = &pServerState->bombs[ i ];
 
+		pClient->time		= time8_quantize( pServer->time );
 		pClient->posX		= float_quantize( pServer->position.x );
 		pClient->posY		= float_quantize( pServer->position.y );
 		pClient->direction	= angle_quantize( pServer->direction );
 		pClient->length		= (uint8)pServer->length;
 	}
 
-	pClientState->explosionCount = (uint8)pServerState->explosionCount;
-	for( uint i = 0u; i < pServerState->explosionCount; ++i )
+	for( uint i	= 0u; i < SYS_COUNTOF( pServerState->explosions ); ++i )
 	{
 		ClientExplosion* pClient = &pClientState->explosions[ i ];
 		const ServerExplosion* pServer = &pServerState->explosions[ i ];
 
+		pClient->time		= time8_quantize( pServer->time );
 		pClient->posX		= float_quantize( pServer->position.x );
 		pClient->posY		= float_quantize( pServer->position.y );
 		pClient->direction	= angle_quantize( pServer->direction );
@@ -223,8 +241,18 @@ void server_create( Server* pServer, uint16 port )
 
 	socket_bind( pServer->socket, &address );
 
-	pServer->gameState.playerCount = 0u;
-	pServer->gameState.explosionCount = 0u;
+	for( uint i = 0u; i < SYS_COUNTOF( pServer->gameState.player ); ++i )
+	{
+		 pServer->gameState.player[ i ].playerState = PlayerState_InActive;
+	}
+	for( uint i = 0u; i < SYS_COUNTOF( pServer->gameState.bombs ); ++i )
+	{
+		pServer->gameState.bombs[ i ].time = 0.0f;
+	}
+	for( uint i = 0u; i < SYS_COUNTOF( pServer->gameState.explosions ); ++i )
+	{
+		pServer->gameState.explosions[ i ].time = 0.0f;
+	}
 	pServer->gameState.id = 0u;
 }
 
@@ -253,8 +281,18 @@ void server_update( Server* pServer, const World* pWorld )
 			const int isOnline = ( state.flags & ClientStateFlag_Online );
 
 			ServerPlayer* pPlayer = 0;
-			for( uint i = 0u; i < pServer->gameState.playerCount; ++i )
+			int freeIndex = -1;
+			for( uint i = 0u; i < SYS_COUNTOF( pServer->gameState.player ); ++i )
 			{
+				if( pServer->gameState.player[ i ].playerState == PlayerState_InActive )
+				{
+					if( freeIndex < 0 )
+					{
+						freeIndex = (int)i;
+					}
+					continue;
+				}
+
 				if( socket_isAddressEqual( &pServer->gameState.player[ i ].address, &from ) )
 				{
 					if( isOnline )
@@ -263,33 +301,27 @@ void server_update( Server* pServer, const World* pWorld )
 					}
 					else
 					{
-						for( uint j = 0u; j < pServer->gameState.bombCount; ++j )
+						for( uint j = 0u; j < SYS_COUNTOF( pServer->gameState.bombs ); ++j )
 						{
 							ServerBomb* pBomb = &pServer->gameState.bombs[ j ];
-							if( pBomb->player == i )
+							if( ( pBomb->time > 0.0f ) && ( pBomb->player == i ) )
 							{
 								pBomb->player = MaxPlayer;
 							}
 						}
 
-						if( i + 1u < pServer->gameState.playerCount )
-						{
-							pServer->gameState.player[ i ] = pServer->gameState.player[ pServer->gameState.playerCount - 1u ];
-						}
-						pServer->gameState.playerCount--;
+						pServer->gameState.player[ i ].playerState = PlayerState_InActive;
 					}
 					break;
 				}
 			}
-			if( ( pPlayer == 0 ) && ( pServer->gameState.playerCount < SYS_COUNTOF( pServer->gameState.player ) ) && isOnline )
+
+			if( ( pPlayer == 0 ) && ( freeIndex >= 0 ) && isOnline )
 			{
-				const uint index = pServer->gameState.playerCount;
+				pPlayer = &pServer->gameState.player[ freeIndex ];
 
-				pPlayer = &pServer->gameState.player[ index ];
 				player_init( pPlayer, &from );
-				player_respawn( pPlayer, &s_playerStartPositions[ index ], s_playerStartDirections[ index ] );
-
-				pServer->gameState.playerCount++;
+				player_respawn( pPlayer, &s_playerStartPositions[ freeIndex ], s_playerStartDirections[ freeIndex ] );
 			}
 
 			if( pPlayer != 0 )
@@ -306,57 +338,49 @@ void server_update( Server* pServer, const World* pWorld )
 		}
 	}
 
-	for( uint i = 0u; i < pServer->gameState.playerCount; ++i )
+	for( uint i = 0u; i < SYS_COUNTOF( pServer->gameState.player ); ++i )
 	{
 		ServerPlayer* pPlayer = &pServer->gameState.player[ i ];
+		if( pPlayer->playerState == PlayerState_InActive )
+		{
+			continue;
+		}
 
 		uint bombCount = 0u;
-		for( uint j = 0u; j < pServer->gameState.bombCount; ++j )
+		for( uint j = 0u; j < SYS_COUNTOF( pServer->gameState.bombs ); ++j )
 		{
 			ServerBomb* pBomb = &pServer->gameState.bombs[ j ];
-			if( pBomb->player == i )
+			if( ( pBomb->time > 0.0f ) && ( pBomb->player == i ) )
 			{
 				bombCount++;
 			}
 		}
 
-		ServerBomb* pBomb = ( pServer->gameState.bombCount < SYS_COUNTOF( pServer->gameState.bombs ) ? &pServer->gameState.bombs[ pServer->gameState.bombCount ] : 0 );
-		pServer->gameState.bombCount += player_update( pPlayer, i, pBomb, bombCount );
+		ServerBomb* pBomb = find_free_bomb( pServer->gameState.bombs, SYS_COUNTOF( pServer->gameState.bombs ) );
+		player_update( pPlayer, i, pBomb, bombCount );
 	}
 
+	for( uint i = 0u; i < SYS_COUNTOF( pServer->gameState.bombs ); ++i )
 	{
-		uint bombIndex = 0u;
-		while( bombIndex < pServer->gameState.bombCount )
+		ServerBomb* pBomb = &pServer->gameState.bombs[ i ];
+		if( pBomb->time == 0.0f )
 		{
-			ServerBomb* pBomb = &pServer->gameState.bombs[ bombIndex ];
-
-			ServerExplosion* pExplosion = ( pServer->gameState.explosionCount < SYS_COUNTOF( pServer->gameState.explosions ) ? &pServer->gameState.explosions[ pServer->gameState.explosionCount ] : 0 );
-			if( bomb_update( pBomb, pExplosion ) )
-			{
-				if( pExplosion )
-				{
-					pServer->gameState.explosionCount++;
-				}
-
-				if( bombIndex + 1u < pServer->gameState.bombCount )
-				{
-					*pBomb = pServer->gameState.bombs[ pServer->gameState.bombCount - 1u ];
-				}
-				pServer->gameState.bombCount--;
-			}
-			else
-			{
-				bombIndex++;
-			}
+			continue;
 		}
+
+		ServerExplosion* pExplosion = find_free_explosion( pServer->gameState.explosions, SYS_COUNTOF( pServer->gameState.explosions ) );
+		bomb_update( pBomb, pExplosion );
 	}
 
-	uint explosionIndex = 0u;
-	while( explosionIndex < pServer->gameState.explosionCount )
+	for( uint i = 0u; i < SYS_COUNTOF( pServer->gameState.explosions ); ++i )
 	{
-		ServerExplosion* pExplosion = &pServer->gameState.explosions[ explosionIndex ];
-
+		ServerExplosion* pExplosion = &pServer->gameState.explosions[ i ];
 		if( pExplosion->time == 0.0f )
+		{
+			continue;
+		}
+
+		if( pExplosion->time == GAMETIMESTEP )
 		{
 			Capsule capsule0;
 			Capsule capsule1;
@@ -376,9 +400,13 @@ void server_update( Server* pServer, const World* pWorld )
 			float2_add( &capsule1.line.a, &pExplosion->position, &length );
 			float2_sub( &capsule1.line.b, &pExplosion->position, &length );
 
-			for( uint i = 0u; i < pServer->gameState.playerCount; ++i )
+			for( uint j = 0u; j < SYS_COUNTOF( pServer->gameState.player ); ++j )
 			{
-				ServerPlayer* pPlayer = &pServer->gameState.player[ i ];
+				ServerPlayer* pPlayer = &pServer->gameState.player[ j ];
+				if( pPlayer->playerState == PlayerState_InActive )
+				{
+					continue;
+				}
 
 				Circle playerCirlce;
 				playerCirlce.center = pPlayer->position;
@@ -392,10 +420,13 @@ void server_update( Server* pServer, const World* pWorld )
 				}
 			}
 
-			uint bombIndex = 0u;
-			while( bombIndex < pServer->gameState.bombCount )
+			for( uint j = 0u; j < SYS_COUNTOF( pServer->gameState.bombs ); ++j )
 			{
-				ServerBomb* pBomb = &pServer->gameState.bombs[ bombIndex ];
+				ServerBomb* pBomb = &pServer->gameState.bombs[ j ];
+				if( pBomb->time == 0.0f )
+				{
+					continue;
+				}
 
 				Circle bombCircle;
 				bombCircle.center = pBomb->position;
@@ -403,36 +434,18 @@ void server_update( Server* pServer, const World* pWorld )
 
 				if( isCircleCapsuleIntersecting( &bombCircle, &capsule0 ) || isCircleCapsuleIntersecting( &bombCircle, &capsule1 ) )
 				{
-					if( pServer->gameState.explosionCount < SYS_COUNTOF( pServer->gameState.explosions ) )
-					{
-						bomb_explode( &pServer->gameState.explosions[ pServer->gameState.explosionCount++ ], pBomb );
-					}
+					ServerExplosion* pExplosion = find_free_explosion( pServer->gameState.explosions, SYS_COUNTOF( pServer->gameState.explosions ) );
+					bomb_explode( pExplosion, pBomb );
 
-					if( bombIndex + 1u < pServer->gameState.bombCount )
-					{
-						*pBomb = pServer->gameState.bombs[ pServer->gameState.bombCount - 1u ];
-					}
-					pServer->gameState.bombCount--;
-				}
-				else
-				{
-					bombIndex++;
+					pBomb->time = 0.0f;
 				}
 			}
 		}
 
 		pExplosion->time += GAMETIMESTEP;
-		if( pExplosion->time > 1.0f )
+		if( pExplosion->time >= explosionTime )
 		{
-			if( explosionIndex + 1u < pServer->gameState.explosionCount )
-			{
-				*pExplosion = pServer->gameState.explosions[ pServer->gameState.explosionCount - 1u ];
-			}
-			pServer->gameState.explosionCount--;
-		}
-		else
-		{
-			explosionIndex++;
+			pExplosion->time = 0.0f;
 		}
 	}
 
@@ -443,8 +456,14 @@ void server_update( Server* pServer, const World* pWorld )
 
 	//SYS_TRACE_DEBUG( "### %d\n", sizeof( clientState ) );
 
-	for( uint i = 0u; i < pServer->gameState.playerCount; ++i )
+	for( uint i = 0u; i < SYS_COUNTOF( pServer->gameState.player ); ++i )
 	{
-		socket_send_blocking( pServer->socket, &pServer->gameState.player[ i ].address, &clientState, sizeof( clientState ) );
+		ServerPlayer* pPlayer = &pServer->gameState.player[ i ];
+		if( pPlayer->playerState == PlayerState_InActive )
+		{
+			continue;
+		}
+
+		socket_send_blocking( pServer->socket, &pPlayer->address, &clientState, sizeof( clientState ) );
 	}
 }
