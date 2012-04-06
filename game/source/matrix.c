@@ -21,7 +21,7 @@ float2x2* float2x2_rotationY( float2x2* pValue, float angleRad )
     const float sa = sinf( angleRad );
     const float ca = cosf( angleRad );
 
-    return float2x2_set( pValue, ca, -sa, sa, ca );
+    return float2x2_set( pValue, ca, sa, -sa, ca );
 }
 
 float2x2* float2x2_scale1f( float2x2* pResult, const float2x2* pMatrix, float scale )

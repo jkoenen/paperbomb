@@ -232,8 +232,46 @@ static void game_render_bomb( const ClientBomb* pBomb )
     float2x2_scale2f( &bombTransform.rot, &bombTransform.rot, 1.0f, 1.0f );
     float2_add( &bombTransform.pos, &position, &worldOffset );
 
+	renderer_setVariance( 0.0f );
+	renderer_setPen( Pen_DebugGreen );
+
     renderer_setTransform( &bombTransform );
 	renderer_addLinearStroke( bombPoints0, SYS_COUNTOF( bombPoints0 ) );
+}
+
+static void game_render_serverbomb( const ServerBomb* pBomb )
+{
+	float2 worldOffset;
+	float2_set( &worldOffset, 32.0f, 18.0f );
+
+	float2 bombPoints0[] =
+	{ 
+		{ -1.0f,  0.2f },
+		{  1.0f,  0.2f },
+		{  1.0f, -0.2f },
+		{ -1.0f, -0.2f },
+		{ -1.0f,  0.2f },
+		{ -1.0f,  0.2f },
+		{ -0.2f,  1.0f },
+		{  0.2f,  1.0f },
+		{  0.2f, -1.0f },
+		{ -0.2f, -1.0f },
+		{ -0.2f,  1.0f }
+	};
+
+	float2 position = pBomb->position;
+	const float direction = pBomb->direction;
+
+	float2x3 bombTransform;
+	float2x2_rotationY( &bombTransform.rot, direction );
+	float2x2_scale2f( &bombTransform.rot, &bombTransform.rot, 1.0f, 1.0f );
+	float2_add( &bombTransform.pos, &position, &worldOffset );
+
+	renderer_setVariance( 0.0f );
+	renderer_setPen( Pen_DebugRed );
+
+	renderer_setTransform( &bombTransform );
+ 	renderer_addLinearStroke( bombPoints0, SYS_COUNTOF( bombPoints0 ) );
 }
 
 static void game_render_explosion( const ClientExplosion* pExplosion )
@@ -346,6 +384,16 @@ void game_render()
 				game_render_explosion( pExplosion );
 			}
 		}
+
+		for( uint i = 0u; i < SYS_COUNTOF( s_game.server.gameState.bombs ); ++i )
+		{
+			const ServerBomb* pBomb = &s_game.server.gameState.bombs[ i ];
+			if( pBomb->time > 0.0f )
+			{
+				game_render_serverbomb( pBomb );
+			}
+		}
+
 	}
     renderer_updatePage( 1.0f / 60.0f );
 

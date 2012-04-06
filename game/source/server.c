@@ -195,13 +195,16 @@ static void create_client_state( ClientGameState* pClientState, const ServerGame
 		ClientPlayer* pClient = &pClientState->player[ i ];
 		const ServerPlayer* pServer = &pServerState->player[ i ];
 
-		pClient->state		= (uint8)pServer->playerState;
-		copyString( pClient->name, sizeof( pClient->name ), pServer->name );
-		pClient->posX		= float_quantize( pServer->position.x );
-		pClient->posY		= float_quantize( pServer->position.y );
-		pClient->direction	= angle_quantize( pServer->direction );
-		pClient->age		= time_quantize( pServer->age );
-		pClient->steer		= angle_quantize( pServer->steer );
+		pClient->state = (uint8)pServer->playerState;
+		if( pServer->playerState != PlayerState_InActive )
+		{
+			copyString( pClient->name, sizeof( pClient->name ), pServer->name );
+			pClient->posX		= float_quantize( pServer->position.x );
+			pClient->posY		= float_quantize( pServer->position.y );
+			pClient->direction	= angle_quantize( pServer->direction );
+			pClient->age		= time_quantize( pServer->age );
+			pClient->steer		= angle_quantize( pServer->steer );
+		}
 	}
 
 	for( uint i = 0u; i < SYS_COUNTOF( pServerState->bombs ); ++i )
@@ -434,8 +437,7 @@ void server_update( Server* pServer, const World* pWorld )
 
 				if( isCircleCapsuleIntersecting( &bombCircle, &capsule0 ) || isCircleCapsuleIntersecting( &bombCircle, &capsule1 ) )
 				{
-					ServerExplosion* pExplosion = find_free_explosion( pServer->gameState.explosions, SYS_COUNTOF( pServer->gameState.explosions ) );
-					bomb_explode( pExplosion, pBomb );
+					bomb_explode( find_free_explosion( pServer->gameState.explosions, SYS_COUNTOF( pServer->gameState.explosions ) ), pBomb );
 
 					pBomb->time = 0.0f;
 				}
