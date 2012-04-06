@@ -39,7 +39,7 @@ uint bomb_update( ServerBomb* pBomb, ServerExplosion* pExplosion )
 	pBomb->time -= GAMETIMESTEP;
 	if( pBomb->time <= 0.0f )
 	{
-		if( pExplosion != 0 )
+		if( pExplosion )
 		{
 			bomb_explode( pExplosion, pBomb );
 			explosions = 1u;
@@ -80,14 +80,14 @@ static void player_respawn( ServerPlayer* pPlayer, const float2* pPosition, floa
 
 static uint player_update( ServerPlayer* pPlayer, uint index, ServerBomb* pBomb, uint activeBombs )
 {
-	const float steerSpeed = 0.05f;
-	const float steerDamping = 0.8f;
-	const float maxSpeed = 0.5f;
-	const float maxSteer = (float)PI * 0.2f;
+	const float steerSpeed		= 0.05f;
+	const float steerDamping	= 0.8f;
+	const float maxSpeed		= 0.5f;
+	const float maxSteer		= (float)PI * 0.2f;
 
-	const uint buttonMask = pPlayer->state.buttonMask;
-	const uint buttonDownMask = buttonMask & ~pPlayer->lastButtonMask;
-	pPlayer->lastButtonMask = buttonMask; 
+	const uint buttonMask		= pPlayer->state.buttonMask;
+	const uint buttonDownMask	= buttonMask & ~pPlayer->lastButtonMask;
+	pPlayer->lastButtonMask		= buttonMask; 
 
 	uint bombs = 0u;
 
@@ -118,7 +118,7 @@ static uint player_update( ServerPlayer* pPlayer, uint index, ServerBomb* pBomb,
 
 	if( buttonDownMask & ButtonMask_PlaceBomb )
 	{
-		if( ( pPlayer->maxBombs > activeBombs ) && ( pBomb != 0 ) )
+		if( ( pPlayer->maxBombs > activeBombs ) && pBomb )
 		{
 			bomb_place( pBomb, index, &pPlayer->position, pPlayer->direction, pPlayer->bombLength );
 			bombs = 1u;
@@ -306,28 +306,6 @@ void server_update( Server* pServer, const World* pWorld )
 		}
 	}
 
-	uint bombIndex = 0u;
-	while( bombIndex < pServer->gameState.bombCount )
-	{
-		ServerBomb* pBomb = &pServer->gameState.bombs[ bombIndex ];
-
-		ServerExplosion* pExplosion = ( pServer->gameState.explosionCount < SYS_COUNTOF( pServer->gameState.explosions ) ? &pServer->gameState.explosions[ pServer->gameState.explosionCount ] : 0 );
-		if( bomb_update( pBomb, pExplosion ) )
-		{
-			pServer->gameState.explosionCount++;
-
-			if( bombIndex + 1u < pServer->gameState.bombCount )
-			{
-				*pBomb = pServer->gameState.bombs[ pServer->gameState.bombCount - 1u ];
-			}
-			pServer->gameState.bombCount--;
-		}
-		else
-		{
-			bombIndex++;
-		}
-	}
-
 	for( uint i = 0u; i < pServer->gameState.playerCount; ++i )
 	{
 		ServerPlayer* pPlayer = &pServer->gameState.player[ i ];
@@ -344,6 +322,33 @@ void server_update( Server* pServer, const World* pWorld )
 
 		ServerBomb* pBomb = ( pServer->gameState.bombCount < SYS_COUNTOF( pServer->gameState.bombs ) ? &pServer->gameState.bombs[ pServer->gameState.bombCount ] : 0 );
 		pServer->gameState.bombCount += player_update( pPlayer, i, pBomb, bombCount );
+	}
+
+	{
+		uint bombIndex = 0u;
+		while( bombIndex < pServer->gameState.bombCount )
+		{
+			ServerBomb* pBomb = &pServer->gameState.bombs[ bombIndex ];
+
+			ServerExplosion* pExplosion = ( pServer->gameState.explosionCount < SYS_COUNTOF( pServer->gameState.explosions ) ? &pServer->gameState.explosions[ pServer->gameState.explosionCount ] : 0 );
+			if( bomb_update( pBomb, pExplosion ) )
+			{
+				if( pExplosion )
+				{
+					pServer->gameState.explosionCount++;
+				}
+
+				if( bombIndex + 1u < pServer->gameState.bombCount )
+				{
+					*pBomb = pServer->gameState.bombs[ pServer->gameState.bombCount - 1u ];
+				}
+				pServer->gameState.bombCount--;
+			}
+			else
+			{
+				bombIndex++;
+			}
+		}
 	}
 
 	uint explosionIndex = 0u;
@@ -419,11 +424,11 @@ void server_update( Server* pServer, const World* pWorld )
 		pExplosion->time += GAMETIMESTEP;
 		if( pExplosion->time > 1.0f )
 		{
-			pServer->gameState.explosionCount--;
-			if( pServer->gameState.explosionCount > 0u )
+			if( explosionIndex + 1u < pServer->gameState.explosionCount )
 			{
-				*pExplosion = pServer->gameState.explosions[ pServer->gameState.explosionCount ];
+				*pExplosion = pServer->gameState.explosions[ pServer->gameState.explosionCount - 1u ];
 			}
+			pServer->gameState.explosionCount--;
 		}
 		else
 		{
