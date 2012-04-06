@@ -218,12 +218,13 @@ int main()
                 break;
 
             case SDL_MOUSEBUTTONDOWN:
+            SYS_TRACE_DEBUG("down=%i\n", event.button.button);
                 if( event.button.button == 1 )
                 {
                     leftMouseDown = 1;
                     leftMousePressed = 1;
                 }
-                else if( event.button.button == 2 )
+                else if( event.button.button == 3)
                 {
                     rightMouseDown = 1;
                     rightMousePressed = 1;
@@ -231,11 +232,11 @@ int main()
                 break;
 
             case SDL_MOUSEBUTTONUP:
-                if( event.button.button == 1 )
+                if(event.button.button == 1)
                 {
                     leftMouseDown = 0;
                 }
-                else if( event.button.button == 2 )
+                else if(event.button.button == 3)
                 {
                     rightMouseDown = 0;
                 }
@@ -330,16 +331,24 @@ int main()
         {
             if( dataChar != '\0' )
             {
-                char filename[64u];
-                sprintf(filename,"source/font/char_%i.h",dataChar);
+                char filename[128u];
+                sprintf(filename,"./source/font/char_%i.h",dataChar);
+                SYS_TRACE_DEBUG("writing char to file '%s'\n", filename);
                 FILE* pFile=fopen(filename, "w");
-                fprintf(pFile,"static const float2 s_points_%i[] =\n{\n",dataChar);
-                for( uint i=0u;i<charPointCount;++i)
+                if(pFile)
                 {
-                    fprintf(pFile,"\t{%ff,%ff},\n",charPoints[i].x,charPoints[i].y);
+                    fprintf(pFile,"static const float2 s_points_%i[] =\n{\n",dataChar);
+                    for( uint i=0u;i<charPointCount;++i)
+                    {
+                        fprintf(pFile,"\t{%ff,%ff},\n",charPoints[i].x,charPoints[i].y);
+                    }
+                    fprintf(pFile,"};\n\n");
+                    fclose(pFile);
                 }
-                fprintf(pFile,"};\n\n");
-                fclose(pFile);
+                else
+                {
+                    SYS_TRACE_ERROR("Could not open file '%s'\n", filename);
+                }
             }
 
             const FontGlyph* pGlyph=font_getGlyph((uint)currentChar);
@@ -354,6 +363,23 @@ int main()
                 charPointCount = 0u;
             }
             currentPointIndex = -1;
+        }
+        if( dataChar && ( buttonPressMask & ButtonMask_Down ) )
+        {
+            // add a point:
+            if(charPointCount>0)
+            {
+                charPointCount--;
+            }
+        }
+        if( dataChar && ( buttonPressMask & ButtonMask_Up ) )
+        {
+            // add a point:
+            if(charPointCount<SYS_COUNTOF(charPoints))
+            {
+                float2_set(&charPoints[charPointCount],0.0f,0.0f);
+                charPointCount++;
+            }
         }
 
         if( renderer_isPageDone() )
@@ -391,6 +417,7 @@ int main()
 
             // draw control points:
             const float cpSize=0.5f;
+            int inRangePoint=-1;
             for(uint i = 0u; i < charPointCount; ++i)
             {
                 float2 pos;
@@ -398,6 +425,10 @@ int main()
                 float2_addScaled1f(&pos,&pos,&charPoints[i],fontSize);
                 
                 const int inRange = float2_distance(&mousePagePos,&pos)<cpSize;
+                if( inRange && inRangePoint==-1)
+                {
+                    inRangePoint=(int)i;
+                }
                 if(currentPointIndex==-1&&inRange&&leftMousePressed)
                 {
                     currentPointIndex=(int)i;
@@ -435,6 +466,8 @@ int main()
             oldMousePagePos=mousePagePos;
             leftMousePressed=0;
             rightMousePressed=0;
+            float2_set(&textPos,5.0f,4.0f);
+            font_drawText(&textPos,1.0f,0.0f,"0123456789A" );
         }
         renderer_updatePage( timeStep );
 
