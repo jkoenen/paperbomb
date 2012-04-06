@@ -1246,10 +1246,9 @@ void renderer_drawFrame( const FrameData* pFrame )
     graphics_drawFullscreenQuad();
 
     // render the flipped page on top:
-    //if( s_renderer.flipTime >= 0.0f )
+    if( s_renderer.flipTime >= 0.0f )
     {
-        //const float flipProgress = float_saturate( s_renderer.flipTime / s_renderer.flipDuration );
-        const float flipProgress = 0.2f;
+        const float flipProgress = 0.5f * float_saturate( s_renderer.flipTime / s_renderer.flipDuration );
         //SYS_TRACE_DEBUG( "%f (%f/%f)\n", flipProgress, s_renderer.flipTime, s_renderer.flipDuration );
 
         graphics_setShader( &s_renderer.pageFlipShader );
