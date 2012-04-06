@@ -29,7 +29,9 @@ when :win32
     import 'glew'
     
     add_c_define '_USE_MATH_DEFINES'
-    
+	add_c_define '_CRT_SECURE_NO_DEPRECATE'
+	add_c_define '_CRT_NONSTDC_NO_DEPRECATE'
+	 
     ! source/win32/*.c
     
     add_lib 'opengl32.lib'

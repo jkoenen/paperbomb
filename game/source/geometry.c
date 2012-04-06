@@ -61,6 +61,40 @@ int isCircleCircleIntersectingWithDistance( const Circle* pCircle, const Line* p
 	return result;
 }
 
+int isLineLineIntersectingWithDistance( const Line* pLineA, const Line* pLineB, float* pDistance )
+{
+	const float x1 = pLineA->a.x;
+	const float x2 = pLineA->b.x;
+	const float x3 = pLineB->a.x;
+	const float x4 = pLineB->b.x;
+
+	const float y1 = pLineA->a.y;
+	const float y2 = pLineA->b.y;
+	const float y3 = pLineB->a.y;
+	const float y4 = pLineB->b.y;
+
+	const float a = ( x4 - x3 ) * ( y1 - y3 ) - ( y4 - y3 ) * ( x1 - x3 );
+	const float b = ( y4 - y3 ) * ( x2 - x1 ) - ( x4 - x3 ) * ( y2 - y1 );
+
+	if( float_abs( b ) < 0.0001f )
+	{
+		return FALSE;
+	}
+
+	const float p = a / b;
+	if( ( p < 0.0f ) || ( p > 1.0f ) )
+	{
+		return FALSE;
+	}
+
+	float2 distance;
+	float2_sub( &distance, &pLineA->b, &pLineA->a );
+	float2_scale1f( &distance, &distance, p );
+	*pDistance = float2_length( &distance );
+
+	return TRUE;
+}
+
 int circleCircleCollide( const Circle* pFirst, const Circle* pSecond, float massRatio, float2* pFirstPos, float2* pSecondPos )
 {
 	if( isCircleCircleIntersecting( pFirst, pSecond ) )

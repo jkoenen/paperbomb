@@ -36,6 +36,14 @@ static void bomb_explode( ServerExplosion* pExplosion, const ServerBomb* pBomb, 
 	pExplosion->direction	= pBomb->direction;
 	pExplosion->time		= GAMETIMESTEP;
 
+	const float2 borderLines[] = 
+	{
+		{ pWorld->borderMin.x, pWorld->borderMin.y }, { pWorld->borderMax.x, pWorld->borderMin.y },
+		{ pWorld->borderMax.x, pWorld->borderMin.y }, { pWorld->borderMax.x, pWorld->borderMax.y },
+		{ pWorld->borderMax.x, pWorld->borderMax.y }, { pWorld->borderMin.x, pWorld->borderMax.y },
+		{ pWorld->borderMin.x, pWorld->borderMax.y }, { pWorld->borderMin.x, pWorld->borderMin.y },
+	};
+
 	Line line;
 	line.a = pExplosion->position;
 	float direction = pExplosion->direction;
@@ -49,6 +57,19 @@ static void bomb_explode( ServerExplosion* pExplosion, const ServerBomb* pBomb, 
 		{
 			float distance;
 			if( isCircleCircleIntersectingWithDistance( &pWorld->rockz[ j ], &line, &distance ) )
+			{
+				minDistace = float_min( minDistace, distance );
+			}
+		}
+
+		for( uint j = 0u; j < SYS_COUNTOF( borderLines ); j += 2u )
+		{
+			Line boderLine;
+			boderLine.a = borderLines[ j ];
+			boderLine.b = borderLines[ j + 1u ];
+
+			float distance;
+			if( isLineLineIntersectingWithDistance( &line, &boderLine, &distance ) )
 			{
 				minDistace = float_min( minDistace, distance );
 			}
@@ -73,14 +94,17 @@ static void bomb_update( ServerBomb* pBomb, ServerExplosion* pExplosion, const W
 	}
 }
 
-static void bomb_place( ServerBomb* pBomb, uint player, const float2* pPosition, float direction, float length )
+static void bomb_place( ServerBomb* pBomb, uint player, const float2* pPosition, float direction, float length, const World* pWorld )
 {
 	float2 offset;
 	float2_set( &offset, -s_bombCarOffset, 0.0f );
 	float2_rotate( &offset, direction );
 
 	pBomb->position = *pPosition;
-	float2_add( &pBomb->position, &pBomb->position ,&offset );
+	float2_add( &pBomb->position, &pBomb->position, &offset );
+
+	pBomb->position.x = float_clamp( pBomb->position.x, pWorld->borderMin.x + s_bombRadius, pWorld->borderMax.x - s_bombRadius );
+	pBomb->position.y = float_clamp( pBomb->position.y, pWorld->borderMin.y + s_bombRadius, pWorld->borderMax.y - s_bombRadius );
 
 	pBomb->player		= player;
 	pBomb->direction	= direction;
@@ -174,7 +198,7 @@ static void player_update( ServerPlayer* pPlayer, uint index, ServerBomb* pBomb,
 	{
 		if( ( pPlayer->maxBombs > activeBombs ) && pBomb )
 		{
-			bomb_place( pBomb, index, &pPlayer->position, pPlayer->direction, pPlayer->bombLength );
+			bomb_place( pBomb, index, &pPlayer->position, pPlayer->direction, pPlayer->bombLength, pWorld );
 		}
 	}
 
