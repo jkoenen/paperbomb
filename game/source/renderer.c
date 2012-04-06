@@ -1325,3 +1325,29 @@ void renderer_drawFrame( const FrameData* pFrame )
     }
 }
 
+void renderer_addCircle( const Circle* pCircle )
+{
+	float2 points[] =
+	{ 
+		{ -1.0f,  0.0f },
+		{ -1.0f,  1.0f },
+		{  0.0f,  1.0f },
+		{  1.0f,  1.0f },
+		{  1.0f,  0.0f },
+		{  1.0f, -1.0f },
+		{  0.0f, -1.0f },
+		{ -1.0f, -1.0f },
+		{ -1.0f,  0.0f },
+	};
+
+	float2 scale;
+	float2_set( &scale, pCircle->radius, pCircle->radius );
+
+	for( uint i = 0u; i < SYS_COUNTOF( points ); ++i )
+	{
+		float2_scale2f( &points[ i ], &points[i], &scale );
+		float2_add( &points[ i ], &points[ i ], &pCircle->center );
+	}
+
+	renderer_addQuadraticStroke( points, SYS_COUNTOF( points ) );
+}

@@ -62,7 +62,7 @@ int	socket_bind( Socket s, const IP4Address* pAddress )
 	memset( &addr, 0, sizeof( addr ) );
 
 	addr.sin_family			= AF_INET;
-	addr.sin_addr.s_addr	= /*htonl*/( pAddress->address );
+	addr.sin_addr.s_addr	= pAddress->address;
 	addr.sin_port			= htons( pAddress->port );
 
 	if( bind( s, ( struct sockaddr* )&addr, sizeof( addr ) ) == -1 )
@@ -84,7 +84,7 @@ int	socket_send( Socket s, const IP4Address* pTo, const void* pData, uint size )
 	memset( &addr, 0, sizeof( addr ) );
 
 	addr.sin_family			= AF_INET;
-	addr.sin_addr.s_addr	= /*htonl*/( pTo->address );
+	addr.sin_addr.s_addr	= pTo->address;
 	addr.sin_port			= htons( pTo->port );
 
 	const ssize_t bytesSent = sendto( s, (const char*)pData, size, 0, (struct sockaddr*)&addr, sizeof( addr ) );
@@ -115,7 +115,7 @@ int	socket_receive( Socket s, void* pData, uint size, IP4Address* pFrom )
 		if( addrLength == sizeof( struct sockaddr_in ) )
 		{
 			struct sockaddr_in* pAddr = (struct sockaddr_in*)&addr;
-			pFrom->address	= /*ntohl*/( pAddr->sin_addr.s_addr );
+			pFrom->address	= pAddr->sin_addr.s_addr;
 			pFrom->port		= ntohs( pAddr->sin_port );
 		}
 

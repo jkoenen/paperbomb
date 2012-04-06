@@ -21,6 +21,7 @@
 static uint		s_width = 800;
 static uint		s_height = 450;
 static uint32	s_currentButtonMask = 0u;
+static uint32	s_currentJoyStickButtonMask = 0u;
 
 static HWND					s_hWnd = NULL;
 static WAVEFORMATEX			s_waveFormat;
@@ -75,6 +76,48 @@ static LRESULT CALLBACK WndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 {
 	switch( uMsg )
 	{
+	case WM_CREATE:
+		if( joySetCapture( hWnd, JOYSTICKID1, NULL, FALSE ) ) 
+		{ 
+			//MessageBox( hWnd, "No fucking Joystick", NULL, MB_OK | MB_ICONEXCLAMATION ); 
+		} 
+		break; 
+
+	case MM_JOY1ZMOVE:
+		{
+			//SYS_TRACE_DEBUG( "MOVE %d\n", LOWORD(lParam) );
+		}
+		break;
+
+	case MM_JOY1MOVE: 
+		{
+			const int value = 20000;
+			const int xPos = ( (int)LOWORD(lParam) - 32768 ); 
+			const int yPos = ( (int)HIWORD(lParam) - 32768 ); 
+			//SYS_TRACE_DEBUG( "MOVE %d %d\n", xPos, yPos );
+			updateButtonMask( &s_currentJoyStickButtonMask, ButtonMask_Left, xPos < -value );
+			updateButtonMask( &s_currentJoyStickButtonMask, ButtonMask_Right, xPos > value );
+			updateButtonMask( &s_currentJoyStickButtonMask, ButtonMask_Up, yPos < -value );
+			updateButtonMask( &s_currentJoyStickButtonMask, ButtonMask_Down, yPos > value );
+		}
+		break; 
+
+	case MM_JOY1BUTTONDOWN:
+		if( (uint)wParam & JOY_BUTTON1 ) 
+		{ 
+			//SYS_TRACE_DEBUG( "DOWN\n" );
+			updateButtonMask( &s_currentJoyStickButtonMask, ButtonMask_PlaceBomb, TRUE );
+		} 
+		break; 
+
+	case MM_JOY1BUTTONUP:
+		if( (uint)wParam & JOY_BUTTON1CHG ) 
+		{ 
+			//SYS_TRACE_DEBUG( "UP\n" );
+			updateButtonMask( &s_currentJoyStickButtonMask, ButtonMask_PlaceBomb, FALSE );
+		} 
+		break; 
+
 	case WM_SYSCOMMAND:
 		if( wParam==SC_SCREENSAVE || wParam==SC_MONITORPOWER )
 		{
@@ -457,7 +500,7 @@ int WINAPI WinMain( HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLin
         GameInput gameInput;
         memset( &gameInput, 0u, sizeof( gameInput ) );
         gameInput.timeStep = timeStep;
-        gameInput.buttonMask = s_currentButtonMask;
+        gameInput.buttonMask = s_currentButtonMask | s_currentJoyStickButtonMask;
 
         game_update( &gameInput );
         game_render();

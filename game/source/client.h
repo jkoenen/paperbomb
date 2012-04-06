@@ -49,7 +49,7 @@ enum
 typedef struct 
 {
 	uint8		state;
-	uint8		frags;
+	int8		frags;
 	char		name[ 12u ];
 	int16		posX;
 	int16		posY;

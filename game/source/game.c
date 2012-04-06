@@ -136,15 +136,24 @@ void game_init()
     	s_game.lastButtonMask[ i ] = 0u;
     }
 
-	copyString( s_game.serverIP, sizeof( s_game.serverIP ), "10.1.11.5" );
+	copyString( s_game.serverIP, sizeof( s_game.serverIP ), "10.1.11.4" );
 	copyString( s_game.playerName, sizeof( s_game.playerName ), "Horst" );
 
-	float2_set( &s_game.world.borderMin, -24.0f, -24.0f );
-	float2_set( &s_game.world.borderMax,  24.0f,  24.0f );
+	float2_set( &s_game.world.borderMin, -20.0f, -20.0f );
+	float2_set( &s_game.world.borderMax,  20.0f,  20.0f );
 
 	float2x2_identity( &s_game.world.worldTransform.rot );
-	float2x2_scale2f( &s_game.world.worldTransform.rot, &s_game.world.worldTransform.rot, 0.6f, 0.6f );
+	float2x2_scale2f( &s_game.world.worldTransform.rot, &s_game.world.worldTransform.rot, 0.7f, 0.7f );
 	float2_set( &s_game.world.worldTransform.pos, 32.0f, 20.0f );
+
+	float2_set( &s_game.world.rockz[ 0u ].center, -12.0f, -12.0f );
+	s_game.world.rockz[ 0u ].radius = 3.0f;
+	float2_set( &s_game.world.rockz[ 1u ].center,  12.0f, -12.0f );
+	s_game.world.rockz[ 1u ].radius = 3.0f;
+	float2_set( &s_game.world.rockz[ 2u ].center,  12.0f,  12.0f );
+	s_game.world.rockz[ 2u ].radius = 3.0f;
+	float2_set( &s_game.world.rockz[ 3u ].center, -12.0f,  12.0f );
+	s_game.world.rockz[ 3u ].radius = 3.0f;
 
 	s_game.state = GameState_Menu;
 }
@@ -238,21 +247,16 @@ static void game_render_car( const ClientPlayer* pPlayer, const float2x3* pWorld
 		{  0.5f,  0.0f }
 	};
 
-	float2 worldOffset;
-	float2_set( &worldOffset, 32.0f, 18.0f );
-	float2 worldScale;
-	float2_set( &worldScale, 1.0f, 1.0f );
-
 	float2 position;
 	position.x = float_unquantize( pPlayer->posX );
 	position.y = float_unquantize( pPlayer->posY );
 
 	const float direction = angle_unquantize( pPlayer->direction );
-
 	const float steer = angle_unquantize( pPlayer->steer );
 
 	for( uint i = 0u; i < SYS_COUNTOF( carPoints ); ++i )
 	{
+		float2_scale1f( &carPoints[ i ], &carPoints[ i ], 1.5f );
 		float2_rotate( &carPoints[ i ], direction );
 		float2_add( &carPoints[ i ], &carPoints[ i ], &position );
 	}
@@ -286,6 +290,11 @@ static void game_render_world( const World* pWorld )
 	
 	renderer_setTransform( &pWorld->worldTransform );
 	renderer_addLinearStroke( points, SYS_COUNTOF( points ) );
+
+	for( uint i = 0u; i < SYS_COUNTOF( pWorld->rockz ); ++i )
+	{
+		renderer_addCircle( &pWorld->rockz[ i ] );
+	}
 }
 
 static void game_render_bomb( const ClientBomb* pBomb, const float2x3* pWorldTransform )
