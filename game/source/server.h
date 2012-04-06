@@ -17,6 +17,13 @@ typedef struct
 
 } ServerBomb;
 
+typedef struct  
+{
+	uint	type;
+	float2	position;
+
+} ServerItem;
+
 typedef struct 
 {
 	uint	player;
@@ -53,6 +60,9 @@ typedef struct
 	ServerPlayer		player[ MaxPlayer ];
 	ServerBomb			bombs[ MaxBombs ];
 	ServerExplosion		explosions[ MaxExplosions ];
+	ServerItem 			items[ MaxItems ];
+
+	float				timeToNextItem;
 
 } ServerGameState;
 

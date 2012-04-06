@@ -124,7 +124,8 @@ void game_init()
 	s_game.drawSpeed = 1.0f;
     renderer_setDrawSpeed( s_game.drawSpeed );
 
-	s_game.variance = 0.0f;
+	s_game.variance = 0.05f;
+	renderer_setVariance( s_game.variance );
 
     s_game.gameTime = 0.0f;
 	s_game.updateTime = 0.0f;
@@ -137,12 +138,12 @@ void game_init()
 	copyString( s_game.serverIP, sizeof( s_game.serverIP ), "10.1.11.4" );
 	copyString( s_game.playerName, sizeof( s_game.playerName ), "Horst" );
 
-	float2x2_identity( &s_game.world.worldTransform.rot );
-	float2x2_scale2f( &s_game.world.worldTransform.rot, &s_game.world.worldTransform.rot, 0.8f, 0.8f );
-	float2_set( &s_game.world.worldTransform.pos, 32.0f, 16.0f );
+	float2_set( &s_game.world.borderMin, -24.0f, -24.0f );
+	float2_set( &s_game.world.borderMax,  24.0f,  24.0f );
 
-	float2_set( &s_game.world.borderMin, -16.0f, -16.0f );
-	float2_set( &s_game.world.borderMax,  16.0f,  16.0f );
+	float2x2_identity( &s_game.world.worldTransform.rot );
+	float2x2_scale2f( &s_game.world.worldTransform.rot, &s_game.world.worldTransform.rot, 0.6f, 0.6f );
+	float2_set( &s_game.world.worldTransform.pos, 32.0f, 20.0f );
 
 	s_game.state = GameState_Menu;
 }
@@ -272,11 +273,6 @@ static void game_render_car( const ClientPlayer* pPlayer, const float2x3* pWorld
 
 static void game_render_world( const World* pWorld )
 {
-	renderer_setVariance( 0.0f );
-	renderer_setPen( Pen_DebugGreen );
-
-	renderer_setTransform( &pWorld->worldTransform );
-	
 	float2 points[] =
 	{ 
 		{  pWorld->borderMin.x, pWorld->borderMin.y },
@@ -286,6 +282,7 @@ static void game_render_world( const World* pWorld )
 		{  pWorld->borderMin.x, pWorld->borderMin.y },
 	};
 	
+	renderer_setTransform( &pWorld->worldTransform );
 	renderer_addLinearStroke( points, SYS_COUNTOF( points ) );
 }
 
@@ -318,13 +315,47 @@ static void game_render_bomb( const ClientBomb* pBomb, const float2x3* pWorldTra
 		float2_add( &bombPoints0[ i ], &bombPoints0[ i ], &position );
 	}
 
-	renderer_setVariance( 0.0f );
-	renderer_setPen( Pen_DebugGreen );
-
     renderer_setTransform( pWorldTransform );
 	renderer_addLinearStroke( bombPoints0, SYS_COUNTOF( bombPoints0 ) );
 }
 
+static void game_render_item( const ClientItem* pItem, const float2x3* pWorldTransform )
+{
+	float2 position;
+	position.x = float_unquantize( pItem->posX );
+	position.y = float_unquantize( pItem->posY );
+
+	renderer_setTransform( pWorldTransform );
+
+	float2 points[] =
+	{ 
+		{ -1.0f, -1.0f },
+		{  1.0f, -1.0f },
+		{  1.0f,  1.0f },
+		{ -1.0f,  1.0f },
+		{ -1.0f, -1.0f },
+	};
+
+	for( uint i = 0u; i < SYS_COUNTOF( points ); ++i )
+	{
+		float2_add( &points[ i ], &points[ i ], &position );
+	}
+
+	switch( pItem->type )
+	{
+		case ItemType_BombRange:
+			renderer_setPen( Pen_DebugRed );
+			break;
+
+		case ItemType_ExtraBomb:
+			renderer_setPen( Pen_DebugGreen );
+			break;
+	}
+
+	renderer_addLinearStroke( points, SYS_COUNTOF( points ) );
+}
+
+#if 0
 static void game_render_explosion( const ClientExplosion* pExplosion, const float2x3* pWorldTransform )
 {
 	float2 explosion0Points[] =
@@ -377,6 +408,7 @@ static void game_render_explosion( const ClientExplosion* pExplosion, const floa
 
 	renderer_addLinearStroke( explosion1Points, SYS_COUNTOF( explosion1Points ) );
 }
+#endif 
 
 static void game_render_burnhole( const ClientExplosion* pExplosion, const float2x3* pWorldTransform )
 {
@@ -470,13 +502,21 @@ void game_render()
 					game_render_bomb( pBomb, &s_game.world.worldTransform );
 				}
 			}
+			for( uint i = 0u; i < SYS_COUNTOF( pGameState->items ); ++i )
+			{
+				const ClientItem* pItem = &pGameState->items[ i ];
+				if( pItem->type != ItemType_None )
+				{
+					game_render_item( pItem, &s_game.world.worldTransform );
+				}
+			}
 			for( uint i = 0u; i < SYS_COUNTOF( pGameState->explosions ); ++i )
 			{
 				const ClientExplosion* pExplosion = &pGameState->explosions[ i ];
-				if( pExplosion->time > 0u )
-				{
-					game_render_explosion( pExplosion, &s_game.world.worldTransform );
-				}
+				//if( pExplosion->time > 0u )
+				//{
+				//	game_render_explosion( pExplosion, &s_game.world.worldTransform );
+				//}
 				if( s_game.client.explosionTriggered[ i ] )
 				{
 					game_render_burnhole( pExplosion, &s_game.world.worldTransform );
@@ -493,4 +533,3 @@ void game_render()
     //frame.playerPos = s_game.player[ 0u ].position;
     renderer_drawFrame( &frame );
 }
-

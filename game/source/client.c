@@ -31,6 +31,10 @@ void client_create( Client* pClient, const IP4Address* pServerAddress, const cha
 	{
 		pClient->explosionActive[ i ] = 0;
 	}
+	for( uint i = 0u; i < SYS_COUNTOF( pClient->gameState.items ); ++i )
+	{
+		pClient->gameState.items[ i ].type = (uint8)ItemType_None;
+	}
 }
 
 void client_destroy( Client* pClient )

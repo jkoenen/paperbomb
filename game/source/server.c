@@ -234,6 +234,16 @@ static void create_client_state( ClientGameState* pClientState, const ServerGame
 		pClient->direction	= angle_quantize( pServer->direction );
 		pClient->length		= (uint8)pServer->length;
 	}
+
+	for( uint i	= 0u; i < SYS_COUNTOF( pServerState->items ); ++i )
+	{
+		ClientItem* pClient = &pClientState->items[ i ];
+		const ServerItem* pServer = &pServerState->items[ i ];
+
+		pClient->type		= (uint8)pServer->type;
+		pClient->posX		= float_quantize( pServer->position.x );
+		pClient->posY		= float_quantize( pServer->position.y );
+	}
 }
 
 static void server_send_client_state( Server* pServer )
@@ -279,6 +289,12 @@ void server_create( Server* pServer, uint16 port )
 	{
 		pServer->gameState.explosions[ i ].time = 0.0f;
 	}
+	for( uint i = 0u; i < SYS_COUNTOF( pServer->gameState.items ); ++i )
+	{
+		pServer->gameState.items[ i ].type = ItemType_None;
+	}
+	pServer->gameState.timeToNextItem = 5.0f;
+
 	pServer->gameState.id = 0u;
 }
 
@@ -452,9 +468,20 @@ void server_update( Server* pServer, World* pWorld )
 
 				if( isPlayerOldEnough && ( isCircleCapsuleIntersecting( &playerCirlce, &capsule0 ) || isCircleCapsuleIntersecting( &playerCirlce, &capsule1 ) ) )
 				{
-					if( pExplosion->player < MaxPlayer )
+					if( pExplosion->player < MaxPlayer ) 
 					{
-						pServer->gameState.player[ pExplosion->player ].frags++;
+						ServerPlayer* pFragPlayer = &pServer->gameState.player[ pExplosion->player ];
+						if( pExplosion->player == j )
+						{
+							if( pFragPlayer->frags > 0u )
+							{
+								pFragPlayer->frags--;
+							}
+						}
+						else
+						{
+							pFragPlayer->frags++;
+						}
 					}
 
 					player_respawn( pPlayer, &s_playerStartPositions[ j ], s_playerStartDirections[ j ] );
@@ -487,6 +514,24 @@ void server_update( Server* pServer, World* pWorld )
 		{
 			pExplosion->time = 0.0f;
 		}
+	}
+
+	pServer->gameState.timeToNextItem -= GAMETIMESTEP;
+	if( pServer->gameState.timeToNextItem <= 0.0f )
+	{	
+		for( uint i = 0u; i < SYS_COUNTOF( pServer->gameState.items ); ++i )
+		{
+			ServerItem* pItem = &pServer->gameState.items[ i ];
+
+			if( pItem->type == ItemType_None )
+			{
+				pItem->type = ( float_rand() < 0.5f ? ItemType_ExtraBomb : ItemType_BombRange );
+				pItem->position.x = float_rand_range( pWorld->borderMin.x + 2.0f, pWorld->borderMax.x - 2.0f );
+				pItem->position.y = float_rand_range( pWorld->borderMin.y + 2.0f, pWorld->borderMax.y - 2.0f );
+				break;
+			}
+		}
+		pServer->gameState.timeToNextItem = float_rand_range( 5.0f, 10.0f );
 	}
 
 	pServer->gameState.id++;

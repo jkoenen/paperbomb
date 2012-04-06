@@ -6,6 +6,7 @@ enum
 	MaxPlayer		= 4u,
 	MaxBombs		= 16u,
 	MaxExplosions	= 16u,
+	MaxItems		= 4u,
 	NetworkPort		= 2357u
 };	
 
