@@ -53,8 +53,7 @@ void main()
     float size=fp1.x;
     float n=(noise.x+0.5*noise.y+0.25*noise.z+0.125*noise.w);
     float d=distToLine(start,end,paperPos)+n;
-    float i=max(min(0.4*(size-d),1),0);
+    float i=max(min((size-d),1),0);
     gl_FragColor=vec4(i,i,i,i);
-//gl_FragColor=vec4(n,n,n,1);
 }
 

@@ -92,9 +92,23 @@ static void updateButtonMask( uint32* pButtonMask, uint32 button, int isDown )
     *pButtonMask = buttonMask;
 }
 
+static void updateButtonMaskFromJoystick( uint32* pButtonMask, uint32 button, int16 value, int16 threshold )
+{
+    uint32 buttonMask = *pButtonMask;
+    if( value > threshold )
+    {
+        buttonMask |= button;
+    }
+    else
+    {
+        buttonMask &= ~button;
+    }
+    *pButtonMask = buttonMask;
+}
+
 int main()
 {
-    if( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER ) < 0 )
+    if( SDL_Init( SDL_INIT_VIDEO | SDL_INIT_AUDIO | SDL_INIT_TIMER | SDL_INIT_JOYSTICK ) < 0 )
     {
         SYS_BREAK( "SDL_Init failed!\n" );
     }
@@ -121,11 +135,20 @@ int main()
 
     uint32 lastTime = SDL_GetTicks();
     uint32 buttonMask = 0u;
+    uint32 joystickButtonMask = 0u; 
 
 #ifndef SYS_BUILD_MASTER
     uint32 lastTimingTime = lastTime;
     uint32 timingFrameCount = 0u;
 #endif
+
+    SDL_JoystickEventState( SDL_ENABLE );
+
+    SDL_Joystick* pJoystick0 = SDL_JoystickOpen( 0 );
+    SYS_USE_ARGUMENT(pJoystick0);
+
+    int16 joystickAxis0 = 0;
+    int16 joystickAxis1 = 0;
 
     int quit = 0;
     do
@@ -156,6 +179,31 @@ int main()
         {
             switch( event.type )
             {
+            case SDL_JOYAXISMOTION:
+                if( event.jaxis.axis == 0u )
+                {
+                    joystickAxis0 = event.jaxis.value;
+                }
+                else if( event.jaxis.axis == 1u )
+                {
+                    joystickAxis1 = event.jaxis.value;
+                }
+                break;
+
+            case SDL_JOYBUTTONDOWN:
+                if( event.jbutton.button == 0 )
+                {
+                    updateButtonMask( &joystickButtonMask, ButtonMask_PlaceBomb, 1 );
+                }
+                break;
+
+            case SDL_JOYBUTTONUP:
+                if( event.jbutton.button == 0 )
+                {
+                    updateButtonMask( &joystickButtonMask, ButtonMask_PlaceBomb, 0 );
+                }
+                break;
+
             case SDL_KEYDOWN:
             case SDL_KEYUP:
 				{
@@ -199,10 +247,15 @@ int main()
             }
         }
         
+        updateButtonMaskFromJoystick( &joystickButtonMask, ButtonMask_Right, joystickAxis0, 16000 );
+        updateButtonMaskFromJoystick( &joystickButtonMask, ButtonMask_Left, -joystickAxis0, 16000 );
+        updateButtonMaskFromJoystick( &joystickButtonMask, ButtonMask_Down, joystickAxis1, 3200 );
+        updateButtonMaskFromJoystick( &joystickButtonMask, ButtonMask_Up, -joystickAxis1, 3200 );
+
         GameInput gameInput;
         memset( &gameInput, 0u, sizeof( gameInput ) );
         gameInput.timeStep = timeStep;
-        gameInput.buttonMask = buttonMask;
+        gameInput.buttonMask = buttonMask | joystickButtonMask;
 
         game_update( &gameInput );
 

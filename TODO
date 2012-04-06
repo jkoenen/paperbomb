@@ -5,7 +5,7 @@ TODO:
 - proper page flip 
     + vbo rendering
     + create page mesh
-    - create flip animation in vertex shader
+    + create flip animation in vertex shader
 - network
     + sockets
     - matchmaking
@@ -41,4 +41,4 @@ TODO:
     - demo 
     - group?
 - polish it
-
+    - lighting / ambient occlusion 

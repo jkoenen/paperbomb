@@ -334,7 +334,7 @@ static void game_render_burnhole( const ClientExplosion* pExplosion )
 	}
 
 	renderer_setTransform( 0 );
-	renderer_addBurnHole( &explosion0Points[ 0u ], &explosion0Points[ 1u ], 1.0f ); 
+	renderer_addBurnHole( &explosion0Points[ 0u ], &explosion0Points[ 1u ], 2.0f ); 
 
 	float2 explosion1Points[] =
 	{ 
@@ -353,7 +353,7 @@ static void game_render_burnhole( const ClientExplosion* pExplosion )
 		float2_add( &explosion1Points[ i ], &explosion1Points[ i ], &worldOffset );
 	}
 
-	renderer_addBurnHole( &explosion1Points[ 0u ], &explosion1Points[ 1u ], 1.0f ); 
+	renderer_addBurnHole( &explosion1Points[ 0u ], &explosion1Points[ 1u ], 2.0f ); 
 }
 
 void game_render()

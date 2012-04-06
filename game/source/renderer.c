@@ -491,10 +491,11 @@ void renderer_flipPage()
 
     for( uint i = 0u; i < SYS_COUNTOF(s_renderer.burnHoles); ++i )
     {
-        if( s_renderer.burnHoles[i].size>0.0f)
+        if( s_renderer.burnHoles[i].size>=0.0f)
         {
-            s_renderer.burnHoles[i].size -= 0.6f;
+//            SYS_TRACE_DEBUG("bh[%i]=%f\n", i, s_renderer.burnHoles[i].size);
             drawBurnHole( &s_renderer.burnHoles[i] );
+            s_renderer.burnHoles[i].size -= 0.1f;
         }
     }
 
@@ -527,15 +528,18 @@ void renderer_addBurnHole( const float2* pStart, const float2* pEnd, float size 
     {
         if( s_renderer.burnHoles[i].size <= 0.0f )
         {
+            SYS_TRACE_DEBUG( "using slot %i for bh!\n", i );
             s_renderer.burnHoles[i].size=size;
             s_renderer.burnHoles[i].initialSize=size;
             transformPoint( &s_renderer.burnHoles[i].start, pStart, 0.0f );
             transformPoint( &s_renderer.burnHoles[i].end, pEnd, 0.0f );
             s_renderer.burnHoles[i].rot=float_rand_range(0.0f, 2.0f*PI);
             drawBurnHole( &s_renderer.burnHoles[i] );
-            break;
+            return;
         }
     }
+
+    SYS_TRACE_WARNING( "no burn hole slot found!\n" );
 }
 
 static int pushStrokeCommand( const StrokeCommand* pCommand )
@@ -713,21 +717,6 @@ void renderer_addLinearStroke( const float2* pStrokePoints, uint strokePointCoun
     }
 }
 
-/*static inline float b1( float x )
-{
-    return x*x;
-}
-
-static inline float b2( float x )
-{
-    return 2.0f*x*(1.0f-x);
-}
-
-static inline float b3(float x)
-{
-    return ((1.0f-x)*(1.0f-x));
-}*/
-
 static inline void evaluateQuadraticCurve( float2* pResult, const float2* pPoints, float x )
 {
     const float x0=pPoints[0u].x;
@@ -743,8 +732,6 @@ static inline void evaluateQuadraticCurve( float2* pResult, const float2* pPoint
 
     pResult->x = w0*x0 + w1*x1 + w2*x2;
     pResult->y = w0*y0 + w1*y1 + w2*y2;
-
-//SYS_TRACE_DEBUG("qp=(%f,%f) (%f,%f) (%f,%f) (%f)=%f,%f\n",pPoints[0u].x,pPoints[0u].y,pPoints[1u].x,pPoints[1u].y,pPoints[2u].x,pPoints[2u].y,x,pResult->x,pResult->y);
 }
 
 static uint addQuadraticCurvePoints(const float2* pPoints,uint stepCount,int addLastPoint)
