@@ -20,3 +20,4 @@ int socket_isAddressEqual( const IP4Address* pAddress1, const IP4Address* pAddre
 {
 	return ( pAddress1->address == pAddress2->address ) && ( pAddress1->port == pAddress2->port );
 }
+

@@ -306,27 +306,29 @@ void server_update( Server* pServer, const World* pWorld )
 		}
 	}
 
-	uint bombIndex = 0u;
-	while( bombIndex < pServer->gameState.bombCount )
-	{
-		ServerBomb* pBomb = &pServer->gameState.bombs[ bombIndex ];
+    {
+        uint bombIndex = 0u;
+        while( bombIndex < pServer->gameState.bombCount )
+        {
+            ServerBomb* pBomb = &pServer->gameState.bombs[ bombIndex ];
 
-		ServerExplosion* pExplosion = ( pServer->gameState.explosionCount < SYS_COUNTOF( pServer->gameState.explosions ) ? &pServer->gameState.explosions[ pServer->gameState.explosionCount ] : 0 );
-		if( bomb_update( pBomb, pExplosion ) )
-		{
-			pServer->gameState.explosionCount++;
+            ServerExplosion* pExplosion = ( pServer->gameState.explosionCount < SYS_COUNTOF( pServer->gameState.explosions ) ? &pServer->gameState.explosions[ pServer->gameState.explosionCount ] : 0 );
+            if( bomb_update( pBomb, pExplosion ) )
+            {
+                pServer->gameState.explosionCount++;
 
-			if( bombIndex + 1u < pServer->gameState.bombCount )
-			{
-				*pBomb = pServer->gameState.bombs[ pServer->gameState.bombCount - 1u ];
-			}
-			pServer->gameState.bombCount--;
-		}
-		else
-		{
-			bombIndex++;
-		}
-	}
+                if( bombIndex + 1u < pServer->gameState.bombCount )
+                {
+                    *pBomb = pServer->gameState.bombs[ pServer->gameState.bombCount - 1u ];
+                }
+                pServer->gameState.bombCount--;
+            }
+            else
+            {
+                bombIndex++;
+            }
+        }
+    }
 
 	for( uint i = 0u; i < pServer->gameState.playerCount; ++i )
 	{
