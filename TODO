@@ -9,7 +9,7 @@ TODO:
 - network
     + sockets
     - matchmaking
-    - client/server communication
+    + client/server communication
 - font:
     + quadratic curve to stroke conversion
     - define font with quadratic curves
@@ -42,3 +42,4 @@ TODO:
     - group?
 - polish it
     - lighting / ambient occlusion 
+
