@@ -19,6 +19,7 @@ typedef struct
 
 typedef struct 
 {
+	uint	player;
 	float2	position;
 	float	direction;
 	float	length;
@@ -32,6 +33,7 @@ typedef struct
 	ClientState		state;
 	uint			lastButtonMask;
 
+	uint			frags;
 	uint			playerState;
 	char			name[ 12u ];
 	float			age;

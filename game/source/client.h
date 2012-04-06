@@ -34,6 +34,7 @@ enum
 typedef struct 
 {
 	uint8		state;
+	uint8		frags;
 	char		name[ 12u ];
 	int16		posX;
 	int16		posY;
@@ -55,7 +56,8 @@ typedef struct
 
 enum
 {
-	ClientStateFlag_Online = 1u
+	ClientStateFlag_Online = 1u,
+	ServerFlagOffline	   = 1u << 31u
 };
 
 typedef struct 
@@ -82,6 +84,6 @@ typedef struct
 
 void	client_create( Client* pClient, const IP4Address* pServerAddress, const char* pName );
 void	client_destroy( Client* pClient );
-void	client_update( Client* pClient, uint buttonMask );
+int		client_update( Client* pClient, uint buttonMask );
 
 #endif

@@ -8,6 +8,7 @@ TODO:
     + create flip animation in vertex shader
 - network
     + sockets
+    + matchmaking
     - matchmaking
     + client/server communication
 - font:
@@ -19,7 +20,6 @@ TODO:
     - logo?
     - main menu
     - multiplayer menu
-    - single player? -> AI?
     - menu point selection (erase)
 - gameplay
     - proper collision
