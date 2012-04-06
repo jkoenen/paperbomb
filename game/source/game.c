@@ -12,6 +12,7 @@
 
 #include <string.h>
 #include <memory.h>
+#include <stdio.h>
 
 enum 
 {
@@ -135,7 +136,7 @@ void game_init()
     	s_game.lastButtonMask[ i ] = 0u;
     }
 
-	copyString( s_game.serverIP, sizeof( s_game.serverIP ), "10.1.11.4" );
+	copyString( s_game.serverIP, sizeof( s_game.serverIP ), "10.1.11.5" );
 	copyString( s_game.playerName, sizeof( s_game.playerName ), "Horst" );
 
 	float2_set( &s_game.world.borderMin, -24.0f, -24.0f );
@@ -159,7 +160,6 @@ void game_update( const GameInput* pInput )
     const float timeStep = pInput->timeStep;
 
     s_game.gameTime += timeStep;
-	s_game.updateTime += timeStep;
 
 	const uint32 buttonMask = pInput->buttonMask;
 	const uint32 buttonDownMask = buttonMask & ~s_game.debugLastButtonMask;
@@ -187,6 +187,8 @@ void game_update( const GameInput* pInput )
 		case GameState_Play:
 			{
 				int quit = 0;
+				s_game.updateTime += timeStep;
+
 				while( s_game.updateTime >= GAMETIMESTEP )
 				{
 					quit |= client_update( &s_game.client, buttonMask & Button_PlayerMask );
@@ -486,12 +488,20 @@ void game_render()
 
 			game_render_world( &s_game.world );
 
+			float2 fontPos;
+			float2_set( &fontPos, 5.0f, 20.0f );
+
 			for( uint i = 0u; i < SYS_COUNTOF( pGameState->player ); ++i )
 			{
 				const ClientPlayer* pPlayer = &pGameState->player[ i ];
 				if( pPlayer->state != PlayerState_InActive )
 				{
 					game_render_car( pPlayer, &s_game.world.worldTransform );
+
+					char frags[ 16u ];
+					sprintf_s( frags, sizeof( frags ), "%d", pPlayer->frags );
+					font_drawText( &fontPos, 0.5f, 0.1f, frags );
+					fontPos.y -= 3.0f;
 				}
 			}
 			for( uint i = 0u; i < SYS_COUNTOF( pGameState->bombs ); ++i )
