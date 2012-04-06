@@ -1,0 +1,19 @@
+# linux{debug,release,master},win32{debug,release,master}
+
+module_search_path '../../thirdparty/modules'
+
+inject '../../config/game_config.rb'
+
+set_project_name 'fontgen'
+
+set_attribute :c_warning_level, 1
+
+import 'platform/linux'
+
+! project.lace
+
+! *.c
+! *.h
+
+add_lib 'm' 
+

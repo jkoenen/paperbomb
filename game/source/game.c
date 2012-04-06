@@ -433,7 +433,7 @@ void game_render()
 
 		renderer_setPen( Pen_Font );
 		float2 position = { 1.0f, 1.0f };
-		font_drawText( &position, 0.8f, variance, "HALLO" );
+		font_drawText( &position, 2.0f, variance, "HALLO" );
 		position.y += 10.0f;
 		font_drawText( &position, 0.8f, 2.0f * variance, "HALLO" );
 		position.y += 10.0f;
@@ -462,7 +462,7 @@ void game_render()
 					game_render_car( pPlayer, &s_game.world.worldTransform );
 
 					char frags[ 16u ];
-					sprintf_s( frags, sizeof( frags ), "%d", pPlayer->frags );
+					sprintf( frags, "%d", pPlayer->frags );
 					font_drawText( &fontPos, 0.5f, 0.1f, frags );
 					fontPos.y -= 3.0f;
 				}

@@ -8,7 +8,8 @@ typedef struct
     uint                characterCode;
     float               advance;
     const float2*       pPoints;
-    uint                pointCount;
+    const uint8*        pCommands;
+    uint                commandCount;
 } FontGlyph;
 
 void font_init();
