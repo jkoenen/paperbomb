@@ -19,11 +19,12 @@ TODO:
     - logo?
     - main menu
     - multiplayer menu
+    - enter server ip
     - menu point selection (erase)
 - gameplay
     + proper collision
     + obstacles
-    - ray tests for obstacles
+    + ray tests for obstacles
 - sound
     + sound code for win32
     - stroke sound
