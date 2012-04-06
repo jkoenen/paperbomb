@@ -27,6 +27,7 @@ void main()
     vec4 result=bgColor*(1.0-fgColor.w)+fgColor;
     gl_FragColor=result;
 
+//gl_FragColor=vec4(bgColor.www,1.0);
 //gl_FragColor=vec4(burn,burn,burn,1.0);
 }
 

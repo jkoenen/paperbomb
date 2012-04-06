@@ -185,12 +185,6 @@ int main()
 
 					case SDLK_SPACE:
 						updateButtonMask( &buttonMask, ButtonMask_PlaceBomb, event.type == SDL_KEYDOWN );
-    {
-        float2 p0,p1;
-        float2_set(&p0,float_rand_normal(10.0f,10.0f),float_rand_normal(10.0f,10.0f));
-        float2_set(&p1,float_rand_normal(10.0f,10.0f),float_rand_normal(10.0f,10.0f));
-        renderer_addBurnHole(&p0,&p1,10.0f);
-    }
 						break;
 
 					default:
@@ -232,7 +226,7 @@ int main()
                 { -0.2f,  1.0f }
             };*/
 
-            renderer_setPen( Pen_Font );
+            renderer_setPen( Pen_DebugGreen );
 
             const float2 worldOffset = { 32.0f, 16.0f };
             const float2 position = { 0.0f, 0.0f };

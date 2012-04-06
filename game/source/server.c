@@ -469,3 +469,4 @@ void server_update( Server* pServer, const World* pWorld )
 		socket_send_blocking( pServer->socket, &pPlayer->address, &clientState, sizeof( clientState ) );
 	}
 }
+

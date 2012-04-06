@@ -293,6 +293,8 @@ void renderer_init()
     createPen( &s_renderer.pens[ Pen_Default ], 2.0f, 1.0f, &color );
     createPen( &s_renderer.pens[ Pen_Font ], 5.0f, 1.0f, &color );
     createPen( &s_renderer.pens[ Pen_Fat ], 20.0f, 1.0f, &color );
+    createPen( &s_renderer.pens[ Pen_DebugRed ], 2.0f, 1.0f, float3_set( &color, 1.0f, 0.0f, 0.0f ) );
+    createPen( &s_renderer.pens[ Pen_DebugGreen ], 2.0f, 1.0f, float3_set( &color, 0.0f, 1.0f, 0.0f ) );
 
     // create page flip mesh:
     createPageFlipMesh( &s_renderer.pageFlipMesh, 64u, 36u );

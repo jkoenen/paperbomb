@@ -7,7 +7,7 @@ TODO:
     + create page mesh
     - create flip animation in vertex shader
 - network
-    - sockets
+    + sockets
     - matchmaking
     - client/server communication
 - font:
@@ -21,8 +21,6 @@ TODO:
     - multiplayer menu
     - single player? -> AI?
     - menu point selection (erase)
-- ai
-    - for single player
 - gameplay
     - proper collision
     - obstacles
@@ -35,7 +33,6 @@ TODO:
     - background music
 - graphics
     - erase mode
-    - 
     - nicer graphics for cars, bombs and explosions
 - fx
     + explosion hole (first version)

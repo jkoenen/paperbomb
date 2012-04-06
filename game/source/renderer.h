@@ -14,6 +14,9 @@ typedef enum
     Pen_Default,
     Pen_Font,
     Pen_Fat,
+    
+    Pen_DebugRed,
+    Pen_DebugGreen,
     Pen_Count
 } Pen;
 
