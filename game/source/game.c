@@ -136,7 +136,7 @@ void game_init()
     	s_game.lastButtonMask[ i ] = 0u;
     }
 
-	copyString( s_game.serverIP, sizeof( s_game.serverIP ), "10.1.11.4" );
+	copyString( s_game.serverIP, sizeof( s_game.serverIP ), "10.1.11.5" );
 	copyString( s_game.playerName, sizeof( s_game.playerName ), "Horst" );
 
 	float2_set( &s_game.world.borderMin, -20.0f, -20.0f );

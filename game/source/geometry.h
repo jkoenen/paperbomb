@@ -25,5 +25,7 @@ int		isCircleCircleIntersecting( const Circle* pCircleA, const Circle* pCircleB 
 int		isCircleLineIntersecting( const Circle* pCircle, const Line* pLine );
 int		isCircleCapsuleIntersecting( const Circle* pCircle, const Capsule* pCapsule );
 
+int		circleCircleCollide( const Circle* pFirst, const Circle* pSecond, float massRatio, float2* pFirstPos, float2* pSecondPos );
+
 #endif
 

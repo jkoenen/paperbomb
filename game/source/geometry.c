@@ -41,3 +41,33 @@ int isCircleCapsuleIntersecting( const Circle* pCircle, const Capsule* pCapsule 
 {
 	return getLinePointDistance( &pCapsule->line, &pCircle->center ) <= pCircle->radius + pCapsule->radius;
 }
+
+
+int circleCircleCollide( const Circle* pFirst, const Circle* pSecond, float massRatio, float2* pFirstPos, float2* pSecondPos )
+{
+	if( isCircleCircleIntersecting( pFirst, pSecond ) )
+	{
+		float2 distance;
+		float2_sub( &distance, &pSecond->center, &pFirst->center );
+		const float distanceLength = float2_length( &distance );
+		if( distanceLength > 0.01f )
+		{
+			const float intersecting = distanceLength - pSecond->radius - pFirst->radius;
+			float2_scale1f( &distance, &distance, intersecting / distanceLength );
+			
+			if( pFirstPos )
+			{
+				float2_subScaled1f( pFirstPos, pFirstPos, &distance, -( 1.0f - massRatio ) );
+			}
+			if( pSecondPos )
+			{
+				float2_subScaled1f( pSecondPos, pSecondPos, &distance, massRatio );
+			}
+		}
+
+		return TRUE;
+	}
+
+	return FALSE;
+}
+

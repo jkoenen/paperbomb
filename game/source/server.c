@@ -604,6 +604,52 @@ void server_update( Server* pServer, World* pWorld )
 		}
 	}
 
+	for( uint i = 0u; i < SYS_COUNTOF( pServer->gameState.player ); ++i )
+	{
+		ServerPlayer* pPlayer = &pServer->gameState.player[ i ];
+		if( pPlayer->playerState == PlayerState_InActive )
+		{
+			continue;
+		}
+
+		Circle playerCirlce;
+		playerCirlce.center = pPlayer->position;
+		playerCirlce.radius = s_carRadius;
+
+		for( uint j = 0u; j < SYS_COUNTOF( pServer->gameState.bombs ); ++j )
+		{
+			const ServerBomb* pBomb = &pServer->gameState.bombs[ j ];
+			if( pBomb->time > 0.0f ) 
+			{
+				Circle bombCircle;
+				bombCircle.center = pBomb->position;
+				bombCircle.radius = s_bombRadius;
+
+				circleCircleCollide( &bombCircle, &playerCirlce, 1.0f, 0, &pPlayer->position );
+			}
+		}
+
+		for( uint j = 0u; j < SYS_COUNTOF( pWorld->rockz ); ++j )
+		{
+			circleCircleCollide( &pWorld->rockz[ j ], &playerCirlce, 1.0f, 0, &pPlayer->position );
+		}
+
+		for( uint j = i + 1u; j < SYS_COUNTOF( pServer->gameState.player ); ++j )
+		{
+			ServerPlayer* pOtherPlayer = &pServer->gameState.player[ j ];
+			if( pOtherPlayer->playerState == PlayerState_InActive )
+			{
+				continue;
+			}
+
+			Circle otherPlayerCirlce;
+			otherPlayerCirlce.center = pOtherPlayer->position;
+			otherPlayerCirlce.radius = s_carRadius;
+
+			circleCircleCollide( &playerCirlce, &otherPlayerCirlce, 0.5f, &pPlayer->position, &pOtherPlayer->position );
+		}
+	}
+
 	pServer->gameState.timeToNextItem -= GAMETIMESTEP;
 	if( pServer->gameState.timeToNextItem <= 0.0f )
 	{	
