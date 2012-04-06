@@ -73,6 +73,7 @@ typedef struct
 	IP4Address		serverAddress;
 
 	int				explosionActive[ MaxExplosions ];
+    int             explosionTriggered[ MaxExplosions ];
 	ClientGameState	gameState;
 
 	ClientState		state;

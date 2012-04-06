@@ -83,8 +83,10 @@ void client_update( Client* pClient, uint buttonMask )
 		int flank = 0;
 		if( isActive && !wasActive )
 		{
-			flank = 2;
+			flank = 1;
 		}
-		pClient->explosionActive[ i ] = flank | isActive;
+		pClient->explosionActive[ i ] = isActive;
+        pClient->explosionTriggered[i] |= flank;
 	}
 }
+

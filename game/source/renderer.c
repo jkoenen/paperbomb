@@ -528,7 +528,6 @@ void renderer_addBurnHole( const float2* pStart, const float2* pEnd, float size 
     {
         if( s_renderer.burnHoles[i].size <= 0.0f )
         {
-            SYS_TRACE_DEBUG( "using slot %i for bh!\n", i );
             s_renderer.burnHoles[i].size=size;
             s_renderer.burnHoles[i].initialSize=size;
             transformPoint( &s_renderer.burnHoles[i].start, pStart, 0.0f );

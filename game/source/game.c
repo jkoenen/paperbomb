@@ -406,9 +406,10 @@ void game_render()
 			{
 				game_render_explosion( pExplosion );
 			}
-			if( s_game.client.explosionActive[ i ] & 2 )
+			if( s_game.client.explosionTriggered[ i ] )
 			{
 				game_render_burnhole( pExplosion );
+                s_game.client.explosionTriggered[i] = 0;
 			}
 		}
 	}
