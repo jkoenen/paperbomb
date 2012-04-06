@@ -239,41 +239,6 @@ static void game_render_bomb( const ClientBomb* pBomb )
 	renderer_addLinearStroke( bombPoints0, SYS_COUNTOF( bombPoints0 ) );
 }
 
-static void game_render_serverbomb( const ServerBomb* pBomb )
-{
-	float2 worldOffset;
-	float2_set( &worldOffset, 32.0f, 18.0f );
-
-	float2 bombPoints0[] =
-	{ 
-		{ -1.0f,  0.2f },
-		{  1.0f,  0.2f },
-		{  1.0f, -0.2f },
-		{ -1.0f, -0.2f },
-		{ -1.0f,  0.2f },
-		{ -1.0f,  0.2f },
-		{ -0.2f,  1.0f },
-		{  0.2f,  1.0f },
-		{  0.2f, -1.0f },
-		{ -0.2f, -1.0f },
-		{ -0.2f,  1.0f }
-	};
-
-	float2 position = pBomb->position;
-	const float direction = pBomb->direction;
-
-	float2x3 bombTransform;
-	float2x2_rotationY( &bombTransform.rot, direction );
-	float2x2_scale2f( &bombTransform.rot, &bombTransform.rot, 1.0f, 1.0f );
-	float2_add( &bombTransform.pos, &position, &worldOffset );
-
-	renderer_setVariance( 0.0f );
-	renderer_setPen( Pen_DebugRed );
-
-	renderer_setTransform( &bombTransform );
- 	renderer_addLinearStroke( bombPoints0, SYS_COUNTOF( bombPoints0 ) );
-}
-
 static void game_render_explosion( const ClientExplosion* pExplosion )
 {
 	float2 worldOffset;
@@ -297,6 +262,8 @@ static void game_render_explosion( const ClientExplosion* pExplosion )
 	const float direction = angle_unquantize( pExplosion->direction );
 	const float length = (float)pExplosion->length;
 
+	renderer_setPen( Pen_DebugRed );
+
 	for( uint i = 0u; i < SYS_COUNTOF( explosion0Points ); ++i )
 	{
 		float2 scale;
@@ -307,6 +274,8 @@ static void game_render_explosion( const ClientExplosion* pExplosion )
 		float2_scale2f( &explosion0Points[ i ], &explosion0Points[i], &worldScale );
 		float2_add( &explosion0Points[ i ], &explosion0Points[ i ], &worldOffset );
 	}
+
+	renderer_setTransform( 0 );
 
 	renderer_addLinearStroke( explosion0Points, SYS_COUNTOF( explosion0Points ) ); 
 
@@ -384,16 +353,6 @@ void game_render()
 				game_render_explosion( pExplosion );
 			}
 		}
-
-		for( uint i = 0u; i < SYS_COUNTOF( s_game.server.gameState.bombs ); ++i )
-		{
-			const ServerBomb* pBomb = &s_game.server.gameState.bombs[ i ];
-			if( pBomb->time > 0.0f )
-			{
-				game_render_serverbomb( pBomb );
-			}
-		}
-
 	}
     renderer_updatePage( 1.0f / 60.0f );
 

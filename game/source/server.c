@@ -352,7 +352,7 @@ void server_update( Server* pServer, const World* pWorld )
 		uint bombCount = 0u;
 		for( uint j = 0u; j < SYS_COUNTOF( pServer->gameState.bombs ); ++j )
 		{
-			ServerBomb* pBomb = &pServer->gameState.bombs[ j ];
+			const ServerBomb* pBomb = &pServer->gameState.bombs[ j ];
 			if( ( pBomb->time > 0.0f ) && ( pBomb->player == i ) )
 			{
 				bombCount++;
@@ -419,7 +419,7 @@ void server_update( Server* pServer, const World* pWorld )
 
 				if( isPlayerOldEnough && ( isCircleCapsuleIntersecting( &playerCirlce, &capsule0 ) || isCircleCapsuleIntersecting( &playerCirlce, &capsule1 ) ) )
 				{
-					player_respawn( pPlayer, &s_playerStartPositions[ i ], s_playerStartDirections[ i ] );
+					player_respawn( pPlayer, &s_playerStartPositions[ j ], s_playerStartDirections[ j ] );
 				}
 			}
 
