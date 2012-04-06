@@ -2,18 +2,12 @@
 
 #include "debug.h"
 
-void client_create( Client* pClient, uint16 port, const IP4Address* pServerAddress, const char* pName )
+void client_create( Client* pClient, const IP4Address* pServerAddress, const char* pName )
 {
 	socket_init();
 
 	pClient->socket			= socket_create();
 	pClient->serverAddress	= *pServerAddress;
-
-	IP4Address address;
-	address.address = socket_gethostIP();
-	address.port	= port;
-
-	socket_bind( pClient->socket, &address );
 
 	pClient->state.id		  = 1u;
 	pClient->state.buttonMask = 0u;
@@ -41,6 +35,11 @@ void client_create( Client* pClient, uint16 port, const IP4Address* pServerAddre
 
 void client_destroy( Client* pClient )
 {
+	pClient->state.id++;
+	pClient->state.buttonMask = 0u;
+	pClient->state.flags = 0u;
+	socket_send_blocking( pClient->socket, &pClient->serverAddress, &pClient->state, sizeof( pClient->state ) );
+
 	socket_destroy( pClient->socket );
 	pClient->socket = InvalidSocket;
 

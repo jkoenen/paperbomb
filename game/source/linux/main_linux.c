@@ -187,6 +187,14 @@ int main()
 						updateButtonMask( &buttonMask, ButtonMask_PlaceBomb, event.type == SDL_KEYDOWN );
 						break;
 
+					case SDLK_C:
+						updateButtonMask( &buttonMask, ctrlPressed ? ButtonMask_Client : ButtonMask_Left, event.type == SDL_KEYDOWN );
+						break;
+
+					case SDLK_S:
+						updateButtonMask( &buttonMask, ctrlPressed ? ButtonMask_Server : ButtonMask_Left, event.type == SDL_KEYDOWN );
+						break;
+
 					default:
 						break;
 					}

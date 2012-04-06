@@ -135,6 +135,11 @@ static LRESULT CALLBACK WndProc( HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lPa
 
 			case 'S':
 				updateButtonMask( &s_currentButtonMask, ButtonMask_Player2Down, uMsg == WM_KEYDOWN );
+				updateButtonMask( &s_currentButtonMask, ButtonMask_Server, uMsg == WM_KEYDOWN );
+				break;
+
+			case 'C':
+				updateButtonMask( &s_currentButtonMask, ButtonMask_Client, uMsg == WM_KEYDOWN );
 				break;
 
 			case VK_TAB:
