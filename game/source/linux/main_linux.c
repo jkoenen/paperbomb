@@ -14,7 +14,7 @@
 #include <math.h>
 #include <stdarg.h>
 
-//#define TEST_RENDERER
+#define TEST_RENDERER
 
 #ifdef TEST_RENDERER
 #   include "font.h"
@@ -226,7 +226,7 @@ int main()
                 { -0.2f,  1.0f }
             };*/
 
-            renderer_setPen( Pen_Font );
+            renderer_setPen( Pen_DebugGreen );
 
             const float2 worldOffset = { 32.0f, 16.0f };
             const float2 position = { 0.0f, 0.0f };
