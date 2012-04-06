@@ -40,7 +40,7 @@ typedef struct
 	ClientState		state;
 	uint			lastButtonMask;
 
-	uint			frags;
+	int				frags;
 	uint			playerState;
 	char			name[ 12u ];
 	float			age;

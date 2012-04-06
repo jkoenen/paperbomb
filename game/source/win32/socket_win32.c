@@ -87,7 +87,7 @@ int	socket_bind( Socket socket, const IP4Address* pAddress )
 	memset( &addr, 0, sizeof( addr ) );
 
 	addr.sin_family			= AF_INET;
-	addr.sin_addr.s_addr	= /*htonl*/( pAddress->address );
+	addr.sin_addr.s_addr	= pAddress->address;
 	addr.sin_port			= htons( pAddress->port );
 
 	if( ::bind( (uint)socket, ( sockaddr* )&addr, sizeof( addr ) ) == -1 )
@@ -109,7 +109,7 @@ int	socket_send( Socket socket, const IP4Address* pTo, const void* pData, uint s
 	memset( &addr, 0, sizeof( addr ) );
 
 	addr.sin_family			= AF_INET;
-	addr.sin_addr.s_addr	= /*htonl*/( pTo->address );
+	addr.sin_addr.s_addr	= pTo->address;
 	addr.sin_port			= htons( pTo->port );
 
 	const int bytesSent = ::sendto( (uint)socket, (const char*)pData, (int)size, 0, (sockaddr*)&addr, sizeof( addr ) );
@@ -141,7 +141,7 @@ int	socket_receive( Socket socket, void* pData, uint size, IP4Address* pFrom )
 		if( addrLength==sizeof( sockaddr_in ) )
 		{
 			sockaddr_in* pAddr = (sockaddr_in*)&addr;
-			pFrom->address	= /*ntohl*/( pAddr->sin_addr.s_addr );
+			pFrom->address	= pAddr->sin_addr.s_addr;
 			pFrom->port		= ntohs( pAddr->sin_port );
 		}
 

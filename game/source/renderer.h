@@ -3,6 +3,7 @@
 
 #include "types.h"
 #include "matrix.h"
+#include "geometry.h"
 
 typedef struct
 {
@@ -45,8 +46,8 @@ void renderer_flipPage();
 void renderer_flush();
 
 void renderer_addLinearStroke( const float2* pPoints, uint pointCount );
-
 void renderer_addQuadraticStroke( const float2* pPoints, uint pointCount );
+void renderer_addCircle( const Circle* pCircle );
 
 void renderer_addCommandStroke( const float2* pPoints, const uint8* pCommands, uint commandCount );
 
