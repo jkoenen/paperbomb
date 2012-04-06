@@ -253,7 +253,7 @@ void renderer_init()
 {
     SYS_VERIFY( shader_create( &s_renderer.paperShader, &s_shader_paper, 1u, 1u, 0u ) );
     SYS_VERIFY( shader_create( &s_renderer.penShader, &s_shader_pen, 0u, 2u, 0u ) );
-    SYS_VERIFY( shader_create( &s_renderer.pageShader, &s_shader_page, 0u, 0u, 2u ) );
+    SYS_VERIFY( shader_create( &s_renderer.pageShader, &s_shader_page, 0u, 0u, 3u ) );
     SYS_VERIFY( shader_create( &s_renderer.pageFlipShader, &s_shader_pageflip, 1u, 0u, 2u ) );
     SYS_VERIFY( shader_create( &s_renderer.burnHoleShader, &s_shader_burnhole, 0u, 2u, 1u ) );
     SYS_VERIFY( shader_create( &s_renderer.noiseShader, &s_shader_noise, 0u, 0u, 0u ) );
