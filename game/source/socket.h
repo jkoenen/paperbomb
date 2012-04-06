@@ -19,6 +19,7 @@ enum
 void	socket_init();
 void	socket_done();
 
+uint32	socket_getAnyIP();
 uint32	socket_gethostIP();
 uint32	socket_parseIP( const char* pAddress );
 

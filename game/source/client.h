@@ -80,7 +80,7 @@ typedef struct
 
 } Client;
 
-void	client_create( Client* pClient, uint16 port, const IP4Address* pServerAddress, const char* pName );
+void	client_create( Client* pClient, const IP4Address* pServerAddress, const char* pName );
 void	client_destroy( Client* pClient );
 void	client_update( Client* pClient, uint buttonMask );
 

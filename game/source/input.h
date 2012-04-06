@@ -20,6 +20,9 @@ enum
 	ButtonMask_CtrlUp				= 1u << 12u,
 	ButtonMask_CtrlDown				= 1u << 13u,
 
+	ButtonMask_Client				= 1u << 14u,
+	ButtonMask_Server				= 1u << 15u,
+
 	Button_PlayerMask				= ( 1u << 5u ) - 1u,
 	Button_PlayerShift				= 5u,
 };

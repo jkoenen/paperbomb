@@ -239,7 +239,7 @@ void server_create( Server* pServer, uint16 port )
 	pServer->socket = socket_create();
 
 	IP4Address address;
-	address.address = socket_gethostIP();
+	address.address = socket_getAnyIP();
 	address.port	= port;
 
 	socket_bind( pServer->socket, &address );
@@ -327,7 +327,7 @@ void server_update( Server* pServer, const World* pWorld )
 				player_respawn( pPlayer, &s_playerStartPositions[ freeIndex ], s_playerStartDirections[ freeIndex ] );
 			}
 
-			if( pPlayer != 0 )
+			if( pPlayer )
 			{
 				if( state.id > pPlayer->state.id )
 				{

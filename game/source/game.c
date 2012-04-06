@@ -13,6 +13,12 @@
 #include <string.h>
 #include <memory.h>
 
+enum 
+{
+	GameState_Menu,
+	GameState_Play
+};
+
 typedef struct
 {
     float		gameTime;
@@ -24,6 +30,13 @@ typedef struct
 
     uint32      debugLastButtonMask;
 
+	World		world;
+
+	char		playerName[ 12u ];
+	char		serverIP[ 16u ];
+	int			state;
+	int			isServer;
+
 	Client		client;
 	Server		server;
 
@@ -31,9 +44,43 @@ typedef struct
 
 static Game s_game;
 
-static void debug_update( uint buttonMask, uint lastButtonMask )
+static void game_switch_state( int state )
 {
-	const uint32 buttonDownMask = buttonMask & ~lastButtonMask;
+	if( s_game.state == GameState_Play )
+	{
+		client_destroy( &s_game.client );
+
+		if( s_game.isServer )
+		{
+			server_destroy( &s_game.server );
+		}
+	}
+
+	if( state == GameState_Play )
+	{
+		IP4Address address;
+		address.port = NetworkPort;
+
+		if( s_game.isServer )
+		{
+			server_create( &s_game.server, NetworkPort );
+
+			address.address = socket_gethostIP();
+		}
+		else
+		{
+			address.address = socket_parseIP( s_game.serverIP );
+		}
+
+		client_create( &s_game.client, &address, s_game.playerName );
+	}
+
+	s_game.state = state;
+}
+
+static void debug_update( uint buttonMask, uint buttonDownMask )
+{
+	(void)buttonMask;
 
 	float drawSpeed = s_game.drawSpeed;
 	if( buttonDownMask & ButtonMask_CtrlUp )
@@ -86,20 +133,14 @@ void game_init()
     	s_game.lastButtonMask[ i ] = 0u;
     }
 
-	server_create( &s_game.server, NetworkPort );
+	copyString( s_game.serverIP, sizeof( s_game.serverIP ), "10.1.11.5" );
+	copyString( s_game.playerName, sizeof( s_game.playerName ), "Horst" );
 
-	IP4Address address;
-	address.address = socket_gethostIP();
-	address.port = NetworkPort;
-
-	client_create( &s_game.client, NetworkPort, &address, "Hossa" );
+	s_game.state = GameState_Menu;
 }
 
 void game_done()
 {
-	server_destroy( &s_game.server );
-	client_destroy( &s_game.client );
-
     renderer_done();
 	font_done();
 }
@@ -111,29 +152,45 @@ void game_update( const GameInput* pInput )
     s_game.gameTime += timeStep;
 	s_game.updateTime += timeStep;
 
-	uint32 buttonMask = pInput->buttonMask;
-	while( s_game.updateTime >= GAMETIMESTEP )
-	{
-		debug_update(buttonMask, s_game.debugLastButtonMask );
-        s_game.debugLastButtonMask = buttonMask;
+	const uint32 buttonMask = pInput->buttonMask;
+	const uint32 buttonDownMask = buttonMask & ~s_game.debugLastButtonMask;
+	s_game.debugLastButtonMask = buttonMask;
 
-		//PlayerInput playerInputs[ MaxPlayer ];
-		//memset( playerInputs, 0u, sizeof( playerInputs ) );
-		//playerInputs[ 0u ].buttonMask = buttonMask & Button_PlayerMask;
-  //      playerInputs[ 0u ].buttonDownMask = playerInputs[ 0u ].buttonMask & ~s_game.lastButtonMask[ 0u ];
-  //      s_game.lastButtonMask[ 0u ] = playerInputs[ 0u ].buttonMask;
-		//playerInputs[ 1u ].buttonMask = ( buttonMask >> Button_PlayerShift ) & Button_PlayerMask;
-  //      playerInputs[ 1u ].buttonDownMask = playerInputs[ 1u ].buttonMask & ~s_game.lastButtonMask[ 1u ];
-  //      s_game.lastButtonMask[ 1u ] = playerInputs[ 1u ].buttonMask;
+	debug_update( buttonMask, buttonDownMask );
 
-		World world;
+	switch( s_game.state )
+	{	
+		case GameState_Menu:
+			{
+				if( buttonDownMask & ButtonMask_Client )
+				{
+					s_game.isServer = false;
+					game_switch_state( GameState_Play );
+				}
+				else if( buttonDownMask & ButtonMask_Server )
+				{
+					s_game.isServer = true;
+					game_switch_state( GameState_Play );
+				}
+			}
+			break;
 
-		client_update( &s_game.client, buttonMask & Button_PlayerMask );
-		server_update( &s_game.server, &world );
+		case GameState_Play:
+			{
+				while( s_game.updateTime >= GAMETIMESTEP )
+				{
+					client_update( &s_game.client, buttonMask & Button_PlayerMask );
+					server_update( &s_game.server, &s_game.world );
 
-        sound_setEngineFrequency( ( buttonMask & ButtonMask_Up ) ? 1.0f : 0.0f );
+					sound_setEngineFrequency( ( buttonMask & ButtonMask_Up ) ? 1.0f : 0.0f );
 
-		s_game.updateTime -= GAMETIMESTEP;
+					s_game.updateTime -= GAMETIMESTEP;
+				}
+			}
+			break;
+
+		default:
+			break;
 	}
 }
 

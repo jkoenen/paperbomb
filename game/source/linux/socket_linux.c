@@ -18,6 +18,11 @@ void socket_done()
 {
 }
 
+uint32 socket_getAnyIP()
+{
+	return ADDR_ANY;
+}
+
 uint32 socket_gethostIP()
 {
 	struct hostent* pHostInfo = gethostbyname( "localhost" );
