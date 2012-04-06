@@ -241,7 +241,7 @@ void font_drawText( const float2* pPosition, float size, float variance, const c
     {
         const uint charCode = (uint)*pText++;
         const FontGlyph* pGlyph = font_getGlyph( charCode );
-        if(pGlyph->pointCount<3u)
+        if(!pGlyph||pGlyph->pointCount<3u)
         {
             continue;
         }
