@@ -29,7 +29,7 @@ typedef struct
 	uint	player;
 	float2	position;
 	float	direction;
-	float	length;
+	float	length[ 4u ];
 	float	time;
 
 } ServerExplosion;

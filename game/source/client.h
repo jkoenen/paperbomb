@@ -36,7 +36,7 @@ typedef struct
 	int16	posX;
 	int16	posY;
 	uint8	direction;
-	uint8	length;
+	uint8	length[ 4u ];
 
 } ClientExplosion;
 

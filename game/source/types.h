@@ -35,6 +35,7 @@ typedef unsigned __int64     uint64_t;
 
 #define PI		3.14159265f
 #define TWOPI	6.28318531f
+#define HALFPI	1.57079632f
 #define GAMETIMESTEP ( 1.0f / 60.0f )
 
 #define DEG2RADF(deg)    ((deg)*(float)PI/180.0f)

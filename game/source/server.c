@@ -24,7 +24,7 @@ static const float s_playerStartDirections[] =
 	(float)PI * 0.25f * 7.0f
 };
 
-static void bomb_explode( ServerExplosion* pExplosion, const ServerBomb* pBomb )
+static void bomb_explode( ServerExplosion* pExplosion, const ServerBomb* pBomb, const World* pWorld )
 {
 	if( !pExplosion )
 	{
@@ -34,18 +34,39 @@ static void bomb_explode( ServerExplosion* pExplosion, const ServerBomb* pBomb )
  	pExplosion->player		= pBomb->player;
 	pExplosion->position	= pBomb->position;
 	pExplosion->direction	= pBomb->direction;
-	pExplosion->length		= pBomb->length;
 	pExplosion->time		= GAMETIMESTEP;
+
+	Line line;
+	line.a = pExplosion->position;
+	float direction = pExplosion->direction;
+	for( uint i = 0u; i < 4u; ++i )
+	{
+		float2_set( &line.b, 1000.0f, 0.0f );
+		float2_rotate( &line.b, direction );
+
+		float minDistace = pBomb->length;
+		for( uint j = 0u; j < SYS_COUNTOF( pWorld->rockz ); ++j )
+		{
+			float distance;
+			if( isCircleCircleIntersectingWithDistance( &pWorld->rockz[ j ], &line, &distance ) )
+			{
+				minDistace = float_min( minDistace, distance );
+			}
+		}
+
+		pExplosion->length[ i ] = minDistace;
+		direction += HALFPI;
+	}
 }
 
-static void bomb_update( ServerBomb* pBomb, ServerExplosion* pExplosion )
+static void bomb_update( ServerBomb* pBomb, ServerExplosion* pExplosion, const World* pWorld )
 {
 	pBomb->time += GAMETIMESTEP;
 	if( pBomb->time >= s_bombTime )
 	{
 		if( pExplosion )
 		{
-			bomb_explode( pExplosion, pBomb );
+			bomb_explode( pExplosion, pBomb, pWorld );
 		}
 
 		pBomb->time = 0.0f;
@@ -117,7 +138,7 @@ static void player_update( ServerPlayer* pPlayer, uint index, ServerBomb* pBomb,
 {
 	const float steerSpeed		= 0.08f;
 	const float steerDamping	= 0.8f;
-	const float maxSpeed		= 0.8f;
+	const float maxSpeed		= 0.3f;
 	const float maxSteer		= (float)PI * 0.2f;
 
 	const uint buttonMask		= pPlayer->state.buttonMask;
@@ -142,11 +163,11 @@ static void player_update( ServerPlayer* pPlayer, uint index, ServerBomb* pBomb,
 	float acceleration = 0.0f;
 	if( buttonMask & ButtonMask_Up )
 	{
-		acceleration = 0.02f;
+		acceleration = 0.03f;
 	}
 	else if( buttonMask & ButtonMask_Down )
 	{ 
-		acceleration = -0.02f;
+		acceleration = -0.03f;
 	}
 
 	if( buttonDownMask & ButtonMask_PlaceBomb )
@@ -179,7 +200,7 @@ static void player_update( ServerPlayer* pPlayer, uint index, ServerBomb* pBomb,
 	velocity.y = 0.0f;
 
 	float2_rotate( &velocity, pPlayer->direction );
-	float2_addScaled1f( &velocity, &velocity, &velocityForward, 0.94f );
+	float2_addScaled1f( &velocity, &velocity, &velocityForward, 0.96f );
 	float2_addScaled1f( &velocity, &velocity, &velocitySide, 0.8f );
 
 	pPlayer->velocity = velocity; 
@@ -238,11 +259,14 @@ static void create_client_state( ClientGameState* pClientState, const ServerGame
 		ClientExplosion* pClient = &pClientState->explosions[ i ];
 		const ServerExplosion* pServer = &pServerState->explosions[ i ];
 
-		pClient->time		= time8_quantize( pServer->time );
-		pClient->posX		= float_quantize( pServer->position.x );
-		pClient->posY		= float_quantize( pServer->position.y );
-		pClient->direction	= angle_quantize( pServer->direction );
-		pClient->length		= (uint8)pServer->length;
+		pClient->time			= time8_quantize( pServer->time );
+		pClient->posX			= float_quantize( pServer->position.x );
+		pClient->posY			= float_quantize( pServer->position.y );
+		pClient->direction		= angle_quantize( pServer->direction );
+		pClient->length[ 0u ]	= (uint8)pServer->length[ 0u ];
+		pClient->length[ 1u ]	= (uint8)pServer->length[ 1u ];
+		pClient->length[ 2u ]	= (uint8)pServer->length[ 2u ];
+		pClient->length[ 3u ]	= (uint8)pServer->length[ 3u ];
 	}
 
 	for( uint i	= 0u; i < SYS_COUNTOF( pServerState->items ); ++i )
@@ -494,7 +518,7 @@ void server_update( Server* pServer, World* pWorld )
 		}
 
 		ServerExplosion* pExplosion = find_free_explosion( pServer->gameState.explosions, SYS_COUNTOF( pServer->gameState.explosions ) );
-		bomb_update( pBomb, pExplosion );
+		bomb_update( pBomb, pExplosion, pWorld );
 	}
 
 	for( uint i = 0u; i < SYS_COUNTOF( pServer->gameState.explosions ); ++i )
@@ -512,18 +536,27 @@ void server_update( Server* pServer, World* pWorld )
 			capsule0.radius = s_explosionRadius;
 			capsule1.radius = s_explosionRadius;
 
-			float2 length;
-			float2_set( &length, pExplosion->length, 0.0f );
-			float2_rotate( &length, pExplosion->direction );
+			float2 length0;
+			float2_set( &length0, pExplosion->length[ 0u ], 0.0f );
+			float2_rotate( &length0, pExplosion->direction );
 
-			float2_add( &capsule0.line.a, &pExplosion->position, &length );
-			float2_sub( &capsule0.line.b, &pExplosion->position, &length );
+			float2 length1;
+			float2_set( &length1, pExplosion->length[ 2u ], 0.0f );
+			float2_rotate( &length1, pExplosion->direction );
 
-			float2_set( &length, 0.0f, pExplosion->length );
-			float2_rotate( &length, pExplosion->direction );
+			float2_add( &capsule0.line.a, &pExplosion->position, &length0 );
+			float2_sub( &capsule0.line.b, &pExplosion->position, &length1 );
 
-			float2_add( &capsule1.line.a, &pExplosion->position, &length );
-			float2_sub( &capsule1.line.b, &pExplosion->position, &length );
+			float2 length2;
+			float2_set( &length2, 0.0f, pExplosion->length[ 1u ] );
+			float2_rotate( &length2, pExplosion->direction );
+
+			float2 length3;
+			float2_set( &length3, 0.0f, pExplosion->length[ 3u ] );
+			float2_rotate( &length3, pExplosion->direction );
+
+			float2_add( &capsule1.line.a, &pExplosion->position, &length2 );
+			float2_sub( &capsule1.line.b, &pExplosion->position, &length3 );
 
 			for( uint j = 0u; j < SYS_COUNTOF( pServer->gameState.player ); ++j )
 			{
@@ -572,7 +605,7 @@ void server_update( Server* pServer, World* pWorld )
 
 				if( isCircleCapsuleIntersecting( &bombCircle, &capsule0 ) || isCircleCapsuleIntersecting( &bombCircle, &capsule1 ) )
 				{
-					bomb_explode( find_free_explosion( pServer->gameState.explosions, SYS_COUNTOF( pServer->gameState.explosions ) ), pBomb );
+					bomb_explode( find_free_explosion( pServer->gameState.explosions, SYS_COUNTOF( pServer->gameState.explosions ) ), pBomb, pWorld );
 
 					pBomb->time = 0.0f;
 				}

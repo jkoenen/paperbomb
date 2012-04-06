@@ -22,6 +22,7 @@ static const float s_itemBombLength		= 2.0f;
 static const float s_startBombLength	= 6.0f;
 static const float s_explosionRadius	= 1.0f;
 static const float s_bombCarOffset		= 2.0f;
+static const float s_burnRadius			= 2.0f;
 
 #endif
 

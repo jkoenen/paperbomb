@@ -22,7 +22,7 @@ enum
 
 typedef struct
 {
-    float		gameTime;
+    float		renderTime;
 	float		updateTime;
 	uint32		lastButtonMask[ MaxPlayer ];
 
@@ -128,7 +128,7 @@ void game_init()
 	s_game.variance = 0.05f;
 	renderer_setVariance( s_game.variance );
 
-    s_game.gameTime = 0.0f;
+    s_game.renderTime = 0.0f;
 	s_game.updateTime = 0.0f;
 
     for( uint i = 0u; i < MaxPlayer; ++i )
@@ -146,14 +146,14 @@ void game_init()
 	float2x2_scale2f( &s_game.world.worldTransform.rot, &s_game.world.worldTransform.rot, 0.7f, 0.7f );
 	float2_set( &s_game.world.worldTransform.pos, 32.0f, 20.0f );
 
-	float2_set( &s_game.world.rockz[ 0u ].center, -12.0f, -12.0f );
-	s_game.world.rockz[ 0u ].radius = 3.0f;
-	float2_set( &s_game.world.rockz[ 1u ].center,  12.0f, -12.0f );
-	s_game.world.rockz[ 1u ].radius = 3.0f;
-	float2_set( &s_game.world.rockz[ 2u ].center,  12.0f,  12.0f );
-	s_game.world.rockz[ 2u ].radius = 3.0f;
-	float2_set( &s_game.world.rockz[ 3u ].center, -12.0f,  12.0f );
-	s_game.world.rockz[ 3u ].radius = 3.0f;
+	float2_set( &s_game.world.rockz[ 0u ].center, -10.0f, -10.0f );
+	s_game.world.rockz[ 0u ].radius = 2.5f;
+	float2_set( &s_game.world.rockz[ 1u ].center,  10.0f, -10.0f );
+	s_game.world.rockz[ 1u ].radius = 2.5f;
+	float2_set( &s_game.world.rockz[ 2u ].center,  10.0f,  10.0f );
+	s_game.world.rockz[ 2u ].radius = 2.5f;
+	float2_set( &s_game.world.rockz[ 3u ].center, -10.0f,  10.0f );
+	s_game.world.rockz[ 3u ].radius = 2.5f;
 
 	s_game.state = GameState_Menu;
 }
@@ -168,7 +168,7 @@ void game_update( const GameInput* pInput )
 {
     const float timeStep = pInput->timeStep;
 
-    s_game.gameTime += timeStep;
+    s_game.renderTime += timeStep;
 
 	const uint32 buttonMask = pInput->buttonMask;
 	const uint32 buttonDownMask = buttonMask & ~s_game.debugLastButtonMask;
@@ -366,118 +366,72 @@ static void game_render_item( const ClientItem* pItem, const float2x3* pWorldTra
 	renderer_addLinearStroke( points, SYS_COUNTOF( points ) );
 }
 
-#if 0
-static void game_render_explosion( const ClientExplosion* pExplosion, const float2x3* pWorldTransform )
-{
-	float2 explosion0Points[] =
-	{ 
-		{ -1.0f,  1.0f },
-		{  1.0f,  1.0f },
-		{  1.0f, -1.0f },
-		{ -1.0f, -1.0f },
-		{ -1.0f,  1.0f }
-	};
-
-	float2 position;
-	position.x = float_unquantize( pExplosion->posX );
-	position.y = float_unquantize( pExplosion->posY );
-
-	const float direction = angle_unquantize( pExplosion->direction );
-	const float length = (float)pExplosion->length;
-
-	renderer_setPen( Pen_DebugRed );
-
-	for( uint i = 0u; i < SYS_COUNTOF( explosion0Points ); ++i )
-	{
-		float2 scale;
-		float2_set( &scale, length, 1.0f );
-		float2_scale2f( &explosion0Points[ i ], &explosion0Points[i], &scale );
-		float2_rotate( &explosion0Points[ i ], direction );
-		float2_add( &explosion0Points[ i ], &explosion0Points[ i ], &position );
-	}
-
-	renderer_setTransform( pWorldTransform );
-	renderer_addLinearStroke( explosion0Points, SYS_COUNTOF( explosion0Points ) ); 
-
-	float2 explosion1Points[] =
-	{ 
-		{ -1.0f,  1.0f },
-		{  1.0f,  1.0f },
-		{  1.0f, -1.0f },
-		{ -1.0f, -1.0f },
-		{ -1.0f,  1.0f }
-	};
-
-	for( uint i = 0u; i < SYS_COUNTOF( explosion1Points ); ++i )
-	{
-		float2 scale;
-		float2_set( &scale, 1.0f, length );
-		float2_scale2f( &explosion1Points[ i ], &explosion1Points[i], &scale );
-		float2_rotate( &explosion1Points[ i ], direction );
-		float2_add( &explosion1Points[ i ], &explosion1Points[ i ], &position );
-	}
-
-	renderer_addLinearStroke( explosion1Points, SYS_COUNTOF( explosion1Points ) );
-}
-#endif 
-
 static void game_render_burnhole( const ClientExplosion* pExplosion, const float2x3* pWorldTransform )
 {
-	float2 explosion0Points[] =
-	{ 
-		{ -1.0f,  0.0f },
-		{  1.0f,  0.0f },
-	};
-
 	float2 position;
 	position.x = float_unquantize( pExplosion->posX );
 	position.y = float_unquantize( pExplosion->posY );
 
 	const float direction = angle_unquantize( pExplosion->direction );
-	const float length = (float)pExplosion->length;
-
-	for( uint i = 0u; i < SYS_COUNTOF( explosion0Points ); ++i )
-	{
-		float2 scale;
-		float2_set( &scale, length, 1.0f );
-		float2_scale2f( &explosion0Points[ i ], &explosion0Points[i], &scale );
-		float2_rotate( &explosion0Points[ i ], direction );
-		float2_add( &explosion0Points[ i ], &explosion0Points[ i ], &position );
-	}
+	const float length0 = (float)pExplosion->length[ 0u ] - s_burnRadius;
+	const float length1 = (float)pExplosion->length[ 2u ] - s_burnRadius;
+	const float length2 = (float)pExplosion->length[ 1u ] - s_burnRadius;
+	const float length3 = (float)pExplosion->length[ 3u ] - s_burnRadius;
 
 	renderer_setTransform( pWorldTransform );
-	renderer_addBurnHole( &explosion0Points[ 0u ], &explosion0Points[ 1u ], 2.0f ); 
 
-	float2 explosion1Points[] =
-	{ 
-		{  0.0f,  1.0f },
-		{  0.0f, -1.0f },
-	};
-
-	for( uint i = 0u; i < SYS_COUNTOF( explosion1Points ); ++i )
+	if( length0 + length1 > 0.0f )
 	{
-		float2 scale;
-		float2_set( &scale, 1.0f, length );
-		float2_scale2f( &explosion1Points[ i ], &explosion1Points[i], &scale );
-		float2_rotate( &explosion1Points[ i ], direction );
-		float2_add( &explosion1Points[ i ], &explosion1Points[ i ], &position );
+		float2 explosion0Points[] =
+		{ 
+			{ -length1,  0.0f },
+			{  length0,  0.0f },
+		};
+
+		for( uint i = 0u; i < SYS_COUNTOF( explosion0Points ); ++i )
+		{
+			float2_rotate( &explosion0Points[ i ], direction );
+			float2_add( &explosion0Points[ i ], &explosion0Points[ i ], &position );
+		}
+
+		renderer_addBurnHole( &explosion0Points[ 0u ], &explosion0Points[ 1u ], s_burnRadius ); 
 	}
 
-	renderer_addBurnHole( &explosion1Points[ 0u ], &explosion1Points[ 1u ], 2.0f ); 
+	if( length2 + length3 > 0.0f )
+	{
+		float2 explosion1Points[] =
+		{ 
+			{  0.0f,  length2 },
+			{  0.0f, -length3 },
+		};
+
+		for( uint i = 0u; i < SYS_COUNTOF( explosion1Points ); ++i )
+		{
+			float2_rotate( &explosion1Points[ i ], direction );
+			float2_add( &explosion1Points[ i ], &explosion1Points[ i ], &position );
+		}
+
+		renderer_addBurnHole( &explosion1Points[ 0u ], &explosion1Points[ 1u ], s_burnRadius ); 
+	}
 }
 
 void game_render()
 {
+	//if( s_game.renderTime < GAMETIMESTEP )
+	//{
+	//	return;
+	//}
+
 	if( renderer_isPageDone() )
 	{
-        // new page:
+		// new page:
 		renderer_flipPage();
 
 		//const float speed = 5.0f;
 		//const float width = 2.0f;
 		const float variance = s_game.variance;
 
-        renderer_setPen( Pen_Font );
+		renderer_setPen( Pen_Font );
 		float2 position = { 1.0f, 1.0f };
 		font_drawText( &position, 0.8f, variance, "HALLO" );
 		position.y += 10.0f;
@@ -487,9 +441,9 @@ void game_render()
 		position.y += 10.0f;
 		font_drawText( &position, 0.8f, 0.5f * variance, "HALLO" );
 
-        renderer_setTransform( 0 );
+		renderer_setTransform( 0 );
 
-        renderer_setPen( Pen_Default );
+		renderer_setPen( Pen_Default );
 
 		if( s_game.state == GameState_Play )
 		{
@@ -544,11 +498,13 @@ void game_render()
 			}
 		}
 	}
-    renderer_updatePage( 1.0f / 60.0f );
+	renderer_updatePage( GAMETIMESTEP );
 
 	FrameData frame;
-    //memset( &frame, 0u, sizeof( frame ) );
-    //frame.time = s_game.gameTime;
-    //frame.playerPos = s_game.player[ 0u ].position;
-    renderer_drawFrame( &frame );
+	//memset( &frame, 0u, sizeof( frame ) );
+	//frame.time = s_game.gameTime;
+	//frame.playerPos = s_game.player[ 0u ].position;
+	renderer_drawFrame( &frame );
+
+	//s_game.renderTime = 0.0f;
 }

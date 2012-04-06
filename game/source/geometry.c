@@ -6,7 +6,7 @@ int isCircleCircleIntersecting( const Circle* pCircleA, const Circle* pCircleB )
 	return float2_squareDistance( &pCircleA->center, &pCircleB->center ) < float_sqr( pCircleA->radius + pCircleB->radius );
 }
 
-static float getLinePointDistance( const Line* pLine, const float2* pPoint )
+static float getLinePointDistance( const Line* pLine, const float2* pPoint, float* pLinePos )
 {
 	float2 ab;
 	float2_sub( &ab, &pLine->b, &pLine->a );
@@ -15,6 +15,11 @@ static float getLinePointDistance( const Line* pLine, const float2* pPoint )
 	float2_sub( &ap, pPoint, &pLine->a );
 
 	const float v = ( ap.x * ab.x + ap.y * ab.y ) / ( ab.x * ab.x + ab.y * ab.y );
+
+	if( pLinePos )
+	{
+		*pLinePos = v;
+	}
 
 	if( v <= 0.0f ) 
 	{
@@ -34,14 +39,27 @@ static float getLinePointDistance( const Line* pLine, const float2* pPoint )
 
 int isCircleLineIntersecting( const Circle* pCircle, const Line* pLine )
 {
-	return getLinePointDistance( pLine, &pCircle->center ) <= pCircle->radius;
+	return getLinePointDistance( pLine, &pCircle->center, 0 ) <= pCircle->radius;
 }
 
 int isCircleCapsuleIntersecting( const Circle* pCircle, const Capsule* pCapsule )
 {
-	return getLinePointDistance( &pCapsule->line, &pCircle->center ) <= pCircle->radius + pCapsule->radius;
+	return getLinePointDistance( &pCapsule->line, &pCircle->center, 0 ) <= pCircle->radius + pCapsule->radius;
 }
 
+int isCircleCircleIntersectingWithDistance( const Circle* pCircle, const Line* pLine, float* pDistance )
+{
+	float pos;
+	const int result = getLinePointDistance(pLine, &pCircle->center, &pos ) <= pCircle->radius;
+	if( result )
+	{
+		float2 distance;
+		float2_sub( &distance, &pLine->b, &pLine->a );
+		float2_scale1f( &distance, &distance, pos );
+		*pDistance = float2_length( &distance );
+	}
+	return result;
+}
 
 int circleCircleCollide( const Circle* pFirst, const Circle* pSecond, float massRatio, float2* pFirstPos, float2* pSecondPos )
 {

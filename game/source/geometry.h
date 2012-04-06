@@ -21,6 +21,7 @@ typedef struct
 	float	radius;
 } Circle;
 
+int		isCircleCircleIntersectingWithDistance( const Circle* pCircle, const Line* pLine, float* pDistance );
 int		isCircleCircleIntersecting( const Circle* pCircleA, const Circle* pCircleB );
 int		isCircleLineIntersecting( const Circle* pCircle, const Line* pLine );
 int		isCircleCapsuleIntersecting( const Circle* pCircle, const Capsule* pCapsule );
