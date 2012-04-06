@@ -335,8 +335,9 @@ void renderer_setDrawSpeed( float speed )
     const float maxStrokeDrawSpeed = 10000.0f;    // units per second..
     const float maxDelayAfterFlip = 1.0f; 
     const float maxDelayAfterDraw = 3.0f;
-    const float maxFlipDuration = 0.0f; //2.5f;
+    const float maxFlipDuration = 2.5f;
 
+    const float2 strokeDrawSpeedKeys = { 0.2f, 0.8f };
     const float2 afterFlipDelayKeys = { 0.2f, 0.8f };
     const float2 afterDrawDelayKeys = { 0.4f, 0.9f };
     const float2 flipDurationKeys = { 0.5f, 0.95f };
@@ -351,7 +352,7 @@ void renderer_setDrawSpeed( float speed )
     }
     else
     {
-        s_renderer.strokeDrawSpeed = float_max( speed, 0.001f ) * maxStrokeDrawSpeed;
+        s_renderer.strokeDrawSpeed = getDelayValue( &strokeDrawSpeedKeys, maxStrokeDrawSpeed, speed );
         s_renderer.delayAfterFlip = getDelayValue( &afterFlipDelayKeys, maxDelayAfterFlip, speed );
         s_renderer.delayAfterDraw = getDelayValue( &afterDrawDelayKeys, maxDelayAfterDraw, speed );
         s_renderer.flipDuration = getDelayValue( &flipDurationKeys, maxFlipDuration, speed );
@@ -442,23 +443,6 @@ static void drawBurnHole( const BurnHole* pBurnHole )
     graphics_drawQuad(v,uv0.x,uv0.y,uv1.x,uv1.y);
 }
 
-void renderer_addBurnHole( const float2* pStart, const float2* pEnd, float size )
-{
-    for( uint i = 0u; i < SYS_COUNTOF(s_renderer.burnHoles); ++i )
-    {
-        if( s_renderer.burnHoles[i].size <= 0.0f )
-        {
-            s_renderer.burnHoles[i].size=size;
-            s_renderer.burnHoles[i].initialSize=size;
-            s_renderer.burnHoles[i].start=*pStart;
-            s_renderer.burnHoles[i].end=*pEnd;
-            s_renderer.burnHoles[i].rot=float_rand_range(0.0f, 2.0f*PI);
-            drawBurnHole( &s_renderer.burnHoles[i] );
-            break;
-        }
-    }
-}
-
 static void renderer_updatePageFlip( float timeStep )
 {
     if( s_renderer.flipTime < 0.0f || s_renderer.flipDuration <= 0.0f )
@@ -535,6 +519,23 @@ static void transformPoint( float2* pTarget, const float2* pSource, float varian
     float2 point;
     float2x3_transform( &point, pTransform, pSource );
     float2_add( pTarget, &point, &offset );    
+}
+
+void renderer_addBurnHole( const float2* pStart, const float2* pEnd, float size )
+{
+    for( uint i = 0u; i < SYS_COUNTOF(s_renderer.burnHoles); ++i )
+    {
+        if( s_renderer.burnHoles[i].size <= 0.0f )
+        {
+            s_renderer.burnHoles[i].size=size;
+            s_renderer.burnHoles[i].initialSize=size;
+            transformPoint( &s_renderer.burnHoles[i].start, pStart, 0.0f );
+            transformPoint( &s_renderer.burnHoles[i].end, pEnd, 0.0f );
+            s_renderer.burnHoles[i].rot=float_rand_range(0.0f, 2.0f*PI);
+            drawBurnHole( &s_renderer.burnHoles[i] );
+            break;
+        }
+    }
 }
 
 static int pushStrokeCommand( const StrokeCommand* pCommand )
@@ -1184,6 +1185,47 @@ int renderer_isPageDone()
     return s_renderer.pageState == PageState_Done;
 }
 
+static void computeFlipParams( float3* pResult, float t )
+{
+	float angle1 = DEG2RADF( 90.0f );
+    float angle2 = DEG2RADF( 8.0f );
+    float angle3 = DEG2RADF( 6.0f ); 
+    float A1 = -15.0f;
+    float A2 = -2.5f;
+    float A3 = -3.5f;
+    float theta1 = 0.05f;
+    float theta2 = 0.5f;
+    float theta3 = 10.0f;
+    float theta4 = 2.0f;
+  
+    float rho = t * PI;
+    float theta, A;
+  
+	if( t <= 0.15f )
+	{
+		float dt = t / 0.15f;
+		float f1 = sinf(PI * powf(dt, theta1) / 2.0f);
+		float f2 = sinf(PI * powf(dt, theta2) / 2.0f);
+        theta = float_lerp( angle1, angle2, f1 );
+		A = float_lerp( A1, A2, f2 );
+	}
+	else if( t <= 0.4f )
+	{
+		float dt = (t - 0.15f) / 0.25f;
+		theta = float_lerp( angle2, angle3, dt );
+		A = float_lerp( A2, A3, dt );
+	}
+	else 
+	{
+		float dt = (t - 0.4f) / 0.6f;
+		float f1 = sinf(PI * powf(dt, theta3) / 2.0f);
+		float f2 = sinf(PI * powf(dt, theta4) / 2.0f);
+		theta = float_lerp( angle3, angle1, f1 );
+		A = float_lerp( A3, A1, f2 );
+	}
+    float3_set( pResult, A, theta, rho );
+}
+
 void renderer_drawFrame( const FrameData* pFrame )
 {
     SYS_USE_ARGUMENT( pFrame );
@@ -1204,10 +1246,11 @@ void renderer_drawFrame( const FrameData* pFrame )
     graphics_drawFullscreenQuad();
 
     // render the flipped page on top:
-    if( s_renderer.flipTime >= 0.0f )
+    //if( s_renderer.flipTime >= 0.0f )
     {
-        const float flipProgress = float_saturate( s_renderer.flipTime / s_renderer.flipDuration );
-        SYS_TRACE_DEBUG( "%f (%f/%f)\n", flipProgress, s_renderer.flipTime, s_renderer.flipDuration );
+        //const float flipProgress = float_saturate( s_renderer.flipTime / s_renderer.flipDuration );
+        const float flipProgress = 0.2f;
+        //SYS_TRACE_DEBUG( "%f (%f/%f)\n", flipProgress, s_renderer.flipTime, s_renderer.flipDuration );
 
         graphics_setShader( &s_renderer.pageFlipShader );
 
@@ -1216,18 +1259,10 @@ void renderer_drawFrame( const FrameData* pFrame )
         graphics_setFsTexture(1,pLastPage->fgTarget.id,SamplerState_ClampU_ClampV_Nearest);
         graphics_setFsTexture(2,pLastPage->burnTarget.id,SamplerState_ClampU_ClampV_Nearest);
 
-        graphics_setVp4f( 0u, flipProgress, 0.0f, 0.0f, 0.0f );
+        float3 flipParams;
+        computeFlipParams( &flipParams, flipProgress );
+        graphics_setVp4f( 0u, flipParams.x, flipParams.y, flipParams.z, 0.0f );
         graphics_drawMesh2d( &s_renderer.pageFlipMesh ); 
-
-        // :TODO: nicer flip effect please:
-        /*const float offset = 2.0f * flipProgress;
-
-        glBegin( GL_QUADS );
-            glTexCoord2f( 0.0, 0.0 );   glVertex2f( -1.0f,  1.0f + offset );
-            glTexCoord2f( 1.0, 0.0 );   glVertex2f(  1.0f,  1.0f + offset );
-            glTexCoord2f( 1.0, 1.0 );   glVertex2f(  1.0f, -1.0f + offset );
-            glTexCoord2f( 0.0, 1.0 );   glVertex2f( -1.0f, -1.0f + offset );
-        glEnd();*/
     }
 }
 
