@@ -65,7 +65,7 @@ typedef struct
 
 void	server_create( Server* pServer, uint16 port );
 void	server_destroy( Server* pServer );
-void	server_update( Server* pServer, const World* pWorld );
+void	server_update( Server* pServer, World* pWorld );
 
 #endif
 

@@ -103,7 +103,7 @@ static void player_respawn( ServerPlayer* pPlayer, const float2* pPosition, floa
 	pPlayer->direction	= direction;
 }
 
-static void player_update( ServerPlayer* pPlayer, uint index, ServerBomb* pBomb, uint activeBombs )
+static void player_update( ServerPlayer* pPlayer, uint index, ServerBomb* pBomb, uint activeBombs, World* pWorld )
 {
 	const float steerSpeed		= 0.05f;
 	const float steerDamping	= 0.8f;
@@ -184,8 +184,8 @@ static void player_update( ServerPlayer* pPlayer, uint index, ServerBomb* pBomb,
 
 	float2_add( &pPlayer->position, &pPlayer->position, &pPlayer->velocity );
 
-	pPlayer->position.x = float_clamp( pPlayer->position.x, -32.0f, 32.0f );
-	pPlayer->position.y = float_clamp( pPlayer->position.y, -18.0f, 18.0f );
+	pPlayer->position.x = float_clamp( pPlayer->position.x, pWorld->borderMin.x, pWorld->borderMax.x );
+	pPlayer->position.y = float_clamp( pPlayer->position.y, pWorld->borderMin.y, pWorld->borderMax.y );
 }
 
 
@@ -293,10 +293,8 @@ void server_destroy( Server* pServer )
 	socket_done();
 }
 
-void server_update( Server* pServer, const World* pWorld )
+void server_update( Server* pServer, World* pWorld )
 {
-	(void)pWorld;
-
 	for(;;)
 	{
 		ClientState state;
@@ -395,7 +393,7 @@ void server_update( Server* pServer, const World* pWorld )
 		}
 
 		ServerBomb* pBomb = find_free_bomb( pServer->gameState.bombs, SYS_COUNTOF( pServer->gameState.bombs ) );
-		player_update( pPlayer, i, pBomb, bombCount );
+		player_update( pPlayer, i, pBomb, bombCount, pWorld );
 	}
 
 	for( uint i = 0u; i < SYS_COUNTOF( pServer->gameState.bombs ); ++i )

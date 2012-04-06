@@ -86,3 +86,36 @@ float2* float2x2_transform( float2* pResult, const float2x2* pMatrix, const floa
     return float2_set( pResult, rx, ry );
 }
 
+float2x3* float2x3_multiply( float2x3* pResult, const float2x3* pMatrixA, const float2x3* pMatrixB )
+{
+	const float ma00 = pMatrixA->rot.x.x;
+	const float ma10 = pMatrixA->rot.x.y;
+	const float ma01 = pMatrixA->rot.y.x;
+	const float ma11 = pMatrixA->rot.y.y;
+	const float ma02 = pMatrixA->pos.x;
+	const float ma12 = pMatrixA->pos.y;
+
+	const float mb00 = pMatrixB->rot.x.x;
+	const float mb10 = pMatrixB->rot.x.y;
+	const float mb01 = pMatrixB->rot.y.x;
+	const float mb11 = pMatrixB->rot.y.y;
+	const float mb02 = pMatrixB->pos.x;
+	const float mb12 = pMatrixB->pos.y;
+
+	const float mc00 = ma00 * mb00 + ma01 * mb10; 
+	const float mc01 = ma00 * mb01 + ma01 * mb11; 
+	const float mc10 = ma10 * mb00 + ma11 * mb10; 
+	const float mc11 = ma10 * mb01 + ma11 * mb11;
+
+	const float mc02 = mb00 * ma02 + mb10 * ma12 + mb02;
+	const float mc12 = mb01 * ma02 + mb11 * ma12 + mb12;
+
+	pResult->rot.x.x = mc00;
+	pResult->rot.x.y = mc10;
+	pResult->rot.y.x = mc01;
+	pResult->rot.y.y = mc11;
+	pResult->pos.x = mc02;
+	pResult->pos.y = mc12;
+
+	return pResult;
+}

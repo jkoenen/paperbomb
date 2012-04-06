@@ -137,6 +137,13 @@ void game_init()
 	copyString( s_game.serverIP, sizeof( s_game.serverIP ), "10.1.11.4" );
 	copyString( s_game.playerName, sizeof( s_game.playerName ), "Horst" );
 
+	float2x2_identity( &s_game.world.worldTransform.rot );
+	float2x2_scale2f( &s_game.world.worldTransform.rot, &s_game.world.worldTransform.rot, 0.8f, 0.8f );
+	float2_set( &s_game.world.worldTransform.pos, 32.0f, 16.0f );
+
+	float2_set( &s_game.world.borderMin, -16.0f, -16.0f );
+	float2_set( &s_game.world.borderMax,  16.0f,  16.0f );
+
 	s_game.state = GameState_Menu;
 }
 
@@ -203,7 +210,7 @@ void game_update( const GameInput* pInput )
 	}
 }
 
-static void game_render_car( const ClientPlayer* pPlayer )
+static void game_render_car( const ClientPlayer* pPlayer, const float2x3* pWorldTransform )
 {
 	if( pPlayer->age <= time_quantize( 1.0f ) )
 	{
@@ -245,8 +252,6 @@ static void game_render_car( const ClientPlayer* pPlayer )
 	{
 		float2_rotate( &carPoints[ i ], direction );
 		float2_add( &carPoints[ i ], &carPoints[ i ], &position );
-		float2_scale2f( &carPoints[ i ], &carPoints[i], &worldScale );
-		float2_add( &carPoints[ i ], &carPoints[ i ], &worldOffset );
 	}
 
 	float2 steerOffset;
@@ -257,20 +262,36 @@ static void game_render_car( const ClientPlayer* pPlayer )
 		float2_add( &steerPoints[ i ], &steerPoints[ i ], &steerOffset );
 		float2_rotate( &steerPoints[ i ], direction );
 		float2_add( &steerPoints[ i ], &steerPoints[ i ], &position );
-		float2_scale2f( &steerPoints[ i ], &steerPoints[i], &worldScale );
-		float2_add( &steerPoints[ i ], &steerPoints[ i ], &worldOffset );
 	}
 
-    renderer_setTransform( 0 );
+    renderer_setTransform( pWorldTransform );
     renderer_addLinearStroke( carPoints, SYS_COUNTOF( carPoints ) );
 	renderer_addLinearStroke( carPoints, SYS_COUNTOF( carPoints ) );
     //renderer_addStroke( steerPoints, SYS_COUNTOF( steerPoints ) );
 }
 
-static void game_render_bomb( const ClientBomb* pBomb )
+static void game_render_world( const World* pWorld )
 {
-	float2 worldOffset;
-	float2_set( &worldOffset, 32.0f, 18.0f );
+	renderer_setVariance( 0.0f );
+	renderer_setPen( Pen_DebugGreen );
+
+	renderer_setTransform( &pWorld->worldTransform );
+	
+	float2 points[] =
+	{ 
+		{  pWorld->borderMin.x, pWorld->borderMin.y },
+		{  pWorld->borderMax.x, pWorld->borderMin.y },
+		{  pWorld->borderMax.x, pWorld->borderMax.y },
+		{  pWorld->borderMin.x, pWorld->borderMax.y },
+		{  pWorld->borderMin.x, pWorld->borderMin.y },
+	};
+	
+	renderer_addLinearStroke( points, SYS_COUNTOF( points ) );
+}
+
+static void game_render_bomb( const ClientBomb* pBomb, const float2x3* pWorldTransform )
+{
+	(void)pWorldTransform;
 
 	float2 bombPoints0[] =
 	{ 
@@ -296,7 +317,6 @@ static void game_render_bomb( const ClientBomb* pBomb )
     float2x3 bombTransform;
     float2x2_rotationY( &bombTransform.rot, direction );
     float2x2_scale2f( &bombTransform.rot, &bombTransform.rot, 1.0f, 1.0f );
-    float2_add( &bombTransform.pos, &position, &worldOffset );
 
 	renderer_setVariance( 0.0f );
 	renderer_setPen( Pen_DebugGreen );
@@ -451,12 +471,14 @@ void game_render()
 		{
 			ClientGameState* pGameState = &s_game.client.gameState;
 
+			game_render_world( &s_game.world );
+
 			for( uint i = 0u; i < SYS_COUNTOF( pGameState->player ); ++i )
 			{
 				const ClientPlayer* pPlayer = &pGameState->player[ i ];
 				if( pPlayer->state != PlayerState_InActive )
 				{
-					game_render_car( pPlayer );
+					game_render_car( pPlayer, &s_game.world.worldTransform );
 				}
 			}
 			for( uint i = 0u; i < SYS_COUNTOF( pGameState->bombs ); ++i )
@@ -464,7 +486,7 @@ void game_render()
 				const ClientBomb* pBomb = &pGameState->bombs[ i ];
 				if( pBomb->time > 0u )
 				{
-					game_render_bomb( pBomb );
+					game_render_bomb( pBomb, &s_game.world.worldTransform );
 				}
 			}
 			for( uint i = 0u; i < SYS_COUNTOF( pGameState->explosions ); ++i )
