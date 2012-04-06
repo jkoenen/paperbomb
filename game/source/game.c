@@ -302,6 +302,60 @@ static void game_render_explosion( const ClientExplosion* pExplosion )
 	renderer_addLinearStroke( explosion1Points, SYS_COUNTOF( explosion1Points ) );
 }
 
+static void game_render_burnhole( const ClientExplosion* pExplosion )
+{
+	float2 worldOffset;
+	float2_set( &worldOffset, 32.0f, 18.0f );
+	float2 worldScale;
+	float2_set( &worldScale, 1.0f, 1.0f );
+
+	float2 explosion0Points[] =
+	{ 
+		{ -1.0f,  0.0f },
+		{  1.0f,  0.0f },
+	};
+
+	float2 position;
+	position.x = float_unquantize( pExplosion->posX );
+	position.y = float_unquantize( pExplosion->posY );
+
+	const float direction = angle_unquantize( pExplosion->direction );
+	const float length = (float)pExplosion->length;
+
+	for( uint i = 0u; i < SYS_COUNTOF( explosion0Points ); ++i )
+	{
+		float2 scale;
+		float2_set( &scale, length, 1.0f );
+		float2_scale2f( &explosion0Points[ i ], &explosion0Points[i], &scale );
+		float2_rotate( &explosion0Points[ i ], direction );
+		float2_add( &explosion0Points[ i ], &explosion0Points[ i ], &position );
+		float2_scale2f( &explosion0Points[ i ], &explosion0Points[i], &worldScale );
+		float2_add( &explosion0Points[ i ], &explosion0Points[ i ], &worldOffset );
+	}
+
+	renderer_setTransform( 0 );
+	renderer_addBurnHole( &explosion0Points[ 0u ], &explosion0Points[ 1u ], 1.0f ); 
+
+	float2 explosion1Points[] =
+	{ 
+		{  0.0f,  1.0f },
+		{  0.0f, -1.0f },
+	};
+
+	for( uint i = 0u; i < SYS_COUNTOF( explosion1Points ); ++i )
+	{
+		float2 scale;
+		float2_set( &scale, 1.0f, length );
+		float2_scale2f( &explosion1Points[ i ], &explosion1Points[i], &scale );
+		float2_rotate( &explosion1Points[ i ], direction );
+		float2_add( &explosion1Points[ i ], &explosion1Points[ i ], &position );
+		float2_scale2f( &explosion1Points[ i ], &explosion1Points[i], &worldScale );
+		float2_add( &explosion1Points[ i ], &explosion1Points[ i ], &worldOffset );
+	}
+
+	renderer_addBurnHole( &explosion1Points[ 0u ], &explosion1Points[ 1u ], 1.0f ); 
+}
+
 void game_render()
 {
 	if( renderer_isPageDone() )
@@ -351,6 +405,10 @@ void game_render()
 			if( pExplosion->time > 0u )
 			{
 				game_render_explosion( pExplosion );
+			}
+			if( s_game.client.explosionActive[ i ] & 2 )
+			{
+				game_render_burnhole( pExplosion );
 			}
 		}
 	}
