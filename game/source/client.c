@@ -33,6 +33,10 @@ void client_create( Client* pClient, uint16 port, const IP4Address* pServerAddre
 	{
 		pClient->gameState.explosions[ i ].time = 0u;
 	}
+	for( uint i = 0u; i < SYS_COUNTOF( pClient->explosionActive ); ++i )
+	{
+		pClient->explosionActive[ i ] = 0;
+	}
 }
 
 void client_destroy( Client* pClient )
@@ -68,5 +72,19 @@ void client_update( Client* pClient, uint buttonMask )
 		{
 			break;
 		}
+	}
+
+	for( uint i = 0u; i < SYS_COUNTOF( pClient->gameState.explosions ); ++i )
+	{
+		const ClientExplosion* pExplosion = &pClient->gameState.explosions[ i ];
+
+		const int wasActive = ( pClient->explosionActive[ i ] & 1 );
+		const int isActive = ( pExplosion->time > 0u ) ? 1 : 0;
+		int flank = 0;
+		if( isActive && !wasActive )
+		{
+			flank = 2;
+		}
+		pClient->explosionActive[ i ] = flank | isActive;
 	}
 }

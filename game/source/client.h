@@ -72,6 +72,7 @@ typedef struct
 	Socket			socket;
 	IP4Address		serverAddress;
 
+	int				explosionActive[ MaxExplosions ];
 	ClientGameState	gameState;
 
 	ClientState		state;
