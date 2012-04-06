@@ -17,7 +17,7 @@
 
 #ifndef SYS_BUILD_MASTER
 //# define TEST_RENDERER
-#   define FONT_EDITOR
+//#   define FONT_EDITOR
 #endif
 
 enum

@@ -15,11 +15,14 @@
 #include "burnhole_glsl.h"
 #include "noise_glsl.h"
 
+#include "font.h"
+
 #ifndef SYS_BUILD_MASTER
 #   include "debugpen_glsl.h"
 #endif
 
 #include <math.h>
+#include <stdio.h>
 
 enum 
 {
@@ -131,6 +134,7 @@ typedef struct
     Page            pages[ 2u ];    
     uint            currentPage;
     uint            lastPage;
+    uint            pageNumber;
 
     PageState       pageState;
     float           stateTime;
@@ -291,6 +295,8 @@ void renderer_init()
     
     s_renderer.currentCommand = 0u;
 
+    s_renderer.pageNumber = 0u;
+
     s_renderer.pageState = PageState_Done;
     s_renderer.stateTime = 0.0f;
 
@@ -305,6 +311,7 @@ void renderer_init()
     createPen( &s_renderer.pens[ Pen_Fat ], 20.0f, 1.0f, &color );
     createPen( &s_renderer.pens[ Pen_DebugRed ], 2.0f, 1.0f, float3_set( &color, 1.0f, 0.0f, 0.0f ) );
     createPen( &s_renderer.pens[ Pen_DebugGreen ], 2.0f, 1.0f, float3_set( &color, 0.0f, 1.0f, 0.0f ) );
+    createPen( &s_renderer.pens[ Pen_PageNumber ], 2.0f, 1.0f, float3_set( &color, 0.0f, 0.0f, 0.0f ) );
 
     // create page flip mesh:
     createPageFlipMesh( &s_renderer.pageFlipMesh, 64u, 36u );
@@ -342,7 +349,7 @@ void renderer_setDrawSpeed( float speed )
 {
     speed = float_saturate( speed );
 
-    const float maxStrokeDrawSpeed = 10000.0f;    // units per second..
+    const float maxStrokeDrawSpeed = 10.0f;    // units per second..
     const float maxDelayAfterFlip = 1.0f; 
     const float maxDelayAfterDraw = 3.0f;
     const float maxFlipDuration = 2.5f;
@@ -362,7 +369,7 @@ void renderer_setDrawSpeed( float speed )
     }
     else
     {
-        s_renderer.strokeDrawSpeed = getDelayValue( &strokeDrawSpeedKeys, maxStrokeDrawSpeed, speed );
+        s_renderer.strokeDrawSpeed = powf(2.0f,getDelayValue( &strokeDrawSpeedKeys, maxStrokeDrawSpeed, 1.0f-speed ));
         s_renderer.delayAfterFlip = getDelayValue( &afterFlipDelayKeys, maxDelayAfterFlip, speed );
         s_renderer.delayAfterDraw = getDelayValue( &afterDrawDelayKeys, maxDelayAfterDraw, speed );
         s_renderer.flipDuration = getDelayValue( &flipDurationKeys, maxFlipDuration, speed );
@@ -518,6 +525,22 @@ void renderer_flipPage()
         // flip instantly:
         s_renderer.flipTime = -1.0f;
     }
+    s_renderer.pageNumber++;
+
+    float oldVariance=s_renderer.currentVariance;
+    s_renderer.currentVariance=0.0f;
+    renderer_setPen(Pen_PageNumber);
+    // add the page number;
+    float2 textPos;
+    float2_set(&textPos,1.0f,1.0f);
+    char numberText[16u];
+    sprintf(numberText,"%i",s_renderer.pageNumber);
+    font_drawText(&textPos,0.5f,0.0f,numberText);
+
+    renderer_flush();
+
+    s_renderer.currentVariance=oldVariance;
+    //font_
 }
 
 static void transformPoint( float2* pTarget, const float2* pSource, float variance )
@@ -786,7 +809,7 @@ static uint addQuadraticCurvePoints(const float2* pPoints,uint stepCount,int add
     {
         stepCount--;
     }
-    const float distanceThreshold=0.1f;
+    const float distanceThreshold=0.01f;
     float2 lastPoint;
     float2 lastNormal;
     for( uint i = 0u; i < stepCount; ++i )
@@ -1179,6 +1202,12 @@ static void updateDrawCommands( float timeStep )
     }
 }
 
+void renderer_flush()
+{
+    startDrawCommand();
+    updateDrawCommands( 0.0f );
+}
+
 void renderer_updateState( float timeStep )
 {
     float newStateTime = s_renderer.stateTime + timeStep;
@@ -1315,9 +1344,9 @@ void renderer_drawFrame( const FrameData* pFrame )
         graphics_setShader( &s_renderer.pageFlipShader );
 
         const Page* pLastPage=&s_renderer.pages[s_renderer.lastPage];
-        graphics_setFsTexture(0,pLastPage->bgTarget.id,SamplerState_ClampU_ClampV_Nearest);
-        graphics_setFsTexture(1,pLastPage->fgTarget.id,SamplerState_ClampU_ClampV_Nearest);
-        graphics_setFsTexture(2,pLastPage->burnTarget.id,SamplerState_ClampU_ClampV_Nearest);
+        graphics_setFsTexture(0,pLastPage->bgTarget.id,SamplerState_ClampU_ClampV_Trilinear);
+        graphics_setFsTexture(1,pLastPage->fgTarget.id,SamplerState_ClampU_ClampV_Trilinear);
+        graphics_setFsTexture(2,pLastPage->burnTarget.id,SamplerState_ClampU_ClampV_Trilinear);
 
         float3 flipParams;
         computeFlipParams( &flipParams, flipProgress );

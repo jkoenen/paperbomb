@@ -14,6 +14,8 @@ typedef enum
     Pen_Default,
     Pen_Font,
     Pen_Fat,
+
+    Pen_PageNumber,
     
     Pen_DebugRed,
     Pen_DebugGreen,
@@ -31,6 +33,7 @@ void renderer_setTransform( const float2x3* pTransform );
 void renderer_addBurnHole( const float2* pStart, const float2* pEnd, float size );
 
 void renderer_flipPage();
+void renderer_flush();
 
 void renderer_addLinearStroke( const float2* pPoints, uint pointCount );
 

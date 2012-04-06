@@ -23,6 +23,7 @@ typedef enum
 {
     SamplerState_ClampU_ClampV_Nearest,
     SamplerState_MirrorU_MirrorV_Bilinear,
+    SamplerState_ClampU_ClampV_Trilinear,
     SamplerState_Count
 } SamplerState;
 
