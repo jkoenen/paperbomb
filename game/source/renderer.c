@@ -835,15 +835,15 @@ static uint addQuadraticCurvePoints(const float2* pPoints,uint stepCount,int add
     float2 point;
     if( !addLastPoint )
     {
-    //    stepCount--;
+        stepCount--;
     }
-    //const float distanceThreshold=0.01f;
+    const float distanceThreshold=0.01f;
     float2 lastPoint;
     float2 lastNormal;
     for( uint i = 0u; i < stepCount; ++i )
     {
         evaluateQuadraticCurve(&point,pPoints,x);
-    //    if( i == 0 || i == stepCount - 1 || float2_distance(&point,&lastPoint)>distanceThreshold)
+        if( i == 0 || i == stepCount - 1 || float2_distance(&point,&lastPoint)>distanceThreshold)
         {
             float2 tangent;
             evaluateQuadraticCurveTangent(&tangent,pPoints,x);

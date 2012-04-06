@@ -16,7 +16,7 @@
 #include <stdarg.h>
 
 #ifndef SYS_BUILD_MASTER
-//# define TEST_RENDERER
+//#   define TEST_RENDERER
 //#   define FONT_EDITOR
 #endif
 

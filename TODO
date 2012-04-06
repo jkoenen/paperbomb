@@ -12,7 +12,7 @@ TODO:
     + client/server communication
 - font:
     + quadratic curve to stroke conversion
-    - define font with quadratic curves
+    + define font with quadratic curves
 - hatching
     - hatching area to stroke conversion
 - main menu / game state flow
@@ -21,8 +21,9 @@ TODO:
     - multiplayer menu
     - menu point selection (erase)
 - gameplay
-    - proper collision
-    - obstacles
+    + proper collision
+    + obstacles
+    - ray tests for obstacles
 - sound
     + sound code for win32
     - stroke sound

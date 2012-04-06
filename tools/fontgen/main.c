@@ -9,7 +9,7 @@ int main(int argc,char** argv)
 {
    stbtt_fontinfo font;
 
-   fread(ttf_buffer, 1, 1<<25, fopen( "/home/julien/Projects/paperbomb/tools/fontgen/fonts/Ubuntu-Regular.ttf", "rb"));
+   fread(ttf_buffer, 1, 1<<25, fopen( "/home/julien/Projects/paperbomb/tools/fontgen/fonts/Ubuntu-Light.ttf", "rb"));
 
     stbtt_InitFont(&font, ttf_buffer, stbtt_GetFontOffsetForIndex(ttf_buffer,0));
 
