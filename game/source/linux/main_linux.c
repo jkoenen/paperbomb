@@ -15,14 +15,9 @@
 #include <math.h>
 #include <stdarg.h>
 
-//#define TEST_RENDERER
-
 #ifndef SYS_BUILD_MASTER
+//# define TEST_RENDERER
 #   define FONT_EDITOR
-#endif
-
-#ifdef TEST_RENDERER
-#   include "font.h"
 #endif
 
 enum
@@ -34,8 +29,7 @@ enum
 };
 
 static float2 s_soundBuffer[ SoundChannelCount * SoundBufferSampleCount ];
-
-static uint s_callbackCount = 0u;
+static uint s_callbackCount=0u;
 
 static void soundCallback( void* pUserData, Uint8* pStream, int size )
 {
