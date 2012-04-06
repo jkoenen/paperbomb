@@ -11,7 +11,7 @@ enum
 };	
 
 static const float bombTime = 2.0f;
-static const float explosionTime = 5.0f;
+static const float explosionTime = 1.0f;
 
 #endif
 
