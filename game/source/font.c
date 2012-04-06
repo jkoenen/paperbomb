@@ -48,129 +48,16 @@ static const float2 s_points_o[] =
     { 4.0f, 10.0f }
 };
 
-static const float2 s_points_0[] =
-{ 
-    { 1.0f, 3.0f },
-    { 0.1f, 3.0f },
-    { 0.1f, 1.5f },
-    { 0.1f, 0.0f },
-    { 1.0f, 0.0f },
-    { 2.0f, 0.0f },
-    { 2.0f, 1.5f },
-    { 2.0f, 3.0f },
-    { 1.0f, 3.0f }
-};
-
-static const float2 s_points_1[] =
-{
-    { 0.0f, 1.9f },
-    { 0.0f, 1.9f },
-    { 1.1f, 3.0f },
-    { 1.1f, 3.0f },
-    { 1.1f, 0.0f }
-};
-
-static const float2 s_points_2[] =
-{
-    { 0.2f, 2.7f },
-    { 1.0f, 3.5f },
-    { 1.9f, 2.2f },
-    { 1.2f, 0.8f },
-    { 0.0f, 0.0f },
-    { 0.0f, 0.0f },
-    { 1.9f, 0.0f }
-};
-
-static const float2 s_points_3[] =
-{
-    { 0.0f, 2.1f },
-    { 0.0f, 3.0f },
-    { 1.0f, 3.0f },
-    { 1.9f, 3.0f },
-    { 1.9f, 1.9f },
-    { 1.9f, 0.0f },
-    { 0.0f, 0.0f },
-    { 0.0f, 0.0f },
-    { 1.9f, 0.0f }
-};
-
-static const float2 s_points_4[] =
-{
-    { 0.0f, 2.1f },
-    { 0.0f, 3.0f },
-    { 1.0f, 3.0f },
-    { 1.9f, 3.0f },
-    { 1.9f, 1.9f },
-    { 1.9f, 0.0f },
-    { 0.0f, 0.0f },
-    { 0.0f, 0.0f },
-    { 1.9f, 0.0f }
-};
-
-static const float2 s_points_5[] =
-{
-    { 0.0f, 2.1f },
-    { 0.0f, 3.0f },
-    { 1.0f, 3.0f },
-    { 1.9f, 3.0f },
-    { 1.9f, 1.9f },
-    { 1.9f, 0.0f },
-    { 0.0f, 0.0f },
-    { 0.0f, 0.0f },
-    { 1.9f, 0.0f }
-};
-
-static const float2 s_points_6[] =
-{
-    { 0.0f, 2.1f },
-    { 0.0f, 3.0f },
-    { 1.0f, 3.0f },
-    { 1.9f, 3.0f },
-    { 1.9f, 1.9f },
-    { 1.9f, 0.0f },
-    { 0.0f, 0.0f },
-    { 0.0f, 0.0f },
-    { 1.9f, 0.0f }
-};
-
-static const float2 s_points_7[] =
-{
-    { 0.0f, 2.1f },
-    { 0.0f, 3.0f },
-    { 1.0f, 3.0f },
-    { 1.9f, 3.0f },
-    { 1.9f, 1.9f },
-    { 1.9f, 0.0f },
-    { 0.0f, 0.0f },
-    { 0.0f, 0.0f },
-    { 1.9f, 0.0f }
-};
-
-static const float2 s_points_8[] =
-{
-    { 0.0f, 2.1f },
-    { 0.0f, 3.0f },
-    { 1.0f, 3.0f },
-    { 1.9f, 3.0f },
-    { 1.9f, 1.9f },
-    { 1.9f, 0.0f },
-    { 0.0f, 0.0f },
-    { 0.0f, 0.0f },
-    { 1.9f, 0.0f }
-};
-
-static const float2 s_points_9[] =
-{
-    { 0.0f, 2.1f },
-    { 0.0f, 3.0f },
-    { 1.0f, 3.0f },
-    { 1.9f, 3.0f },
-    { 1.9f, 1.9f },
-    { 1.9f, 0.0f },
-    { 0.0f, 0.0f },
-    { 0.0f, 0.0f },
-    { 1.9f, 0.0f }
-};
+#include "font/char_48.h"
+#include "font/char_49.h"
+#include "font/char_50.h"
+#include "font/char_51.h"
+#include "font/char_52.h"
+#include "font/char_53.h"
+#include "font/char_54.h"
+#include "font/char_55.h"
+#include "font/char_56.h"
+#include "font/char_57.h"
 
 static const FontGlyph s_glyphs[] =
 {
@@ -179,16 +66,16 @@ static const FontGlyph s_glyphs[] =
     { 'H', 8.0f, s_points_h, SYS_COUNTOF( s_points_h ) },
     { 'L', 7.0f, s_points_l, SYS_COUNTOF( s_points_l ) },
     { 'O', 9.0f, s_points_o, SYS_COUNTOF( s_points_o ) },*/
-    { '0', 5.0f, s_points_0, SYS_COUNTOF( s_points_0 ) },
-    { '1', 2.0f, s_points_1, SYS_COUNTOF( s_points_1 ) },
-    { '2', 9.0f, s_points_2, SYS_COUNTOF( s_points_2 ) },
-    /*{ '3', 9.0f, s_points_3, SYS_COUNTOF( s_points_3 ) },
-    { '4', 9.0f, s_points_4, SYS_COUNTOF( s_points_4 ) },
-    { '5', 9.0f, s_points_5, SYS_COUNTOF( s_points_5 ) },
-    { '6', 9.0f, s_points_6, SYS_COUNTOF( s_points_6 ) },
-    { '7', 9.0f, s_points_7, SYS_COUNTOF( s_points_7 ) },
-    { '8', 9.0f, s_points_8, SYS_COUNTOF( s_points_8 ) },
-    { '9', 9.0f, s_points_9, SYS_COUNTOF( s_points_9 ) },*/
+    { '0', 5.0f, s_points_48, SYS_COUNTOF( s_points_48 ) },
+    { '1', 2.0f, s_points_49, SYS_COUNTOF( s_points_49 ) },
+    { '2', 9.0f, s_points_50, SYS_COUNTOF( s_points_50 ) },
+    { '3', 9.0f, s_points_51, SYS_COUNTOF( s_points_51 ) },
+    { '4', 9.0f, s_points_52, SYS_COUNTOF( s_points_52 ) },
+    { '5', 9.0f, s_points_53, SYS_COUNTOF( s_points_53 ) },
+    { '6', 9.0f, s_points_54, SYS_COUNTOF( s_points_54 ) },
+    { '7', 9.0f, s_points_55, SYS_COUNTOF( s_points_55 ) },
+    { '8', 9.0f, s_points_56, SYS_COUNTOF( s_points_56 ) },
+    { '9', 9.0f, s_points_57, SYS_COUNTOF( s_points_57 ) },
 };
 
 typedef struct

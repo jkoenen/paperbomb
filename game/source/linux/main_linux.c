@@ -156,6 +156,8 @@ int main()
 
     int leftMouseDown=0;
     int leftMousePressed=0;
+    int rightMouseDown=0;
+    int rightMousePressed=0u;
 
     int quit = 0;
     do
@@ -218,15 +220,24 @@ int main()
             case SDL_MOUSEBUTTONDOWN:
                 if( event.button.button == 1 )
                 {
-                    leftMouseDown = 1u;
-                    leftMousePressed = 1u;
+                    leftMouseDown = 1;
+                    leftMousePressed = 1;
+                }
+                else if( event.button.button == 2 )
+                {
+                    rightMouseDown = 1;
+                    rightMousePressed = 1;
                 }
                 break;
 
             case SDL_MOUSEBUTTONUP:
                 if( event.button.button == 1 )
                 {
-                    leftMouseDown = 0u;
+                    leftMouseDown = 0;
+                }
+                else if( event.button.button == 2 )
+                {
+                    rightMouseDown = 0;
                 }
                 break;
 
@@ -317,6 +328,20 @@ int main()
 
         if( currentChar != dataChar )
         {
+            if( dataChar != '\0' )
+            {
+                char filename[64u];
+                sprintf(filename,"source/font/char_%i.h",dataChar);
+                FILE* pFile=fopen(filename, "w");
+                fprintf(pFile,"static const float2 s_points_%i[] =\n{\n",dataChar);
+                for( uint i=0u;i<charPointCount;++i)
+                {
+                    fprintf(pFile,"\t{%ff,%ff},\n",charPoints[i].x,charPoints[i].y);
+                }
+                fprintf(pFile,"};\n\n");
+                fclose(pFile);
+            }
+
             const FontGlyph* pGlyph=font_getGlyph((uint)currentChar);
             if(pGlyph)
             {
@@ -356,6 +381,10 @@ int main()
                 float2x2_scale1f(&transform.rot,&transform.rot,fontSize);
                 transform.pos=textPos;
 
+                renderer_setTransform( &transform );
+                renderer_addQuadraticStroke(charPoints,charPointCount);
+
+                transform.pos.x -= 10.0f;
                 renderer_setTransform( &transform );
                 renderer_addQuadraticStroke(charPoints,charPointCount);
             }
@@ -405,6 +434,7 @@ int main()
             }
             oldMousePagePos=mousePagePos;
             leftMousePressed=0;
+            rightMousePressed=0;
         }
         renderer_updatePage( timeStep );
 
