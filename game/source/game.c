@@ -134,7 +134,7 @@ void game_init()
     	s_game.lastButtonMask[ i ] = 0u;
     }
 
-	copyString( s_game.serverIP, sizeof( s_game.serverIP ), "10.1.11.5" );
+	copyString( s_game.serverIP, sizeof( s_game.serverIP ), "10.1.11.4" );
 	copyString( s_game.playerName, sizeof( s_game.playerName ), "Horst" );
 
 	s_game.state = GameState_Menu;
@@ -178,14 +178,22 @@ void game_update( const GameInput* pInput )
 
 		case GameState_Play:
 			{
+				int quit = 0;
 				while( s_game.updateTime >= GAMETIMESTEP )
 				{
-					client_update( &s_game.client, buttonMask & Button_PlayerMask );
-					server_update( &s_game.server, &s_game.world );
-
+					quit |= client_update( &s_game.client, buttonMask & Button_PlayerMask );
+					if( s_game.isServer )
+					{
+						server_update( &s_game.server, &s_game.world );
+					}
 					sound_setEngineFrequency( ( buttonMask & ButtonMask_Up ) ? 1.0f : 0.0f );
 
 					s_game.updateTime -= GAMETIMESTEP;
+				}
+
+				if( quit || ( buttonDownMask & ButtonMask_Leave ) )
+				{
+					game_switch_state( GameState_Menu );
 				}
 			}
 			break;
@@ -439,35 +447,38 @@ void game_render()
 
         renderer_setPen( Pen_Default );
 
-		ClientGameState* pGameState = &s_game.client.gameState;
+		if( s_game.state == GameState_Play )
+		{
+			ClientGameState* pGameState = &s_game.client.gameState;
 
-		for( uint i = 0u; i < SYS_COUNTOF( pGameState->player ); ++i )
-		{
-			const ClientPlayer* pPlayer = &pGameState->player[ i ];
-			if( pPlayer->state != PlayerState_InActive )
+			for( uint i = 0u; i < SYS_COUNTOF( pGameState->player ); ++i )
 			{
-				game_render_car( pPlayer );
+				const ClientPlayer* pPlayer = &pGameState->player[ i ];
+				if( pPlayer->state != PlayerState_InActive )
+				{
+					game_render_car( pPlayer );
+				}
 			}
-		}
-		for( uint i = 0u; i < SYS_COUNTOF( pGameState->bombs ); ++i )
-		{
-			const ClientBomb* pBomb = &pGameState->bombs[ i ];
-			if( pBomb->time > 0u )
+			for( uint i = 0u; i < SYS_COUNTOF( pGameState->bombs ); ++i )
 			{
-				game_render_bomb( pBomb );
+				const ClientBomb* pBomb = &pGameState->bombs[ i ];
+				if( pBomb->time > 0u )
+				{
+					game_render_bomb( pBomb );
+				}
 			}
-		}
-		for( uint i = 0u; i < SYS_COUNTOF( pGameState->explosions ); ++i )
-		{
-			const ClientExplosion* pExplosion = &pGameState->explosions[ i ];
-			if( pExplosion->time > 0u )
+			for( uint i = 0u; i < SYS_COUNTOF( pGameState->explosions ); ++i )
 			{
-				game_render_explosion( pExplosion );
-			}
-			if( s_game.client.explosionTriggered[ i ] )
-			{
-				game_render_burnhole( pExplosion );
-                s_game.client.explosionTriggered[i] = 0;
+				const ClientExplosion* pExplosion = &pGameState->explosions[ i ];
+				if( pExplosion->time > 0u )
+				{
+					game_render_explosion( pExplosion );
+				}
+				if( s_game.client.explosionTriggered[ i ] )
+				{
+					game_render_burnhole( pExplosion );
+					s_game.client.explosionTriggered[i] = 0;
+				}
 			}
 		}
 	}

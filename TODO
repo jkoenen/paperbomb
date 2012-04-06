@@ -8,8 +8,8 @@ TODO:
     + create flip animation in vertex shader
 - network
     + sockets
-    - matchmaking
-    - client/server communication
+    + matchmaking
+    + client/server communication
 - font:
     + quadratic curve to stroke conversion
     - define font with quadratic curves
@@ -19,7 +19,6 @@ TODO:
     - logo?
     - main menu
     - multiplayer menu
-    - single player? -> AI?
     - menu point selection (erase)
 - gameplay
     - proper collision

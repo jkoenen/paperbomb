@@ -243,6 +243,10 @@ int main()
 						updateButtonMask( &buttonMask, ButtonMask_Server, event.type == SDL_KEYDOWN );
 						break;
 
+					case SDLK_l:
+						updateButtonMask( &buttonMask, ButtonMask_Leave, event.type == SDL_KEYDOWN );
+						break;
+
 					default:
 						break;
 					}

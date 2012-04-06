@@ -46,7 +46,7 @@ void client_destroy( Client* pClient )
 	socket_done();
 }
 
-void client_update( Client* pClient, uint buttonMask )
+int client_update( Client* pClient, uint buttonMask )
 {
 	pClient->state.id++;
 	pClient->state.buttonMask = (uint8)buttonMask;
@@ -65,6 +65,11 @@ void client_update( Client* pClient, uint buttonMask )
 			if( gameState.id > pClient->gameState.id )
 			{
 				pClient->gameState = gameState;
+
+				if( gameState.id & ServerFlagOffline )
+				{
+					return 1;
+				}
 			}
 		}
 		else
@@ -87,5 +92,7 @@ void client_update( Client* pClient, uint buttonMask )
 		pClient->explosionActive[ i ] = isActive;
         pClient->explosionTriggered[i] |= flank;
 	}
+
+	return 0;
 }
 

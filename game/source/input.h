@@ -22,6 +22,7 @@ enum
 
 	ButtonMask_Client				= 1u << 14u,
 	ButtonMask_Server				= 1u << 15u,
+	ButtonMask_Leave				= 1u << 16u,
 
 	Button_PlayerMask				= ( 1u << 5u ) - 1u,
 	Button_PlayerShift				= 5u,
