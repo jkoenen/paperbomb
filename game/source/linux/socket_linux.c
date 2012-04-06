@@ -20,7 +20,7 @@ void socket_done()
 
 uint32 socket_getAnyIP()
 {
-	return ADDR_ANY;
+	return INADDR_ANY;
 }
 
 uint32 socket_gethostIP()

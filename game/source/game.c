@@ -58,6 +58,7 @@ static void game_switch_state( int state )
 
 	if( state == GameState_Play )
 	{
+        SYS_TRACE_DEBUG( "starting game\n" );
 		IP4Address address;
 		address.port = NetworkPort;
 
@@ -164,12 +165,12 @@ void game_update( const GameInput* pInput )
 			{
 				if( buttonDownMask & ButtonMask_Client )
 				{
-					s_game.isServer = false;
+					s_game.isServer = FALSE;
 					game_switch_state( GameState_Play );
 				}
 				else if( buttonDownMask & ButtonMask_Server )
 				{
-					s_game.isServer = true;
+					s_game.isServer = TRUE;
 					game_switch_state( GameState_Play );
 				}
 			}
