@@ -307,7 +307,7 @@ void renderer_init()
     color.y = 0.2f;
     color.z = 0.2f;
     createPen( &s_renderer.pens[ Pen_Default ], 2.0f, 1.0f, &color );
-    createPen( &s_renderer.pens[ Pen_Font ], 5.0f, 1.0f, &color );
+    createPen( &s_renderer.pens[ Pen_Font ], 2.0f, 1.0f, &color );
     createPen( &s_renderer.pens[ Pen_Fat ], 20.0f, 1.0f, &color );
     createPen( &s_renderer.pens[ Pen_DebugRed ], 2.0f, 1.0f, float3_set( &color, 1.0f, 0.0f, 0.0f ) );
     createPen( &s_renderer.pens[ Pen_DebugGreen ], 2.0f, 1.0f, float3_set( &color, 0.0f, 1.0f, 0.0f ) );
@@ -349,11 +349,11 @@ void renderer_setDrawSpeed( float speed )
     speed = float_saturate( speed );
 
     const float maxStrokeDrawSpeed = 10.0f;    // units per second..
-    const float maxDelayAfterFlip = 1.0f; 
-    const float maxDelayAfterDraw = 3.0f;
+    const float maxDelayAfterFlip = 0.6f; 
+    const float maxDelayAfterDraw = 0.7f;
     const float maxFlipDuration = 2.5f;
 
-    const float2 strokeDrawSpeedKeys = { 0.2f, 0.8f };
+    //const float2 strokeDrawSpeedKeys = { 0.2f, 0.8f };
     const float2 afterFlipDelayKeys = { 0.2f, 0.8f };
     const float2 afterDrawDelayKeys = { 0.4f, 0.9f };
     const float2 flipDurationKeys = { 0.5f, 0.95f };
@@ -368,7 +368,7 @@ void renderer_setDrawSpeed( float speed )
     }
     else
     {
-        s_renderer.strokeDrawSpeed = powf(2.0f,getDelayValue( &strokeDrawSpeedKeys, maxStrokeDrawSpeed, 1.0f-speed ));
+        s_renderer.strokeDrawSpeed = 100.0f*maxStrokeDrawSpeed; //powf(2.0f,getDelayValue( &strokeDrawSpeedKeys, maxStrokeDrawSpeed, 1.0f-speed ));
         s_renderer.delayAfterFlip = getDelayValue( &afterFlipDelayKeys, maxDelayAfterFlip, speed );
         s_renderer.delayAfterDraw = getDelayValue( &afterDrawDelayKeys, maxDelayAfterDraw, speed );
         s_renderer.flipDuration = getDelayValue( &flipDurationKeys, maxFlipDuration, speed );
@@ -796,6 +796,35 @@ static void evaluateQuadraticCurveTangent( float2* pResult, const float2* pPoint
     pResult->y = 2.0f*(1.0f-x)*t0y + 2.0f*x*t1y;
 }
 
+static uint addQuadraticCurvePointsRec(const float2* p0, const float2* p1, const float2* p2)
+{
+    const float2 points[3u] = { *p0, *p1, *p2 };
+    uint addedPointCount=0u;
+
+    float2 linearMidPoint;
+    float2_sub(&linearMidPoint,p2,p0);
+    float2_addScaled1f(&linearMidPoint,p0,&linearMidPoint,0.5f);
+
+    float2 curveMidPoint;
+    evaluateQuadraticCurve(&curveMidPoint,points,0.5f);
+
+    const float threshold=0.5f;
+    const float squareThreshold=threshold*threshold;
+    if(float2_squareDistance(&linearMidPoint,&curveMidPoint)>squareThreshold)
+    {
+        // subdivide..
+        SYS_TRACE_DEBUG("subd\n");
+    }
+    else
+    {
+        if( pushStrokePoint( p2 ) )
+        {
+            addedPointCount++;
+        }
+    }
+    return addedPointCount;
+}
+
 static uint addQuadraticCurvePoints(const float2* pPoints,uint stepCount,int addLastPoint)
 {
     float x = 0.0f;
@@ -806,15 +835,15 @@ static uint addQuadraticCurvePoints(const float2* pPoints,uint stepCount,int add
     float2 point;
     if( !addLastPoint )
     {
-        stepCount--;
+    //    stepCount--;
     }
-    const float distanceThreshold=0.01f;
+    //const float distanceThreshold=0.01f;
     float2 lastPoint;
     float2 lastNormal;
     for( uint i = 0u; i < stepCount; ++i )
     {
         evaluateQuadraticCurve(&point,pPoints,x);
-        if( i == 0 || i == stepCount - 1 || float2_distance(&point,&lastPoint)>distanceThreshold)
+    //    if( i == 0 || i == stepCount - 1 || float2_distance(&point,&lastPoint)>distanceThreshold)
         {
             float2 tangent;
             evaluateQuadraticCurveTangent(&tangent,pPoints,x);
@@ -976,6 +1005,64 @@ void renderer_addQuadraticStroke( const float2* pPoints, uint pointCount )
     }
 }*/
 
+void renderer_addCommandStroke( const float2* pPoints, const uint8* pCommands, uint commandCount )
+{
+    StrokeCommand strokeCommand;
+    createDrawCommand(&strokeCommand);
+    const float variance=s_renderer.currentVariance;
+
+    for(uint i=0u;i<commandCount;++i)
+    {
+        uint8 command=*pCommands++;
+        float2 pos;
+        
+        switch(command)
+        {
+        case DrawCommand_Move:
+            if(strokeCommand.data.draw.pointCount>0u)
+            {
+                computeStrokeNormals(&strokeCommand, 0);
+                pushStrokeCommand(&strokeCommand);
+            }
+            transformPoint(&pos,pPoints++,variance);
+            createDrawCommand(&strokeCommand);
+            if(pushStrokePoint(&pos))
+            {
+                strokeCommand.data.draw.pointCount++;
+            }
+            //SYS_TRACE_DEBUG("m(%f,%f)\n",pos.x,pos.y);
+            break;
+
+        case DrawCommand_Line:
+            {
+                transformPoint(&pos,pPoints++,variance);
+                if(pushStrokePoint(&pos))
+                {
+                    strokeCommand.data.draw.pointCount++;
+                }
+                //SYS_TRACE_DEBUG("l(%f,%f)\n",pos.x,pos.y);
+            }
+            break;
+
+        case DrawCommand_Curve:
+            {
+                float2 p1,p2;
+                transformPoint(&p1,pPoints++,variance);
+                transformPoint(&p2,pPoints++,variance);
+                strokeCommand.data.draw.pointCount += addQuadraticCurvePointsRec(&pos,&p1,&p2);
+                pos=p2;
+                //SYS_TRACE_DEBUG("c(%f,%f)\n",pos.x,pos.y);
+            }
+            break;
+        }
+    }
+    if(strokeCommand.data.draw.pointCount>0u)
+    {
+        computeStrokeNormals(&strokeCommand, 0);
+        pushStrokeCommand(&strokeCommand);        
+    }
+}
+
 static void startStroke( uint pointIndex, uint pointCount )
 {
     SYS_ASSERT( pointCount >= 2u );
@@ -1082,7 +1169,6 @@ static int advanceStroke( float* pRemainingTime, float timeStep )
         }
 
         float remainingSegmentLength = activeSegmentLength - pStroke->segmentProgress;
-        
         const float segmentAdvance = float_min( remainingSegmentLength, remainingLength );
 
         // draw segment part:
@@ -1350,7 +1436,7 @@ void renderer_drawFrame( const FrameData* pFrame )
     // render the flipped page on top:
     if( s_renderer.flipTime >= 0.0f )
     {
-        const float flipProgress = 0.5f * float_saturate( s_renderer.flipTime / s_renderer.flipDuration );
+        const float flipProgress=float_saturate( s_renderer.flipTime / s_renderer.flipDuration );
         //SYS_TRACE_DEBUG( "%f (%f/%f)\n", flipProgress, s_renderer.flipTime, s_renderer.flipDuration );
 
         graphics_setShader( &s_renderer.pageFlipShader );

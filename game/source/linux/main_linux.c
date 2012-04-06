@@ -477,7 +477,7 @@ int main()
         //frame.playerPos = s_game.player[ 0u ].position;
         renderer_drawFrame( &frame );
                 
-#elif TEST_RENDERER
+#elif defined( TEST_RENDERER )
         if( renderer_isPageDone() )
         {
             // new page:
@@ -498,7 +498,6 @@ int main()
             };*/
 
             renderer_setPen( Pen_DebugGreen );
-
             const float2 worldOffset = { 32.0f, 16.0f };
             const float2 position = { 0.0f, 0.0f };
 
@@ -514,7 +513,7 @@ int main()
 
             float2 textPos;
             float2_set(&textPos,5.0f,4.0f);
-            font_drawText(&textPos,2.0f,0.0f,"0123456789A" );
+            font_drawText(&textPos,2.0f,0.0f,"O");
         }
         renderer_updatePage( timeStep );
 

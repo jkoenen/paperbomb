@@ -22,6 +22,15 @@ typedef enum
     Pen_Count
 } Pen;
 
+typedef enum
+{
+    DrawCommand_Move,
+    DrawCommand_Line,
+    DrawCommand_Curve,
+    DrawCommand_Count
+} DrawCommand;
+
+
 void renderer_init();
 void renderer_done();
 
@@ -38,6 +47,8 @@ void renderer_flush();
 void renderer_addLinearStroke( const float2* pPoints, uint pointCount );
 
 void renderer_addQuadraticStroke( const float2* pPoints, uint pointCount );
+
+void renderer_addCommandStroke( const float2* pPoints, const uint8* pCommands, uint commandCount );
 
 void renderer_updatePage( float timeStep );
 int renderer_isPageDone();
