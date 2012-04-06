@@ -303,7 +303,7 @@ void renderer_init()
     clearStrokeBuffer( &s_renderer.strokeBuffer );
 
     float3 color;
-    color.x = 0.8f;
+    color.x = 0.2f;
     color.y = 0.2f;
     color.z = 0.2f;
     createPen( &s_renderer.pens[ Pen_Default ], 2.0f, 1.0f, &color );
@@ -325,7 +325,6 @@ void renderer_init()
 
     renderer_setDrawSpeed( 0.5f );
     renderer_setPen( Pen_Default );
-    renderer_setVariance( 0.2f );
     renderer_setTransform( 0 );
 }
 

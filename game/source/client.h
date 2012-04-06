@@ -5,6 +5,21 @@
 #include "socket.h"
 #include "settings.h"
 
+enum
+{
+	ItemType_None,
+	ItemType_ExtraBomb,
+	ItemType_BombRange
+};
+
+typedef struct  
+{
+	uint8	type;
+	int16	posX;
+	int16	posY;
+
+} ClientItem;
+
 typedef struct 
 {
 	uint8	time;
@@ -51,6 +66,7 @@ typedef struct
 	ClientPlayer		player[ MaxPlayer ];
 	ClientBomb			bombs[ MaxBombs ];
 	ClientExplosion		explosions[ MaxExplosions ];
+	ClientItem			items[ MaxItems ];
 
 } ClientGameState;
 

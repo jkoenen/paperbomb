@@ -26,7 +26,12 @@ static const float s_playerStartDirections[] =
 
 static void bomb_explode( ServerExplosion* pExplosion, const ServerBomb* pBomb )
 {
-	pExplosion->player		= pBomb->player;
+	if( !pExplosion )
+	{
+		return;
+	}
+
+ 	pExplosion->player		= pBomb->player;
 	pExplosion->position	= pBomb->position;
 	pExplosion->direction	= pBomb->direction;
 	pExplosion->length		= pBomb->length;
@@ -88,26 +93,25 @@ static void player_init( ServerPlayer* pPlayer, const IP4Address* pAddress )
 	pPlayer->lastButtonMask	= 0u;
 	pPlayer->state.id		= 0u;
 	pPlayer->frags			= 0u;
-
-	pPlayer->maxBombs		= 4u;
-	pPlayer->bombLength		= 12.0f;
 }
 
 static void player_respawn( ServerPlayer* pPlayer, const float2* pPosition, float direction )
 {
-	pPlayer->age		= 0.0f;
-	pPlayer->steer		= 0.0f;
-	pPlayer->velocity.x	= 0.0f;
-	pPlayer->position.y	= 0.0f;
-	pPlayer->position	= *pPosition;
-	pPlayer->direction	= direction;
+	pPlayer->age			= 0.0f;
+	pPlayer->steer			= 0.0f;
+	pPlayer->velocity.x		= 0.0f;
+	pPlayer->position.y		= 0.0f;
+	pPlayer->position		= *pPosition;
+	pPlayer->direction		= direction;
+	pPlayer->maxBombs		= 2u;
+	pPlayer->bombLength		= 6.0f;
 }
 
 static void player_update( ServerPlayer* pPlayer, uint index, ServerBomb* pBomb, uint activeBombs, World* pWorld )
 {
-	const float steerSpeed		= 0.05f;
+	const float steerSpeed		= 0.08f;
 	const float steerDamping	= 0.8f;
-	const float maxSpeed		= 0.5f;
+	const float maxSpeed		= 0.8f;
 	const float maxSteer		= (float)PI * 0.2f;
 
 	const uint buttonMask		= pPlayer->state.buttonMask;
@@ -234,6 +238,16 @@ static void create_client_state( ClientGameState* pClientState, const ServerGame
 		pClient->direction	= angle_quantize( pServer->direction );
 		pClient->length		= (uint8)pServer->length;
 	}
+
+	for( uint i	= 0u; i < SYS_COUNTOF( pServerState->items ); ++i )
+	{
+		ClientItem* pClient = &pClientState->items[ i ];
+		const ServerItem* pServer = &pServerState->items[ i ];
+
+		pClient->type		= (uint8)pServer->type;
+		pClient->posX		= float_quantize( pServer->position.x );
+		pClient->posY		= float_quantize( pServer->position.y );
+	}
 }
 
 static void server_send_client_state( Server* pServer )
@@ -279,6 +293,12 @@ void server_create( Server* pServer, uint16 port )
 	{
 		pServer->gameState.explosions[ i ].time = 0.0f;
 	}
+	for( uint i = 0u; i < SYS_COUNTOF( pServer->gameState.items ); ++i )
+	{
+		pServer->gameState.items[ i ].type = ItemType_None;
+	}
+	pServer->gameState.timeToNextItem = 5.0f;
+
 	pServer->gameState.id = 0u;
 }
 
@@ -394,6 +414,39 @@ void server_update( Server* pServer, World* pWorld )
 
 		ServerBomb* pBomb = find_free_bomb( pServer->gameState.bombs, SYS_COUNTOF( pServer->gameState.bombs ) );
 		player_update( pPlayer, i, pBomb, bombCount, pWorld );
+
+		Circle playerCirlce;
+		playerCirlce.center = pPlayer->position;
+		playerCirlce.radius = 1.0f;
+
+		for( uint j = 0u; j < SYS_COUNTOF( pServer->gameState.items ); ++j )
+		{
+			ServerItem* pItem = &pServer->gameState.items[ j ];
+			if( pItem->type == ItemType_None )
+			{
+				continue;
+			}
+
+			Circle itemCircle;
+			itemCircle.center = pItem->position;
+			itemCircle.radius = 1.0f;
+
+			if( isCircleCircleIntersecting( &itemCircle, &playerCirlce ) )
+			{
+				switch( pItem->type )
+				{
+					case ItemType_BombRange:
+						pPlayer->bombLength += 2.0f;
+						break;
+
+					case ItemType_ExtraBomb:
+						pPlayer->maxBombs++;
+						break;
+				}
+
+				pItem->type = ItemType_None;
+			}
+		}
 	}
 
 	for( uint i = 0u; i < SYS_COUNTOF( pServer->gameState.bombs ); ++i )
@@ -452,9 +505,20 @@ void server_update( Server* pServer, World* pWorld )
 
 				if( isPlayerOldEnough && ( isCircleCapsuleIntersecting( &playerCirlce, &capsule0 ) || isCircleCapsuleIntersecting( &playerCirlce, &capsule1 ) ) )
 				{
-					if( pExplosion->player < MaxPlayer )
+					if( pExplosion->player < MaxPlayer ) 
 					{
-						pServer->gameState.player[ pExplosion->player ].frags++;
+						ServerPlayer* pFragPlayer = &pServer->gameState.player[ pExplosion->player ];
+						if( pExplosion->player == j )
+						{
+							if( pFragPlayer->frags > 0u )
+							{
+								pFragPlayer->frags--;
+							}
+						}
+						else
+						{
+							pFragPlayer->frags++;
+						}
 					}
 
 					player_respawn( pPlayer, &s_playerStartPositions[ j ], s_playerStartDirections[ j ] );
@@ -480,6 +544,24 @@ void server_update( Server* pServer, World* pWorld )
 					pBomb->time = 0.0f;
 				}
 			}
+
+			for( uint j = 0u; j < SYS_COUNTOF( pServer->gameState.items ); ++j )
+			{
+				ServerItem* pItem = &pServer->gameState.items[ j ];
+				if( pItem->type == ItemType_None )
+				{
+					continue;
+				}
+
+				Circle itemCircle;
+				itemCircle.center = pItem->position;
+				itemCircle.radius = 1.0f;
+
+				if( isCircleCapsuleIntersecting( &itemCircle, &capsule0 ) || isCircleCapsuleIntersecting( &itemCircle, &capsule1 ) )
+				{
+					pItem->type = ItemType_None;
+				}
+			}
 		}
 
 		pExplosion->time += GAMETIMESTEP;
@@ -487,6 +569,24 @@ void server_update( Server* pServer, World* pWorld )
 		{
 			pExplosion->time = 0.0f;
 		}
+	}
+
+	pServer->gameState.timeToNextItem -= GAMETIMESTEP;
+	if( pServer->gameState.timeToNextItem <= 0.0f )
+	{	
+		for( uint i = 0u; i < SYS_COUNTOF( pServer->gameState.items ); ++i )
+		{
+			ServerItem* pItem = &pServer->gameState.items[ i ];
+
+			if( pItem->type == ItemType_None )
+			{
+				pItem->type = ( float_rand() < 0.5f ? ItemType_ExtraBomb : ItemType_BombRange );
+				pItem->position.x = float_rand_range( pWorld->borderMin.x + 2.0f, pWorld->borderMax.x - 2.0f );
+				pItem->position.y = float_rand_range( pWorld->borderMin.y + 2.0f, pWorld->borderMax.y - 2.0f );
+				break;
+			}
+		}
+		pServer->gameState.timeToNextItem = float_rand_range( 5.0f, 10.0f );
 	}
 
 	pServer->gameState.id++;

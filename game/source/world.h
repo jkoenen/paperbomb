@@ -10,6 +10,7 @@ typedef struct
 
 	float2		borderMin;
 	float2		borderMax;
+
 	Circle		rockz[ 4u ];
 
 } World;
