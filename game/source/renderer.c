@@ -15,6 +15,10 @@
 #include "burnhole_glsl.h"
 #include "noise_glsl.h"
 
+#ifndef SYS_BUILD_MASTER
+#   include "debugpen_glsl.h"
+#endif
+
 #include <math.h>
 
 enum 
@@ -118,6 +122,9 @@ typedef struct
     Shader          pageFlipShader;
     Shader          burnHoleShader;
     Shader          noiseShader;
+#ifndef SYS_BUILD_MASTER
+    Shader          debugPenShader;
+#endif
 
     RenderTarget    noiseTarget;
     
@@ -257,6 +264,9 @@ void renderer_init()
     SYS_VERIFY( shader_create( &s_renderer.pageFlipShader, &s_shader_pageflip, 1u, 0u, 2u ) );
     SYS_VERIFY( shader_create( &s_renderer.burnHoleShader, &s_shader_burnhole, 0u, 2u, 1u ) );
     SYS_VERIFY( shader_create( &s_renderer.noiseShader, &s_shader_noise, 0u, 0u, 0u ) );
+#ifndef SYS_BUILD_MASTER
+    SYS_VERIFY( shader_create( &s_renderer.debugPenShader, &s_shader_debugpen, 1u, 0u, 0u ) );
+#endif
 
     SYS_VERIFY( rendertarget_create( &s_renderer.noiseTarget, 512u, 512u, PixelFormat_R8G8B8A8 ) );
     
@@ -1052,6 +1062,19 @@ static int advanceStroke( float* pRemainingTime, float timeStep )
 
     return FALSE;
 }
+
+#ifndef SYS_BUILD_MASTER
+void renderer_drawCircle(const float2* pPos, float radius,const float3* pColor)
+{
+    Page* pPage = &s_renderer.pages[ s_renderer.currentPage ];
+    graphics_setRenderTarget( &pPage->fgTarget );
+    graphics_setShader( &s_renderer.debugPenShader );
+    graphics_setBlendMode( BlendMode_Over );
+
+    graphics_setFp4f( 0u, pColor->x, pColor->y, pColor->z, 1.0f );
+    graphics_drawCircle(pPos,radius);
+}
+#endif
 
 static void startDrawCommand()
 {

@@ -100,6 +100,16 @@ static inline float float_clamp( float x, float min, float max )
     return float_min( float_max( x, min ), max );
 }
 
+static inline uint uint_min( uint x, uint y )
+{
+	return x < y ? x : y;
+}
+
+static inline uint uint_max( uint x, uint y )
+{
+	return x > y ? x : y;
+}
+
 static inline int int_min( int x, int y )
 {
 	return x < y ? x : y;

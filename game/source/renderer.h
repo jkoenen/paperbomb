@@ -41,5 +41,7 @@ int renderer_isPageDone();
 
 void renderer_drawFrame( const FrameData* pFrame );
 
+void renderer_drawCircle(const float2* pPos, float radius,const float3* pColor);
+
 #endif
 
