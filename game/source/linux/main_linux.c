@@ -512,8 +512,8 @@ int main()
             //renderer_addQuadraticStroke(points,SYS_COUNTOF(points));
 
             float2 textPos;
-            float2_set(&textPos,5.0f,4.0f);
-            font_drawText(&textPos,2.0f,0.0f,"O");
+            float2_set(&textPos,5.0f,4.0f); 
+            font_drawText(&textPos,2.0f,0.0f,"P");
         }
         renderer_updatePage( timeStep );
 
@@ -523,6 +523,7 @@ int main()
         //frame.playerPos = s_game.player[ 0u ].position;
         renderer_drawFrame( &frame );
 #else
+        renderer_setVariance(0.0f);
         GameInput gameInput;
         memset( &gameInput, 0u, sizeof( gameInput ) );
         gameInput.timeStep = timeStep;

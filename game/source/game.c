@@ -78,6 +78,22 @@ static void game_switch_state( int state )
 	}
 
 	s_game.state = state;
+
+    if( s_game.state == GameState_Menu )
+    {
+        renderer_setDrawSpeed(0.0f);
+        
+        renderer_setPen( Pen_Fat );
+        float2 position;
+        float2_set(&position,20.0f,10.0f);
+
+        font_drawText(&position,1.0f,0.1f,"PAPERb0mb!" );
+        //font_draw( 
+    }
+    else
+    {
+        renderer_setDrawSpeed(1.0f);
+    }
 }
 
 static void debug_update( uint buttonMask, uint buttonDownMask )
@@ -422,27 +438,15 @@ void game_render()
 	//	return;
 	//}
 
-	if( renderer_isPageDone() )
+	if( s_game.state == GameState_Play && renderer_isPageDone() )
 	{
 		// new page:
 		renderer_flipPage();
 
 		//const float speed = 5.0f;
 		//const float width = 2.0f;
-		const float variance = s_game.variance;
-
-		renderer_setPen( Pen_Font );
-		float2 position = { 1.0f, 1.0f };
-		font_drawText( &position, 2.0f, variance, "HALLO" );
-		position.y += 10.0f;
-		font_drawText( &position, 0.8f, 2.0f * variance, "HALLO" );
-		position.y += 10.0f;
-		font_drawText( &position, 0.8f, 2.0f * variance, "HALLO" );
-		position.y += 10.0f;
-		font_drawText( &position, 0.8f, 0.5f * variance, "HALLO" );
 
 		renderer_setTransform( 0 );
-
 		renderer_setPen( Pen_Default );
 
 		if( s_game.state == GameState_Play )

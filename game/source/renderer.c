@@ -308,7 +308,7 @@ void renderer_init()
     color.z = 0.2f;
     createPen( &s_renderer.pens[ Pen_Default ], 2.0f, 1.0f, &color );
     createPen( &s_renderer.pens[ Pen_Font ], 2.0f, 1.0f, &color );
-    createPen( &s_renderer.pens[ Pen_Fat ], 20.0f, 1.0f, &color );
+    createPen( &s_renderer.pens[ Pen_Fat ], 3.0f, 1.0f, &color );
     createPen( &s_renderer.pens[ Pen_DebugRed ], 2.0f, 1.0f, float3_set( &color, 1.0f, 0.0f, 0.0f ) );
     createPen( &s_renderer.pens[ Pen_DebugGreen ], 2.0f, 1.0f, float3_set( &color, 0.0f, 1.0f, 0.0f ) );
     createPen( &s_renderer.pens[ Pen_PageNumber ], 2.0f, 1.0f, float3_set( &color, 0.0f, 0.0f, 0.0f ) );
@@ -547,7 +547,9 @@ static void transformPoint( float2* pTarget, const float2* pSource, float varian
     const float2x3* pTransform = &s_renderer.currentTransform;
 
     float2 offset;
-    float2_rand_normal( &offset, 0.0f, variance ); 
+//    float2_rand_normal( &offset, 0.0f, variance ); 
+SYS_USE_ARGUMENT(variance);
+float2_set(&offset,0.0f,0.0f);
 
     float2 point;
     float2x3_transform( &point, pTransform, pSource );
@@ -1010,7 +1012,6 @@ void renderer_addCommandStroke( const float2* pPoints, const uint8* pCommands, u
     StrokeCommand strokeCommand;
     createDrawCommand(&strokeCommand);
     const float variance=s_renderer.currentVariance;
-
     for(uint i=0u;i<commandCount;++i)
     {
         uint8 command=*pCommands++;
